@@ -308,3 +308,99 @@ def test_dashboard_still_renders_with_csp(client):
     r = client.get("/")
     assert r.status_code == 200
     assert b"panel-overview" in r.data
+
+
+# ══════════════════════════════════════════════════════════════════
+#  E-1: 외부 CDN 제거 · 자체 호스팅
+# ══════════════════════════════════════════════════════════════════
+
+import pathlib  # noqa: E402
+import re  # noqa: E402
+
+_REPO = pathlib.Path(__file__).resolve().parent.parent
+
+# 자산이 아닌 외부 링크는 허용한다 — <a href> 는 로드되지 않는다.
+_ALLOWED_EXTERNAL = ("https://attack.mitre.org",)
+
+
+def _asset_urls(text):
+    """src=/href= 로 로드되는 외부 URL만 뽑는다."""
+    found = re.findall(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)["\']', text)
+    return [u for u in found if not u.startswith(_ALLOWED_EXTERNAL)]
+
+
+def test_no_external_asset_references():
+    """템플릿·JS·CSS 어디서도 외부 자산을 로드하지 않는다.
+
+    이전에는 CDN 9개(jsdelivr·cloudflare·unpkg·datatables·jquery·socket.io)를
+    SRI 없이 로드했다. CDN 이 죽으면 사고 대응 중에 화면이 깨지고, CDN 이
+    침해되면 그 스크립트가 그대로 실행된다. 격리망에서는 아예 뜨지 않는다.
+    """
+    offenders = {}
+    targets = list((_REPO / "templates").rglob("*.html"))
+    targets += list((_REPO / "static" / "js").rglob("*.js"))
+    for path in targets:
+        urls = _asset_urls(path.read_text(encoding="utf-8"))
+        if urls:
+            offenders[str(path.relative_to(_REPO))] = urls
+
+    css = (_REPO / "static" / "css" / "style.css").read_text(encoding="utf-8")
+    css_urls = re.findall(r"url\(\s*['\"]?(https?://[^)'\"]+)", css)
+    if css_urls:
+        offenders["static/css/style.css"] = css_urls
+
+    assert offenders == {}, (
+        f"외부 자산 참조가 남아 있다: {offenders}\n"
+        f"— static/vendor/ 에 받아서 로컬 경로로 바꿀 것 "
+        f"(static/vendor/README.md 참조).")
+
+
+def test_vendored_assets_exist_and_are_referenced():
+    """dashboard.html 이 가리키는 vendor 파일이 실제로 존재해야 한다."""
+    html = (_REPO / "templates" / "dashboard.html").read_text(encoding="utf-8")
+    refs = re.findall(r'["\'](/static/vendor/[^"\']+)["\']', html)
+    assert len(refs) >= 8, f"vendor 참조가 너무 적다: {refs}"
+    missing = [r for r in refs if not (_REPO / r.lstrip("/")).is_file()]
+    assert missing == [], f"참조하는데 없는 vendor 파일: {missing}"
+
+
+def test_fontawebfonts_referenced_by_css_exist():
+    """아이콘이 깨지지 않으려면 CSS 가 참조하는 웹폰트가 다 있어야 한다."""
+    base = _REPO / "static" / "vendor" / "fontawesome"
+    css = (base / "css" / "all.min.css").read_text(encoding="utf-8")
+    fonts = set(re.findall(r"\.\./webfonts/([a-zA-Z0-9.-]+)", css))
+    assert fonts, "CSS 가 웹폰트를 참조하지 않는다 — 잘못된 파일인가?"
+    missing = sorted(f for f in fonts if not (base / "webfonts" / f).is_file())
+    assert missing == [], f"CSS 가 참조하는데 없는 폰트: {missing}"
+
+
+def test_leaflet_is_fully_removed():
+    """Leaflet 은 호출 0건이라 vendoring 하지 않고 제거했다.
+
+    링크만 지우고 죽은 CSS 오버라이드를 남기면 다음 사람이 '지도는 Leaflet'
+    이라고 오해한다. 실제 지도는 globe.gl 이다.
+    """
+    for sub, pattern in (("templates", "*.html"), ("static", "*.css"),
+                         ("static", "*.js")):
+        for path in (_REPO / sub).rglob(pattern):
+            if "vendor" in path.parts:
+                continue
+            assert "leaflet" not in path.read_text(encoding="utf-8").lower(), (
+                f"{path.relative_to(_REPO)} 에 leaflet 잔재가 남아 있다")
+
+
+@pytest.mark.parametrize("directive", [
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
+    "img-src 'self' data: blob:",
+])
+def test_csp_no_longer_allows_external_origins(client, directive):
+    """자체 호스팅 덕에 CSP 를 'self' 로 좁혔다 — CDN 호스트가 없어야 한다."""
+    csp = _csp(client)
+    assert directive in csp
+    for host in ("jsdelivr", "cloudflare", "unpkg", "datatables.net",
+                 "code.jquery.com", "cdn.socket.io"):
+        assert host not in csp, f"CSP 에 CDN 호스트가 남아 있다: {host}"
+    assert "img-src 'self' data: blob: https:" not in csp, (
+        "img-src 가 임의 https 를 허용하면 이미지 요청으로 데이터를 반출할 수 있다")

@@ -226,21 +226,22 @@ def create_app():
     # HSTS 는 넣지 않는다 — Tailscale HTTP 접속이라 Strict-Transport-Security 가
     # 걸리면 접속 자체가 막힌다.
 
-    _CDN_HOSTS = ("https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
-                  "https://unpkg.com https://cdn.datatables.net "
-                  "https://code.jquery.com https://cdn.socket.io")
+    # 외부 CDN 6개는 static/vendor/ 자체 호스팅으로 대체했다(AUDIT E-1).
+    # 그래서 script/style/font/img 를 전부 'self' 로 좁힐 수 있다 — 이제
+    # 주입된 스크립트가 외부에서 코드를 끌어오거나 이미지 요청으로 데이터를
+    # 빼내는 경로가 없다. 추가 출처가 필요하면 CSP_EXTRA_SOURCES 로 넣는다.
 
     def _build_csp():
         extra = str(app.config.get("CSP_EXTRA_SOURCES", "") or "").strip()
-        cdn = _CDN_HOSTS + (" " + extra if extra else "")
+        ext = (" " + extra) if extra else ""
         return "; ".join([
             "default-src 'self'",
             # 인라인 핸들러 132개 때문에 불가피하다 — 위 주석 참조
-            f"script-src 'self' 'unsafe-inline' {cdn}",
-            f"style-src 'self' 'unsafe-inline' {cdn}",
-            f"font-src 'self' data: {cdn}",
-            # 공격 지도 타일·GeoIP 조회 결과 이미지
-            "img-src 'self' data: blob: https:",
+            f"script-src 'self' 'unsafe-inline'{ext}",
+            f"style-src 'self' 'unsafe-inline'{ext}",
+            f"font-src 'self' data:{ext}",
+            # 지도는 globe.gl + 로컬 GeoJSON 이라 외부 타일을 받지 않는다
+            f"img-src 'self' data: blob:{ext}",
             # 대시보드가 실제로 통신하는 곳: 자기 자신(REST/WebSocket)
             "connect-src 'self' ws: wss:",
             "object-src 'none'",

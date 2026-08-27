@@ -56,6 +56,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
 | `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 33개) |
 | `static/js/dash/01~18-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드) |
+| `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 외부 시스템 연동 확장 방법
 

@@ -354,65 +354,6 @@ html, body {
 .soar-run-step.skipped { opacity: .55; border-style: dashed; }
 .soar-run-step .step-state { display:block; font-size:8px; text-transform:uppercase; margin-bottom:2px; }
 
-/* Leaflet dark cyber-globe override */
-.leaflet-container {
-  background: radial-gradient(ellipse at center, #0b1e3a 0%, #020615 70%, #000 100%) !important;
-}
-/* dark_all 타일은 이미 어두우므로 필터 최소화 (약간의 파랑 톤만) */
-.leaflet-tile-container img {
-  filter: saturate(1.2) hue-rotate(-10deg) brightness(1.1);
-  opacity: 1;
-}
-.leaflet-popup-content-wrapper {
-  background: rgba(10,22,40,.95);
-  color: var(--text-primary);
-  border: 1px solid var(--cyan);
-  box-shadow: 0 0 16px rgba(57,208,216,.4);
-  font-size: 11px;
-}
-.leaflet-popup-tip { background: rgba(10,22,40,.95); }
-.leaflet-control-zoom a { background: #0a1628 !important; color: var(--cyan) !important; border-color: var(--cyan) !important; }
-
-/* 방어 타겟 마커 (서울) */
-.defender-marker {
-  width: 18px; height: 18px;
-  background: #39d0d8;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 18px #39d0d8, 0 0 30px rgba(57,208,216,.6);
-  position: relative;
-}
-.defender-marker::before,
-.defender-marker::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid #39d0d8;
-  border-radius: 50%;
-  opacity: 0.8;
-  animation: radarPing 2.2s infinite ease-out;
-}
-.defender-marker::before { width: 18px; height: 18px; }
-.defender-marker::after  { width: 18px; height: 18px; animation-delay: 1.1s; }
-@keyframes radarPing {
-  0%   { width: 18px; height: 18px; opacity: 0.9; }
-  100% { width: 90px; height: 90px; opacity: 0; }
-}
-
-/* 공격 출발지 마커 */
-.attacker-marker {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  border: 1.5px solid #fff;
-  box-shadow: 0 0 8px currentColor, 0 0 14px currentColor;
-  animation: attackerPulse 1.2s ease-out;
-}
-@keyframes attackerPulse {
-  0%   { transform: scale(0.2); opacity: 0; }
-  50%  { transform: scale(1.6); opacity: 1; }
-  100% { transform: scale(1);   opacity: .9; }
-}
 
 /* 미사일 헤드 (이동 중인 발광 구체) */
 .missile-head {

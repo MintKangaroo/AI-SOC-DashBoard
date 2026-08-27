@@ -33,7 +33,7 @@
 | 13 | ~~P2~~ **수정됨** | 아카이브 알림 110,748건이 모든 조회 경로에서 불가시 | `modules/alert_store.py:171` | ✅ |
 | 14 | ~~P2~~ **수정됨** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | ✅ |
 | 15 | **P2** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | S |
-| 16 | **P2** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | S |
+| 16 | ~~P2~~ **수정됨** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | ✅ |
 | 17 | **P2** | `print()` 102회 · 구조화 로깅 없음 | 전역 | M |
 | 18 | **P2** | 린터·CI·Dockerfile 전부 부재 | 파일 없음 | M |
 | 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
@@ -698,7 +698,7 @@ D-2(flaky)는 이미 해소돼 있어 CI 도입을 막지 않았다.
 
 ## E. 프론트엔드
 
-### E-1. [P2] CDN 9개 · SRI 없음 · 오프라인 불가
+### E-1. [~~P2~~ **수정됨**] CDN 9개 · SRI 없음 · 오프라인 불가
 
 **근거**: `templates/dashboard.html:252-261`
 
@@ -706,7 +706,29 @@ bootstrap, chart.js, leaflet, jquery, datatables(×2), socket.io, three.js, glob
 
 동시에 **격리망에서 이 대시보드는 동작하지 않는다.** SOC 도구가 인터넷 없이 못 뜬다는 건 배포 시나리오상 뼈아프다.
 
-**수정 방향**: 라이브러리를 `static/vendor/`로 내려받아 자체 호스팅. 부수적으로 CSP를 `script-src 'self'`로 조일 수 있게 된다. 용량은 three.js+globe.gl 때문에 약 1.5MB 늘지만 그만한 값어치가 있다. **작업량 S**
+**수정 (2026-08-27)** — `static/vendor/` 자체 호스팅으로 전환(2.9MB, 15개 파일).
+목록·버전·출처·갱신 방법은 `static/vendor/README.md`.
+
+- **SRI 를 붙이는 대신 CDN 자체를 없앴다.** SRI 는 오염은 막아도 CDN 다운과
+  격리망 문제는 못 푼다. 자체 호스팅은 셋 다 푼다.
+- **CSP 를 `'self'` 로 좁혔다** — `script-src`/`style-src`/`font-src`/`img-src`
+  에서 CDN 호스트 6개를 제거했다. `img-src` 도 `https:` → `blob:` 까지만 허용해,
+  주입된 스크립트가 이미지 요청으로 데이터를 반출하는 경로를 닫았다.
+  (`'unsafe-inline'` 은 인라인 핸들러 132개 때문에 그대로 — C-4 참조.)
+- **Leaflet(148K+16K)은 vendoring 하지 않고 제거했다.** `L.map`/`L.tileLayer`/
+  `L.marker` 호출이 JS 전체에 **0건**이었다. 지도는 이미 globe.gl(3D 지구본,
+  로컬 `static/data/countries-110m.geojson`)로 옮겨간 상태였고, 남은 것은
+  `<link>`/`<script>` 2줄과 `style.css` 의 죽은 `.leaflet-*` 오버라이드 58줄뿐.
+- Font Awesome 은 `.woff2` 만 받고 CSS 의 `.ttf` 폴백 참조 10곳을 제거했다
+  (woff2 는 2016년 이후 전 브라우저 지원, 약 800KB 절감).
+- `templates/login.html` 에도 CDN 참조가 하나 더 있었다 — 회귀 테스트가 잡았다.
+
+회귀 테스트 5건(`tests/test_security_hardening.py`): 외부 자산 참조 0건,
+vendor 파일 실재, CSS 가 참조하는 웹폰트 실재, Leaflet 완전 제거, CSP 에
+CDN 호스트 부재. 다시 CDN 을 끼워 넣으면 CI 에서 실패한다.
+
+**남은 것**: `style.css` 의 `.missile-head` 도 미사용이지만 지도 교체와 무관한
+죽은 CSS 라 이번 범위에서 제외했다(전체 dead CSS 정리는 별건).
 
 ### E-2. [P3] 전역 네임스페이스 오염 · 로드 순서 의존
 
@@ -890,7 +912,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 - **B-5** 허니팟/syslog 연결 세마포어 (`HONEYPOT_BIND=0.0.0.0` 전환 **전에는 반드시**)
 - ~~**B-7** alert_store WAL + 읽기 전용 커넥션 분리~~ — ✅ 수정 완료
 - **B-9** `print()` → `logging` 일괄 전환
-- **E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)
+- ~~**E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)~~ — ✅ 수정 완료
 - **E-3** `_attackerCounter` 상한 + 렌더 스로틀
 - **A-5** `ruff` 도입 + A-4 미사용 import 40건 정리
 - ~~**F-2/F-3** `.env.example` 동기화, README 수치 정정~~ — ✅ 수정 완료
