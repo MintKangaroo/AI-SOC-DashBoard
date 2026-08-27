@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
+.env.bak-*
+.env.local
 logs/
 data/alerts.db
 data/reports/
