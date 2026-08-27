@@ -4,6 +4,12 @@ import os
 import sqlite3
 import threading
 
+# 정리 대상에서 **항상 제외**하는 상태.
+# 제외 목록으로 정의하는 이유: 새 상태값이 생겨도 기본이 '보존'이 되게 하기 위함이다.
+# 특히 waiting_approval 은 사람의 결정을 기다리는 항목이라 지우면 그 결정 기회가
+# 사라진다(실 DB 기준 1,685건). processing_approval/running/pending 도 진행 중이다.
+NON_TERMINAL_STATUSES = ("waiting_approval", "processing_approval", "running", "pending")
+
 
 class SOARExecutionStore:
     def __init__(self, db_path="data/soar_executions.db"):
@@ -56,6 +62,40 @@ class SOARExecutionStore:
                      json.dumps(context, ensure_ascii=False)),
                 )
             self._conn.commit()
+
+    def counts_by_status(self):
+        with self._lock:
+            return dict(self._conn.execute(
+                "SELECT status, COUNT(*) FROM executions GROUP BY status").fetchall())
+
+    def _purge_clause(self):
+        """정리 대상 조건 — 종료 상태이면서 기준 시각이 지난 것."""
+        marks = ",".join("?" for _ in NON_TERMINAL_STATUSES)
+        # finished 가 없으면 started 로 판단한다(비정상 종료 등)
+        return (f"status NOT IN ({marks}) "
+                "AND COALESCE(NULLIF(finished,''), started) < datetime('now', ?, 'localtime')")
+
+    def count_purgeable(self, days):
+        with self._lock:
+            return self._conn.execute(
+                f"SELECT COUNT(*) FROM executions WHERE {self._purge_clause()}",
+                (*NON_TERMINAL_STATUSES, f"-{int(days)} days")).fetchone()[0]
+
+    def purge_terminal_older_than(self, days):
+        """종료된 실행 이력만 정리한다. 승인 대기·진행 중은 건드리지 않는다.
+
+        반환: 삭제 건수.
+        """
+        params = (*NON_TERMINAL_STATUSES, f"-{int(days)} days")
+        with self._lock:
+            n = self._conn.execute(
+                f"SELECT COUNT(*) FROM executions WHERE {self._purge_clause()}",
+                params).fetchone()[0]
+            if n:
+                self._conn.execute(
+                    f"DELETE FROM executions WHERE {self._purge_clause()}", params)
+                self._conn.commit()
+        return n
 
     def load_recent(self, limit=100):
         with self._lock:

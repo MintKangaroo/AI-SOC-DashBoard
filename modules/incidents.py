@@ -15,7 +15,7 @@ import shutil
 import sqlite3
 import tempfile
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 VALID_STATUS = ("OPEN", "INVESTIGATING", "CONTAINED", "RESOLVED")
@@ -322,6 +322,49 @@ class IncidentManager:
                 self._mark_all_dirty()
                 self._save_sqlite()
                 print(f"[Incidents] JSON → SQLite 무손실 이관: {len(self.incidents)}건")
+
+    # ------------------------------------------------------------------ #
+    #  보존 정리
+    # ------------------------------------------------------------------ #
+
+    def count_purgeable(self, days):
+        """정리 대상(종료된 지 N일 지난 RESOLVED) 건수. 변경 없이 조회만."""
+        cutoff = (datetime.now() - timedelta(days=int(days))).strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            return sum(1 for inc in self.incidents.values()
+                       if inc.get("status") == "RESOLVED"
+                       and str(inc.get("updated", "")) < cutoff)
+
+    def purge_resolved_older_than(self, days):
+        """종료(RESOLVED)된 지 N일 지난 인시던트만 삭제한다.
+
+        OPEN/INVESTIGATING/CONTAINED 는 **절대 지우지 않는다.** 진행 중인 케이스를
+        지우는 것은 분석가의 작업을 소리 없이 없애는 일이다.
+
+        메모리와 DB 양쪽에서 제거한다. 반환: 삭제 건수.
+        """
+        cutoff = (datetime.now() - timedelta(days=int(days))).strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            victims = [inc_id for inc_id, inc in self.incidents.items()
+                       if inc.get("status") == "RESOLVED"
+                       and str(inc.get("updated", "")) < cutoff]
+            if not victims:
+                return 0
+            for inc_id in victims:
+                self.incidents.pop(inc_id, None)
+                self._dirty.discard(inc_id)
+            if self.store_path.endswith(".db") and getattr(self, "_db", None):
+                try:
+                    with self._db:
+                        self._db.executemany(
+                            "DELETE FROM incidents WHERE id=?",
+                            [(i,) for i in victims])
+                except (OSError, sqlite3.Error) as e:
+                    print(f"[Incidents] 정리 실패({e}) — 메모리만 반영됨")
+            else:
+                self._save()
+        self._emit()
+        return len(victims)
 
     def _mark_all_dirty(self):
         """전량 저장이 필요할 때(최초 이관 등) 호출한다."""

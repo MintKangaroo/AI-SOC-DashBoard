@@ -23,6 +23,10 @@ def _policy(app):
         "file_days": max(1, int(app.config.get("DATA_RETENTION_DAYS", 30))),
         "feature_days": max(7, int(app.config.get("ML_FEATURE_RETENTION_DAYS", 180))),
         "dedup_days": max(7, int(app.config.get("DEDUP_RETENTION_DAYS", 90))),
+        # 인시던트는 분석가의 케이스 기록이라 길게 잡는다. RESOLVED 만 대상.
+        "incident_days": max(30, int(app.config.get("INCIDENT_RETENTION_DAYS", 365))),
+        # SOAR 실행 이력은 운영 로그 성격. 승인 대기·진행 중은 대상에서 제외된다.
+        "soar_exec_days": max(7, int(app.config.get("SOAR_EXECUTION_RETENTION_DAYS", 90))),
     }
 
 
@@ -41,11 +45,19 @@ def preview(app):
         if store is not None else {"to_archive": 0, "archive_to_delete": 0}
     audit = getattr(app, "audit", None)
     audit_delete = audit.count_older_than(policy["audit_days"]) if audit is not None else 0
+    incidents = getattr(app, "incidents", None)
+    inc_delete = incidents.count_purgeable(policy["incident_days"]) if incidents else 0
+    exec_store = getattr(getattr(app, "soar", None), "execution_store", None)
+    exec_delete = (exec_store.count_purgeable(policy["soar_exec_days"])
+                   if exec_store is not None else 0)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     files = len(_file_candidates(base_dir, policy["file_days"]))
     return {"policy": policy, **alert_counts, "audit_to_delete": audit_delete,
-            "files_to_delete": files, "destructive_total":
-            alert_counts["archive_to_delete"] + audit_delete + files}
+            "files_to_delete": files,
+            "incidents_to_delete": inc_delete,
+            "soar_executions_to_delete": exec_delete,
+            "destructive_total": (alert_counts["archive_to_delete"] + audit_delete
+                                  + files + inc_delete + exec_delete)}
 
 
 def run_cleanup(app, manual=False):
@@ -76,6 +88,24 @@ def run_cleanup(app, manual=False):
             deleted_dedup = dedup.purge_older_than(policy["dedup_days"])
         except Exception as e:
             print(f"[Retention] 억제 이벤트 정리 실패: {e}")
+    # 인시던트 — RESOLVED 만. 진행 중인 케이스는 절대 지우지 않는다.
+    deleted_incidents = 0
+    incidents = getattr(app, "incidents", None)
+    if incidents is not None:
+        try:
+            deleted_incidents = incidents.purge_resolved_older_than(policy["incident_days"])
+        except Exception as e:
+            print(f"[Retention] 인시던트 정리 실패: {e}")
+
+    # SOAR 실행 이력 — 종료된 것만. 승인 대기는 사람의 결정을 기다리므로 보존한다.
+    deleted_execs = 0
+    exec_store = getattr(getattr(app, "soar", None), "execution_store", None)
+    if exec_store is not None:
+        try:
+            deleted_execs = exec_store.purge_terminal_older_than(policy["soar_exec_days"])
+        except Exception as e:
+            print(f"[Retention] SOAR 실행 이력 정리 실패: {e}")
+
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for path in _file_candidates(base_dir, policy["file_days"]):
         try:
@@ -88,14 +118,17 @@ def run_cleanup(app, manual=False):
               "archive_deleted": deleted_archive, "audit_deleted": deleted_audit,
               "files_deleted": deleted_files, "features_deleted": deleted_features,
               "dedup_deleted": deleted_dedup,
+              "incidents_deleted": deleted_incidents,
+              "soar_executions_deleted": deleted_execs,
               "policy": policy}
     with _lock:
         _history.appendleft(result)
     if any((moved, deleted_archive, deleted_audit, deleted_files,
-            deleted_features, deleted_dedup)):
+            deleted_features, deleted_dedup, deleted_incidents, deleted_execs)):
         print(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
               f"감사 {deleted_audit}건 · 파일 {deleted_files}건 · "
-              f"ML피처 {deleted_features}건 · 억제이벤트 {deleted_dedup}건 삭제")
+              f"ML피처 {deleted_features}건 · 억제이벤트 {deleted_dedup}건 · "
+              f"인시던트 {deleted_incidents}건 · SOAR실행 {deleted_execs}건 삭제")
     return result
 
 
@@ -120,4 +153,5 @@ def start(app, interval_hours=6):
     p = _policy(app)
     print(f"[Retention] 활성 {p['live_days']}일→아카이브 · 아카이브/감사 "
           f"{p['archive_days']}/{p['audit_days']}일 · 파일 {p['file_days']}일 · "
-          f"ML피처 {p['feature_days']}일")
+          f"ML피처 {p['feature_days']}일 · 인시던트(RESOLVED) {p['incident_days']}일 · "
+          f"SOAR실행(종료분) {p['soar_exec_days']}일")

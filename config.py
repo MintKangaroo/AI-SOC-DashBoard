@@ -105,6 +105,11 @@ class Config:
     DEDUP_SUPPRESS_RULES = os.getenv("DEDUP_SUPPRESS_RULES", "")
     DEDUP_RETENTION_DAYS = int(os.getenv("DEDUP_RETENTION_DAYS", 90))
 
+    # 인시던트 보존 — RESOLVED 만 대상. 진행 중 케이스는 대상 아님
+    INCIDENT_RETENTION_DAYS = int(os.getenv("INCIDENT_RETENTION_DAYS", 365))
+    # SOAR 실행 이력 보존 — 종료된 것만. 승인 대기·진행 중은 대상 아님
+    SOAR_EXECUTION_RETENTION_DAYS = int(os.getenv("SOAR_EXECUTION_RETENTION_DAYS", 90))
+
     # ML 트래픽 피처 보존 — 재학습 소스라 알림보다 길게 잡는다
     ML_FEATURE_RETENTION_DAYS = int(os.getenv("ML_FEATURE_RETENTION_DAYS", 180))
 

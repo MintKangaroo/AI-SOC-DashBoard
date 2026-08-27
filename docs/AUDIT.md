@@ -23,7 +23,7 @@
 | 3 | ~~P1~~ **수정됨** | 파괴적 명령 blocklist 우회 가능 (`rm -fr /` 통과) | `modules/patch_manager.py:28-32,405` | ✅ |
 | 4 | ~~P1~~ **수정됨** | 인시던트 저장이 매번 전량 재작성 — 0.63s 동안 락 점유 | `modules/incidents.py:311-347` | ✅ |
 | 5 | ~~P1~~ **수정됨** | `id NOT IN (?×23299)` — 32,766건에서 무성 실패 | `modules/incidents.py:323` | ✅ |
-| 6 | **P1** | incidents.db(18MB)·soar_executions.db(48MB) 보존정책 없음 | `modules/retention.py:12` | M |
+| 6 | ~~P1~~ **부분 수정** | incidents.db(18MB)·soar_executions.db(48MB) 보존정책 없음 | `modules/retention.py:12` | ⚠️ |
 | 7 | **P1** | Anthropic 클라이언트 타임아웃 미설정 + 동기 chat | `modules/ai_analyst.py:52,92`, `app.py:153` | S |
 | 8 | **P1** | 허니팟/Syslog 연결당 무제한 스레드 생성 | `modules/honeypot.py:164` | M |
 | 9 | **P1** | 라우트 88개에 예외 처리·에러 핸들러 전무 | `api/*.py` (try 0건) | M |
@@ -182,7 +182,52 @@ SQLite 3.32+ 기본 `SQLITE_MAX_VARIABLE_NUMBER`는 32,766이다(현재 환경 3
 
 메모리 상 `deque(maxlen=100)`로 제한되어 있는 건 UI 표시분일 뿐(`soar.py:91`), 디스크는 무한히 쌓인다.
 
-**수정 방향**: `retention.run_cleanup()`에 두 DB의 종료 상태 레코드 정리를 추가하고 `INCIDENT_RETENTION_DAYS`·`SOAR_EXECUTION_RETENTION_DAYS`를 config에 신설. RESOLVED 인시던트와 종료된 실행만 대상으로. **작업량 M**
+**⚠️ 부분 수정** (`feat/db-retention`, 2026-08-27): 정책은 넣었으나 **현재 회수량은 0이다.** 그 이유가 더 중요한 발견이다.
+
+구현한 것:
+- `IncidentManager.purge_resolved_older_than(days)` — **RESOLVED 만** 대상. OPEN/INVESTIGATING/CONTAINED 는 분석가의 진행 중 작업이라 절대 지우지 않는다. 메모리와 DB 양쪽에서 제거.
+- `SOARExecutionStore.purge_terminal_older_than(days)` — 종료된 실행만. `waiting_approval`·`processing_approval`·`running`·`pending` 은 **제외 목록**으로 정의했다. 새 상태값이 생겨도 기본이 '보존'이 되게 하기 위함이며, 특히 `waiting_approval`(실 DB 1,685건)은 사람의 결정을 기다리는 항목이라 지우면 그 결정 기회가 사라진다.
+- config: `INCIDENT_RETENTION_DAYS`(365) · `SOAR_EXECUTION_RETENTION_DAYS`(90).
+
+실 데이터에 적용 시 회수량 (조회만 수행):
+
+| 대상 | 전체 | 정리 대상 | 사유 |
+|---|---|---|---|
+| 인시던트 | 23,299 | **0** | RESOLVED 가 **0건** — 어떤 기간을 잡아도 0 |
+| SOAR 실행 | 38,573 | **0** (90일 기준) | 데이터가 37일치뿐. 30일 기준으로는 36,873건 |
+
+**SOAR 쪽은 정상이다** — 시간이 지나면 정책이 작동한다(30일 기준 36,873건이 대상). 무한 증가가 실제로 막혔다.
+
+**인시던트 쪽은 구조적으로 작동하지 않는다.** → 아래 B-3a 참조.
+
+### B-3a. [P1·신규] 인시던트가 종료되는 경로가 없다
+
+B-3 수정 중 발견했다. 실 DB 23,299건의 상태 분포:
+
+```
+OPEN           20,898
+INVESTIGATING   2,401
+CONTAINED           0
+RESOLVED            0
+```
+
+**RESOLVED 가 0건이고, CONTAINED 도 0건이다.** 코드를 확인한 결과:
+
+- `RESOLVED` 를 설정하는 경로는 `IncidentManager.update()` — 즉 **분석가의 수동 조작뿐**이다. 자동 종료 경로가 없다.
+- 감사 로그(`audit.db`)에 인시던트 관련 조치 기록이 **0건**이다. 수동으로도 종료된 적이 없다.
+- `attach_block()` 이 OPEN → INVESTIGATING 으로 올리는 것이 유일한 자동 전이다.
+
+결과적으로 **인시던트는 생성되기만 하고 절대 닫히지 않는다.** `incidents.db` 18MB 의 진짜 원인은 보존정책 부재가 아니라 이것이다. 보존정책은 RESOLVED 를 대상으로 하므로 영원히 아무것도 지우지 않는다.
+
+부수 영향: `soc_metrics` 의 MTTR 은 "생성 → RESOLVED/CONTAINED 까지의 시간"인데(`soc_metrics.py:54`) 둘 다 0건이므로 **MTTR 지표가 산출되지 않거나 무의미하다.**
+
+**수정 방향** (미결정 — 워크플로 판단이 필요하다):
+
+1. **자동 종료** — 마지막 활동 후 N일간 새 알림이 없는 인시던트를 타임라인 기록과 함께 자동 RESOLVED 로 전이. 실무 SOC 의 stale case auto-close 관행이다. 이후 보존정책이 정상 작동한다.
+2. **인시던트 승격 조건 강화** — 20,898건이 열려 있다는 것은 승격 기준이 너무 넓다는 뜻이기도 하다. 이번에 만든 중복제거 레이어(`modules/alert_dedup.py`)가 알림을 31.2% 줄이므로 승격량도 함께 준다.
+3. **UI 에서 일괄 종료** 수단 제공.
+
+1번이 가장 직접적이지만, "며칠간 조용하면 닫을 것인가"는 운영자가 정할 문제다. **작업량 M**
 
 ### B-4. [P1] 외부 호출 회복력 — Anthropic만 무방비
 
