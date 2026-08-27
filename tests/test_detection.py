@@ -211,13 +211,15 @@ def test_siem_reads_file(tmp_path):
         '9.9.9.9 - - [14/Jul/2026 10:00:01] "GET /wp-login.php HTTP/1.1" 404 -\n'
         "앱 로그 잡음 라인\n")
     c = AccessLogCollector(FakeSocketIO(),
-                           sources=[{"name": "T", "path": str(log)}])
-    c._read_source(c.sources[0], emit=False)
+                           sources=[{"name": "T", "path": str(log)}],
+                           state_path=str(tmp_path / "state.json"))
+    # emit 불리언 → mode("backfill"/"live") 로 대체됨 (첫 적재 유실 수정)
+    c._read_source(c.sources[0], mode="backfill")
     stats = c.get_stats()
     assert stats["total_events"] == 2
     assert stats["suspicious_events"] == 1
     # 증분 읽기: 같은 파일 재읽기 시 새 이벤트 없어야 함
-    c._read_source(c.sources[0], emit=False)
+    c._read_source(c.sources[0], mode="live")
     assert c.get_stats()["total_events"] == 2
 
 

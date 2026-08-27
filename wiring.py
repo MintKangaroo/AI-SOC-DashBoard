@@ -69,9 +69,12 @@ def build_services(app, socketio):
                         for n, _, p in (item.partition("=")
                                         for item in app.config["SIEM_ACCESS_LOGS"].split(";"))
                         if n.strip() and p.strip()]
-    siem_collector  = AccessLogCollector(socketio, sources=siem_sources,
-                                         mitre_tracker=mitre_tracker,
-                                         attack_map=attack_map)
+    siem_collector  = AccessLogCollector(
+        socketio, sources=siem_sources,
+        mitre_tracker=mitre_tracker, attack_map=attack_map,
+        threat_detector=threat_detector,   # HIGH/CRITICAL 프로브 → 알림 승격
+        state_path=app.config.get("SIEM_STATE_PATH", "data/siem_offsets.json"),
+        promote_alerts=str(app.config.get("SIEM_PROMOTE_ALERTS", "True")) == "True")
 
     soar = SOAREngine(socketio, app.config, ai_analyst=ai_analyst,
                       ml_analyst=ml_analyst, threat_detector=threat_detector)

@@ -37,3 +37,5 @@ data/ml_features.db-shm
 data/alert_dedup.db
 data/alert_dedup.db-wal
 data/alert_dedup.db-shm
+data/siem_offsets.json
+data/siem_offsets.json.tmp

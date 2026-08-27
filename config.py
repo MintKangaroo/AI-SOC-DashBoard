@@ -42,6 +42,10 @@ class Config:
     # SIEM 접근 로그 소스 — "이름=경로;이름=경로" (비우면 기본 자동매매 KR/USA 로그)
     SIEM_ACCESS_LOGS = os.getenv("SIEM_ACCESS_LOGS", "")
     SIEM_EXFIL_MIN_BYTES = int(os.getenv("SIEM_EXFIL_MIN_BYTES", 500_000_000))
+    # 수집 offset 영속화 — 없으면 재시작마다 로그 전체를 재처리한다
+    SIEM_STATE_PATH = os.getenv("SIEM_STATE_PATH", "data/siem_offsets.json")
+    # HIGH/CRITICAL 외부 프로브를 알림으로 승격할지 (자동차단 경로는 열리지 않음)
+    SIEM_PROMOTE_ALERTS = os.getenv("SIEM_PROMOTE_ALERTS", "True")
 
     # Syslog 수신 (원격 침해시도 수집) — KR/USA 등이 syslog 로 전송
     SYSLOG_ENABLED = os.getenv("SYSLOG_ENABLED", "True")   # 수신기 활성 여부
