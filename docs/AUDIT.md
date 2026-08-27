@@ -25,7 +25,7 @@
 | 5 | ~~P1~~ **수정됨** | `id NOT IN (?×23299)` — 32,766건에서 무성 실패 | `modules/incidents.py:323` | ✅ |
 | 6 | ~~P1~~ **부분 수정** | incidents.db(18MB)·soar_executions.db(48MB) 보존정책 없음 | `modules/retention.py:12` | ⚠️ |
 | 7 | **P1** | Anthropic 클라이언트 타임아웃 미설정 + 동기 chat | `modules/ai_analyst.py:52,92`, `app.py:153` | S |
-| 8 | **P1** | 허니팟/Syslog 연결당 무제한 스레드 생성 | `modules/honeypot.py:164` | M |
+| 8 | ~~P1~~ **수정됨** | 허니팟/Syslog 연결당 무제한 스레드 생성 | `modules/honeypot.py:164` | ✅ |
 | 9 | **P1** | 라우트 88개에 예외 처리·에러 핸들러 전무 | `api/*.py` (try 0건) | M |
 | 10 | **P1** | `api/`·`app.py`·`wiring.py` 테스트 커버리지 0% | 측정치 | L |
 | 11 | **P2** | 보안 헤더(CSP·X-Frame-Options 등) 전무 | 실측 확인 | S |
@@ -286,7 +286,28 @@ threading.Thread(target=self._handle_conn, args=(conn, addr[0], port, service),
 
 동시 연결 수 제한이 없다. 세마포어도, 스레드풀도 없다. 허니팟은 소켓 타임아웃 3초(`:171`)로 수명이 짧지만, `CLAUDE.md`와 `config.py:56`이 **"실포착은 `HONEYPOT_BIND=0.0.0.0` + 외부 노출"**을 권장한다. 그 구성에서 초당 수천 연결을 던지면 SOC 대시보드 자신이 스레드 고갈로 죽는다. Syslog TCP는 타임아웃 30초(`:227`)에 `listen(16)`이지만 accept 후 스레드는 무제한이므로 더 적은 연결로 같은 결과가 난다.
 
-**수정 방향**: `threading.Semaphore(N)`로 동시 핸들러 상한(허니팟 200, syslog 50 정도)을 두고 초과분은 즉시 close. **작업량 M**
+**✅ 수정 완료** (`fix/conn-limits`, 2026-08-27): `BoundedSemaphore` 로 동시 핸들러 상한을 뒀다.
+
+- 허니팟 `HONEYPOT_MAX_CONNS`(기본 200), Syslog TCP `SYSLOG_MAX_CONNS`(기본 50).
+- 상한 초과 시 즉시 `close()` 하고 `rejected` 카운터를 올린다.
+- **허니팟은 거부된 접촉도 이벤트로 기록한다.** 배너 교환·입력 수집은 포기하더라도 "이 IP 가 접촉했다"는 탐지 가치는 지켜야 하기 때문이다(`rejected: true` 표시). 조용히 버리지 않는다.
+- Syslog 는 거부해도 전송단이 재시도하고 UDP 경로가 함께 열려 있어 로그를 영구히 잃지 않는다.
+- `active_conns`/`rejected`/`max_conns` 를 상태에 노출한다. `rejected` 가 0이 아니면 공격 규모가 상한을 넘었다는 신호다.
+
+실측 (허니팟 상한 50, 연결 500회 시도):
+
+```
+기준 스레드 수 : 2
+시도 후        : 52  (증가 50 = 상한과 정확히 일치)
+활성 연결      : 50
+거부           : 3
+```
+
+정직하게 덧붙이면, 500회 중 실제로 연결된 것은 53개다 — OS listen 백로그(`honeypot.py:157` `listen(8)`)가 차서 나머지는 connect 단계에서 실패했다. **즉 백로그가 1차 완충 역할을 하고 있었고, 세마포어는 그것을 넘어선 지속적 연결에 대한 보장이다.** 폭주 재현에는 지속적 연결 부하가 필요하다.
+
+테스트 16건 (`tests/test_conn_limits.py`) — 세마포어 단위 테스트가 아니라 **실제 소켓으로 연결을 밀어넣어** accept 루프와의 결합까지 검증한다. 슬롯 반환, 정상 유인 동작 유지, 설정값 방어 포함.
+
+**이제 `HONEYPOT_BIND=0.0.0.0` 외부 노출의 전제 조건이 해소됐다** — `docs/CASE_STUDIES.md` 의 "사례를 더 모으려면" 4번 항목.
 
 ### B-6. 백그라운드 스레드 생명주기 — 대체로 양호, 종료 훅만 부재
 

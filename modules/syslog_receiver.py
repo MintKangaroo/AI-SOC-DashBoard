@@ -103,11 +103,20 @@ class SyslogReceiver:
         self.events = deque(maxlen=1000)
         self.ip_counter = Counter()
         self.host_counter = Counter()
+        # 동시 TCP 연결 상한. syslog 연결은 30초 타임아웃으로 오래 살아 있어
+        # 허니팟보다 적은 연결로도 스레드가 쌓인다(AUDIT B-5).
+        try:
+            self.max_conns = max(1, int(self.config.get("SYSLOG_MAX_CONNS", 50)))
+        except (TypeError, ValueError):
+            self.max_conns = 50
+        self._slots = threading.BoundedSemaphore(self.max_conns)
+
         self.stats = {
             "total": 0, "suspicious": 0, "received": 0, "demo": 0,
             "unique_ips": 0, "unique_hosts": 0,
             "mode": "-", "bind": f"{self.bind}:{self.port}",
             "last_event": None,
+            "rejected": 0, "max_conns": self.max_conns, "active_conns": 0,
         }
         self._server_ip = self._detect_server_ip()
 
@@ -220,10 +229,30 @@ class SyslogReceiver:
                 continue
             except OSError:
                 break
+            # 상한 초과 시 즉시 끊는다. syslog 는 전송단이 재시도하므로
+            # 로그를 영구히 잃지 않는다(UDP 경로도 함께 열려 있다).
+            if not self._slots.acquire(blocking=False):
+                try:
+                    conn.close()
+                except OSError:
+                    pass
+                with self._lock:
+                    self.stats["rejected"] += 1
+                continue
             threading.Thread(target=self._tcp_conn_loop, args=(conn, addr[0]),
                              daemon=True).start()
 
     def _tcp_conn_loop(self, conn, peer):
+        with self._lock:
+            self.stats["active_conns"] += 1
+        try:
+            self._tcp_serve(conn, peer)
+        finally:
+            with self._lock:
+                self.stats["active_conns"] -= 1
+            self._slots.release()
+
+    def _tcp_serve(self, conn, peer):
         conn.settimeout(30.0)
         buf = ""
         try:

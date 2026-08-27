@@ -51,12 +51,15 @@ class Config:
     SYSLOG_ENABLED = os.getenv("SYSLOG_ENABLED", "True")   # 수신기 활성 여부
     SYSLOG_BIND = os.getenv("SYSLOG_BIND", "127.0.0.1")    # 바인드 주소(로컬만: 127.0.0.1)
     SYSLOG_PORT = int(os.getenv("SYSLOG_PORT", 5514))       # 비특권 포트(514는 sudo 필요)
+    SYSLOG_MAX_CONNS = int(os.getenv("SYSLOG_MAX_CONNS", 50))  # 동시 TCP 연결 상한
 
     # 허니팟 (유인 서비스로 침해시도 능동 포착)
     HONEYPOT_ENABLED = os.getenv("HONEYPOT_ENABLED", "True")
     HONEYPOT_BIND = os.getenv("HONEYPOT_BIND", "127.0.0.1")   # 실포착은 0.0.0.0+외부노출
     HONEYPOT_PORTS = os.getenv("HONEYPOT_PORTS", "")           # "2222,2323,3306,6379,8081,9200"
     HONEYPOT_COOLDOWN = float(os.getenv("HONEYPOT_COOLDOWN", 30))  # 동일 IP 재알림 간격(초)
+    # 동시 처리 상한 — 외부 노출(0.0.0.0) 시 스레드 고갈 방지. 초과분은 접촉만 기록 후 즉시 차단
+    HONEYPOT_MAX_CONNS = int(os.getenv("HONEYPOT_MAX_CONNS", 200))
 
     # SSH 인증 로그 실시간 탐지
     AUTH_LOG_PATH = os.getenv("AUTH_LOG_PATH", "/var/log/auth.log")

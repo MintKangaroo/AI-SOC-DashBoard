@@ -66,6 +66,16 @@ class Honeypot:
                 self.ports.append(int(p))
 
         self.cooldown = float(self.config.get("HONEYPOT_COOLDOWN", 30))  # 동일 IP 재알림 간격
+
+        # 동시 처리 상한 — 연결마다 스레드를 만들되 개수를 묶는다.
+        # 상한이 없으면 문서가 권장하는 HONEYPOT_BIND=0.0.0.0 외부 노출 시
+        # 초당 수천 연결로 대시보드 자신이 스레드 고갈로 죽는다(AUDIT B-5).
+        # 유인 서비스라 공격자가 마음껏 연결할 수 있다는 점이 핵심이다.
+        try:
+            self.max_conns = max(1, int(self.config.get("HONEYPOT_MAX_CONNS", 200)))
+        except (TypeError, ValueError):
+            self.max_conns = 200
+        self._slots = threading.BoundedSemaphore(self.max_conns)
         self.events = deque(maxlen=1000)
         self.ip_counter = Counter()
         self.port_counter = Counter()
@@ -74,6 +84,8 @@ class Honeypot:
             "total_hits": 0, "interactions": 0, "unique_ips": 0,
             "alerts": 0, "ports_open": 0, "mode": "-",
             "bind": self.bind, "last_hit": None,
+            # 상한 초과로 즉시 끊은 연결 — 0이 아니면 공격 규모가 상한을 넘었다는 신호
+            "rejected": 0, "max_conns": self.max_conns, "active_conns": 0,
         }
         self._server_ip = self._detect_server_ip()
 
@@ -161,10 +173,32 @@ class Honeypot:
                 continue
             except OSError:
                 break
+            # 상한에 걸리면 접촉만 기록하고 즉시 끊는다. 배너 교환·입력 수집을
+            # 포기하더라도 "이 IP 가 접촉했다"는 탐지 가치는 지킨다.
+            if not self._slots.acquire(blocking=False):
+                ip = addr[0]
+                try:
+                    conn.close()
+                except OSError:
+                    pass
+                with self._lock:
+                    self.stats["rejected"] += 1
+                self._record(ip, port, service, "", demo=False, rejected=True)
+                continue
             threading.Thread(target=self._handle_conn, args=(conn, addr[0], port, service),
                              daemon=True).start()
 
     def _handle_conn(self, conn, ip, port, service):
+        with self._lock:
+            self.stats["active_conns"] += 1
+        try:
+            self._interact(conn, ip, port, service)
+        finally:
+            with self._lock:
+                self.stats["active_conns"] -= 1
+            self._slots.release()
+
+    def _interact(self, conn, ip, port, service):
         banner = SERVICE_PROFILES.get(port, ("Unknown", b""))[1]
         payload = ""
         try:
@@ -190,7 +224,7 @@ class Honeypot:
 
     # ------------------------------------------------------------------ #
 
-    def _record(self, ip, port, service, payload, demo=False):
+    def _record(self, ip, port, service, payload, demo=False, rejected=False):
         interacted = bool(payload.strip())
         severity = "CRITICAL" if interacted else "HIGH"
         summary = _sanitize(payload)[:200] if interacted else "(연결만, 입력 없음)"
@@ -198,6 +232,8 @@ class Honeypot:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "ip": ip, "port": port, "service": service,
             "interacted": interacted, "severity": severity,
+            # 상한 초과로 상호작용 없이 끊은 접촉임을 표시한다
+            "rejected": rejected,
             "payload": summary, "demo": demo,
         }
         with self._lock:
