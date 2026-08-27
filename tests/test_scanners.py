@@ -572,11 +572,51 @@ def test_alert_archive_moves_old(tmp_path):
     assert moved == 1                       # 100일 전만 이동
     st2 = store.retention_stats()
     assert st2["live"] == 1 and st2["archived"] == 1
-    # 활성 테이블엔 최근 알림만 남음 (이력 검색 대상)
-    rows, total = store.search()
+    # 활성 테이블엔 최근 알림만 남는다
+    rows, total = store.search(scope="live")
     assert total == 1 and rows[0]["src_ip"] == "3.3.3.3"
+    assert rows[0]["archived"] is False
+    # 기본 검색(scope=all)은 아카이브된 알림도 계속 보여준다 — 이동≠소실
+    rows_all, total_all = store.search()
+    assert total_all == 2
+    assert {r["src_ip"]: r["archived"] for r in rows_all} == {
+        "3.3.3.3": False, "1.1.1.1": True}
+    # 아카이브만 따로 조회할 수도 있다
+    rows_arc, total_arc = store.search(scope="archive")
+    assert total_arc == 1 and rows_arc[0]["src_ip"] == "1.1.1.1"
+    assert rows_arc[0]["archived"] is True
     # 재실행 시 추가 이동 없음
     assert store.archive_older_than(90) == 0
+    store.close()
+
+
+def test_archived_alerts_stay_in_metrics_and_correlation(tmp_path):
+    """아카이브 이동이 지표·상관관계에서 알림을 지워버리지 않는다."""
+    store = AlertStore(str(tmp_path / "scope.db"))
+    from datetime import datetime, timedelta
+    for _ in range(2):   # grouped_recent 는 반복(≥2회) 알림만 묶는다
+        a = _MAlert("BRUTE_FORCE", "CRITICAL", "9.9.9.9", "2.2.2.2", "무차별 대입")
+        a.timestamp = (datetime.now() - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
+        store.save(a)
+    # 시각과 무관하게 강제로 아카이브로 옮긴다 (컷오버 상황 재현)
+    assert store.production_cutover(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) == 2
+    assert store.retention_stats() == {**store.retention_stats(), "live": 0, "archived": 2}
+
+    assert store.aggregate(days=7)["total"] == 2          # 지표
+    assert store.aggregate(days=7, scope="live")["total"] == 0
+    assert [r["src_ip"] for r in store.since(hours=24)] == ["9.9.9.9"] * 2   # 상관관계
+    assert store.since(hours=24, scope="live") == []
+    group = store.grouped_recent(hours=24)[0]
+    assert group["src_ip"] == "9.9.9.9" and group["count"] == 2
+    assert store.grouped_recent(hours=24, scope="live") == []
+    store.close()
+
+
+def test_search_rejects_unknown_scope(tmp_path):
+    store = AlertStore(str(tmp_path / "badscope.db"))
+    import pytest as _pytest
+    with _pytest.raises(ValueError):
+        store.search(scope="; DROP TABLE alerts--")
     store.close()
 
 

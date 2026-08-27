@@ -30,7 +30,7 @@
 | 10 | **P1** | `api/`·`app.py`·`wiring.py` 테스트 커버리지 0% | 측정치 | L |
 | 11 | **P2** | 보안 헤더(CSP·X-Frame-Options 등) 전무 | 실측 확인 | S |
 | 12 | **P2** | 문서화된 탐지 임계값 env가 죽어 있음 (하드코딩) | `modules/threat_detector.py:236,251` | S |
-| 13 | **P2** | 아카이브 알림 110,748건이 모든 조회 경로에서 불가시 | `modules/alert_store.py:171` | M |
+| 13 | ~~P2~~ **수정됨** | 아카이브 알림 110,748건이 모든 조회 경로에서 불가시 | `modules/alert_store.py:171` | ✅ |
 | 14 | **P2** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | S |
 | 15 | **P2** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | S |
 | 16 | **P2** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | S |
@@ -944,7 +944,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 
 가치: `alert_store.search()`가 이미 8개 조건(severity/status/threat_type/verdict/origin/ip/text/날짜범위)을 지원하고 `/api/alerts/history`로 노출되어 있다. 여기에 "쿼리 저장 + 재실행 + 워치리스트 연동"을 얹는 건 자연스럽고, `watchlist.py`가 IOC 헌팅 매칭을 이미 한다. 시연 효과도 좋다.
 
-선행 조건 — **F-1의 P2 항목(D-13)을 먼저 풀어야 한다**: `search()`는 `alerts` 테이블만 조회하고 `archive.alerts_archive`의 **110,748건은 건드리지 않는다**(`alert_store.py:202-212`). 헌팅 콘솔을 만들어도 조회 대상이 활성 99건뿐이라면 의미가 없다. `search()`에 `include_archive` 옵션을 추가하는 게 먼저다(그 김에 `:174`의 "전체 DB 대상"이라는 잘못된 docstring도 고칠 것).
+선행 조건 — ~~**F-1의 P2 항목(D-13)을 먼저 풀어야 한다**~~ **해소됨**: `search()`가 `alerts` 테이블만 조회해 `archive.alerts_archive`의 110,748건이 통째로 빠져 있었다. 이제 `scope` 파라미터(`all` 기본 / `live` / `archive`)로 활성+아카이브 통합 뷰 `alerts_all` 을 조회한다. `aggregate()`·`since()`·`grouped_recent()`·`snort_sid_stats()` 도 같은 파라미터를 받는다. 헌팅 콘솔은 이제 전체 이력 위에서 만들 수 있다.
 
 **순서**: 아카이브 조회 지원(M) → 헌팅 콘솔(M). 둘 다 하면 가치 있고, 후자만 하면 껍데기다.
 

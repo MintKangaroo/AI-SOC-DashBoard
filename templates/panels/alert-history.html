@@ -16,6 +16,8 @@
         <div class="small" style="color:#e6edf3; line-height:1.7">
           실시간 <strong>위협 알림</strong> 패널이 최근 알림만 보여주는 반면, 여기서는 <strong>DB에 저장된 전체 알림 이력</strong>을 기간·심각도·상태·유형·IP·본문으로 검색합니다.
           사후 조사(특정 IP가 언제부터 공격했는지, 지난주 CRITICAL 추이 등)와 보고서용 <strong>CSV 내보내기</strong>에 사용하세요.
+          보존기간이 지나 <strong>아카이브</strong>로 옮겨진 알림도 기본으로 함께 검색되며, 목록에 <span class="badge bg-secondary">보관</span> 표시가 붙습니다.
+          아카이브 알림은 조회 전용이라 상태·판정을 바꿀 수 없습니다.
         </div>
       </div>
 
@@ -56,10 +58,19 @@
             </select>
           </div>
           <div class="col-6 col-md-2">
+            <label class="form-label small text-muted mb-1">저장 범위</label>
+            <select id="ah-scope" class="form-select form-select-sm bg-dark text-white border-secondary"
+                    onchange="searchAlertHistory(1)">
+              <option value="all">전체 (활성+아카이브)</option>
+              <option value="live">활성만</option>
+              <option value="archive">아카이브만</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
             <label class="form-label small text-muted mb-1">IP (출발/목적)</label>
             <input type="text" id="ah-ip" placeholder="예: 185.220" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
-          <div class="col-12 col-md-8">
+          <div class="col-12 col-md-6">
             <label class="form-label small text-muted mb-1">본문 검색</label>
             <input type="text" id="ah-text" placeholder="설명에 포함된 단어" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>

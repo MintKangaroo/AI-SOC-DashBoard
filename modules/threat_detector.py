@@ -428,8 +428,10 @@ class ThreatDetector:
         return [a.to_dict() for a in reversed(result)][:limit]
 
     def search_alerts(self, **filters):
-        """전체 DB 이력 검색 (threat_label 부가). (rows, total) 반환.
-        DB 미사용(store=None) 시 in-memory 폴백."""
+        """전체 DB 이력 검색 (threat_label·archived 부가). (rows, total) 반환.
+
+        `scope` 를 그대로 넘겨 활성/아카이브 범위를 고른다(기본 all).
+        DB 미사용(store=None) 시 in-memory 폴백 — 이때는 활성분만 존재한다."""
         if self.store:
             rows, total = self.store.search(**filters)
         else:
@@ -439,6 +441,7 @@ class ThreatDetector:
             total = len(rows)
         for r in rows:
             r["threat_label"] = THREAT_TYPES.get(r["threat_type"], r["threat_type"])
+            r.setdefault("archived", False)
         return rows, total
 
     def threat_type_labels(self):

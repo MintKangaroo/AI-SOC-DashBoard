@@ -195,3 +195,45 @@ def test_csv_export_errors_still_return_json(client, app_module, monkeypatch):
     assert r.status_code == 500
     assert r.is_json, "CSV 내보내기 실패가 JSON 이 아님"
     assert r.get_json().get("error_id")
+
+
+# ─────────────── 알림 이력 검색 범위 (docs/AUDIT.md #13) ───────────────
+
+def test_alerts_history_scope_is_validated(client):
+    """알 수 없는 scope 는 SQL 로 흘러들지 않고 400 JSON 으로 거절된다."""
+    for path in ("/api/alerts/history", "/api/alerts/history/export.csv"):
+        r = client.get(path, query_string={"scope": "'; DROP TABLE alerts--"})
+        assert r.status_code == 400
+        assert r.is_json and "scope" in r.get_json()["error"]
+
+
+def test_alerts_history_default_scope_covers_archive(client, app_module):
+    """아카이브로 옮긴 알림이 기본 검색에서 사라지지 않고 '보관'으로 표시된다."""
+    from datetime import datetime, timedelta
+
+    from modules.threat_detector import Alert
+
+    store = app_module.app.threat_detector.store
+    old = Alert("BRUTE_FORCE", "CRITICAL", "203.0.113.7", "10.0.0.5", "아카이브 대상")
+    old.timestamp = (datetime.now() - timedelta(days=200)).strftime("%Y-%m-%d %H:%M:%S")
+    store.save(old)
+    assert store.archive_older_than(90) >= 1
+
+    found = client.get("/api/alerts/history",
+                       query_string={"ip": "203.0.113.7"}).get_json()
+    assert found["scope"] == "all"
+    assert [a["archived"] for a in found["alerts"]] == [True]
+
+    # 활성만 보면 사라지고, 아카이브만 보면 다시 나온다
+    assert client.get("/api/alerts/history",
+                      query_string={"ip": "203.0.113.7", "scope": "live"}
+                      ).get_json()["total"] == 0
+    assert client.get("/api/alerts/history",
+                      query_string={"ip": "203.0.113.7", "scope": "archive"}
+                      ).get_json()["total"] == 1
+
+    # CSV 도 같은 범위를 따르고 archived 열을 포함한다
+    csv = client.get("/api/alerts/history/export.csv",
+                     query_string={"ip": "203.0.113.7"}).get_data(as_text=True)
+    assert "archived" in csv.splitlines()[0]
+    assert "203.0.113.7" in csv

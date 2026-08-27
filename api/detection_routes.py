@@ -71,12 +71,19 @@ def alert_groups():
 
 @api_bp.route("/alerts/history", methods=["GET"])
 def alerts_history():
-    """전체 알림 이력 검색 (기간·심각도·상태·유형·IP·본문). 페이지네이션."""
+    """전체 알림 이력 검색 (기간·심각도·상태·유형·IP·본문). 페이지네이션.
+
+    scope: all(활성+아카이브, 기본) / live(활성만) / archive(아카이브만).
+    """
     _, td, *_ = get_services()
     a = request.args
     page  = max(1, a.get("page", 1, type=int))
     limit = min(200, max(1, a.get("limit", 50, type=int)))
+    scope = a.get("scope") or "all"
+    if scope not in ("all", "live", "archive"):
+        return jsonify({"error": "scope 는 all/live/archive 중 하나여야 합니다"}), 400
     rows, total = td.search_alerts(
+        scope=scope,
         severity=a.get("severity") or None,
         status=a.get("status") or None,
         threat_type=a.get("threat_type") or None,
@@ -90,7 +97,7 @@ def alerts_history():
     )
     return jsonify({
         "alerts": rows, "total": total, "page": page, "limit": limit,
-        "pages": (total + limit - 1) // limit,
+        "scope": scope, "pages": (total + limit - 1) // limit,
         "labels": td.threat_type_labels(),
     })
 
@@ -102,7 +109,11 @@ def alerts_history_export():
     from flask import Response
     _, td, *_ = get_services()
     a = request.args
+    scope = a.get("scope") or "all"
+    if scope not in ("all", "live", "archive"):
+        return jsonify({"error": "scope 는 all/live/archive 중 하나여야 합니다"}), 400
     rows, _total = td.search_alerts(
+        scope=scope,
         severity=a.get("severity") or None,
         status=a.get("status") or None,
         threat_type=a.get("threat_type") or None,
@@ -116,11 +127,11 @@ def alerts_history_export():
     buf.write("﻿")  # Excel 한글 깨짐 방지 BOM
     w = csv.writer(buf)
     w.writerow(["id", "timestamp", "severity", "threat_type", "threat_label",
-                "src_ip", "dst_ip", "status", "description"])
+                "src_ip", "dst_ip", "status", "archived", "description"])
     for r in rows:
         w.writerow([r["id"], r["timestamp"], r["severity"], r["threat_type"],
                     r.get("threat_label", ""), r["src_ip"], r["dst_ip"],
-                    r["status"], r["description"]])
+                    r["status"], int(bool(r.get("archived"))), r["description"]])
     return Response(buf.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition":
                              "attachment; filename=alert_history.csv"})

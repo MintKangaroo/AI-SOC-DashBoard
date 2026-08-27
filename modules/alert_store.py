@@ -7,6 +7,17 @@ import json
 import sqlite3
 import threading
 
+# 활성·아카이브 공통 컬럼 (조회 결과 순서와 1:1 대응)
+ALERT_COLUMNS = (
+    "id", "threat_type", "severity", "src_ip", "dst_ip", "description",
+    "details", "timestamp", "status", "note", "assignee",
+    "origin", "verdict", "verdict_actor", "verdict_reason", "verdict_at",
+)
+_COLS = ", ".join(ALERT_COLUMNS)
+
+# 조회 범위: 활성만 / 아카이브만 / 둘 다
+SCOPES = {"live": "main.alerts", "archive": "archive.alerts_archive", "all": "alerts_all"}
+
 
 class AlertStore:
     def __init__(self, db_path="data/alerts.db"):
@@ -43,6 +54,40 @@ class AlertStore:
             self._conn.commit()
             if moved_inline:
                 self._conn.execute("VACUUM")
+            self._ensure_archive_indexes()
+            self._ensure_union_view()
+            self._conn.commit()
+
+    def _ensure_archive_indexes(self):
+        """아카이브도 조회 대상이 되었으므로 활성과 같은 인덱스를 갖춘다."""
+        for name, col in (("timestamp", "timestamp"), ("threat", "threat_type"),
+                          ("verdict", "verdict"), ("src", "src_ip")):
+            self._conn.execute(
+                f"CREATE INDEX IF NOT EXISTS archive.idx_arch_{name} "
+                f"ON alerts_archive({col})")
+
+    def _ensure_union_view(self):
+        """활성 + 아카이브를 한 소스로 보는 임시 뷰.
+
+        아카이브 알림 11만 건이 검색·집계·상관관계에서 통째로 빠져 있던 문제를
+        여기서 한 번에 해소한다. `archived` 컬럼으로 출처를 구분해, 수정 불가한
+        (아카이브) 행을 UI 가 식별할 수 있게 한다.
+        """
+        self._conn.execute("DROP VIEW IF EXISTS temp.alerts_all")
+        self._conn.execute(f"""
+            CREATE TEMP VIEW alerts_all AS
+                SELECT {_COLS}, 0 AS archived FROM main.alerts
+                UNION ALL
+                SELECT {_COLS}, 1 AS archived FROM archive.alerts_archive
+        """)
+
+    @staticmethod
+    def _source(scope):
+        """조회 범위 문자열을 테이블/뷰 이름으로 검증 변환한다."""
+        try:
+            return SCOPES[scope]
+        except KeyError:
+            raise ValueError(f"알 수 없는 조회 범위: {scope!r}") from None
 
     def _migrate_alert_columns(self, table, schema="main"):
         existing = {row[1] for row in self._conn.execute(
@@ -146,37 +191,34 @@ class AlertStore:
         """최근 알림을 오래된 순으로 반환 (deque 복원용)"""
         with self._lock:
             rows = self._conn.execute(
-                """SELECT id, threat_type, severity, src_ip, dst_ip, description,
-                          details, timestamp, status, note, assignee,
-                          origin, verdict, verdict_actor, verdict_reason, verdict_at
-                   FROM alerts ORDER BY id DESC LIMIT ?""",
+                f"SELECT {_COLS}, 0 FROM alerts ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        result = []
-        for row in reversed(rows):
-            try:
-                details = json.loads(row[6]) if row[6] else {}
-            except json.JSONDecodeError:
-                details = {}
-            result.append({
-                "id": row[0], "threat_type": row[1], "severity": row[2],
-                "src_ip": row[3], "dst_ip": row[4], "description": row[5],
-                "details": details, "timestamp": row[7], "status": row[8],
-                "note": row[9], "assignee": row[10], "origin": row[11],
-                "verdict": row[12], "verdict_actor": row[13],
-                "verdict_reason": row[14], "verdict_at": row[15],
-            })
-        return result
+        return [self._row_to_dict(r) for r in reversed(rows)]
+
+    @staticmethod
+    def _row_to_dict(row):
+        """(ALERT_COLUMNS..., archived) 행을 API 응답 dict 로 변환한다."""
+        try:
+            details = json.loads(row[6]) if row[6] else {}
+        except json.JSONDecodeError:
+            details = {}
+        out = dict(zip(ALERT_COLUMNS, row))
+        out["details"] = details
+        out["archived"] = bool(row[len(ALERT_COLUMNS)])
+        return out
 
     def search(self, severity=None, status=None, threat_type=None, verdict=None, origin=None,
                ip=None, text=None, date_from=None, date_to=None,
-               limit=100, offset=0):
-        """조건별 알림 이력 검색 (전체 DB 대상). (rows, total) 반환.
+               limit=100, offset=0, scope="all"):
+        """조건별 알림 이력 검색. (rows, total) 반환.
 
         - ip: src_ip/dst_ip 부분일치
         - text: description 부분일치
         - date_from/date_to: 'YYYY-MM-DD' (해당 일 포함)
+        - scope: 'all'(활성+아카이브, 기본) / 'live' / 'archive'
         """
+        src = self._source(scope)
         where, params = [], []
         if severity:
             where.append("severity = ?"); params.append(severity)
@@ -199,75 +241,62 @@ class AlertStore:
             where.append("timestamp <= ?"); params.append(f"{date_to} 23:59:59")
         clause = ("WHERE " + " AND ".join(where)) if where else ""
 
+        archived_expr = "archived" if scope == "all" else str(int(scope == "archive"))
         with self._lock:
             total = self._conn.execute(
-                f"SELECT COUNT(*) FROM alerts {clause}", params
+                f"SELECT COUNT(*) FROM {src} {clause}", params
             ).fetchone()[0]
             rows = self._conn.execute(
-                f"""SELECT id, threat_type, severity, src_ip, dst_ip, description,
-                           details, timestamp, status, note, assignee,
-                           origin, verdict, verdict_actor, verdict_reason, verdict_at
-                    FROM alerts {clause}
+                f"""SELECT {_COLS}, {archived_expr} FROM {src} {clause}
                     ORDER BY id DESC LIMIT ? OFFSET ?""",
                 params + [int(limit), int(offset)],
             ).fetchall()
+        return [self._row_to_dict(r) for r in rows], total
 
-        result = []
-        for row in rows:
-            try:
-                details = json.loads(row[6]) if row[6] else {}
-            except json.JSONDecodeError:
-                details = {}
-            result.append({
-                "id": row[0], "threat_type": row[1], "severity": row[2],
-                "src_ip": row[3], "dst_ip": row[4], "description": row[5],
-                "details": details, "timestamp": row[7], "status": row[8],
-                "note": row[9], "assignee": row[10], "origin": row[11],
-                "verdict": row[12], "verdict_actor": row[13],
-                "verdict_reason": row[14], "verdict_at": row[15],
-            })
-        return result, total
+    def aggregate(self, days=14, scope="all"):
+        """운영 지표용 시계열 집계 (최근 N일). timestamp 는 'YYYY-MM-DD HH:MM:SS'.
 
-    def aggregate(self, days=14):
-        """운영 지표용 시계열 집계 (최근 N일). timestamp 는 'YYYY-MM-DD HH:MM:SS'."""
+        scope 기본값이 'all' 이므로 아카이브로 옮겨진 기간도 지표에 반영된다.
+        """
+        src = self._source(scope)
         since = f"-{int(days)} days"
         with self._lock:
             c = self._conn
             # 일별 볼륨 (심각도 분리)
             by_day = c.execute(
-                """SELECT strftime('%Y-%m-%d', timestamp) d,
+                f"""SELECT strftime('%Y-%m-%d', timestamp) d,
                           SUM(CASE WHEN severity='CRITICAL' THEN 1 ELSE 0 END),
                           SUM(CASE WHEN severity='HIGH' THEN 1 ELSE 0 END),
                           SUM(CASE WHEN severity NOT IN ('CRITICAL','HIGH') THEN 1 ELSE 0 END),
                           COUNT(*)
-                   FROM alerts
+                   FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                    GROUP BY d ORDER BY d""", (since,)).fetchall()
             # 상태 분포
             by_status = dict(c.execute(
-                """SELECT status, COUNT(*) FROM alerts
+                f"""SELECT status, COUNT(*) FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                    GROUP BY status""", (since,)).fetchall())
             # 시간대(0~23) × 요일(0=일~6) 히트맵
             hd = c.execute(
-                """SELECT CAST(strftime('%w', timestamp) AS INT) dow,
+                f"""SELECT CAST(strftime('%w', timestamp) AS INT) dow,
                           CAST(strftime('%H', timestamp) AS INT) hr, COUNT(*)
-                   FROM alerts
+                   FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                    GROUP BY dow, hr""", (since,)).fetchall()
             # TOP 위협 유형 / 공격자
             top_types = c.execute(
-                """SELECT threat_type, COUNT(*) n FROM alerts
+                f"""SELECT threat_type, COUNT(*) n FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                    GROUP BY threat_type ORDER BY n DESC LIMIT 8""", (since,)).fetchall()
             # 실제 IP 만 (EDR 등 호스트명/빈값 제외 — 최소 3개 점)
             top_ips = c.execute(
-                """SELECT src_ip, COUNT(*) n FROM alerts
+                f"""SELECT src_ip, COUNT(*) n FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                          AND src_ip LIKE '%.%.%.%'
                    GROUP BY src_ip ORDER BY n DESC LIMIT 10""", (since,)).fetchall()
             total = c.execute(
-                """SELECT COUNT(*) FROM alerts
+                f"""SELECT COUNT(*) FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')""", (since,)).fetchone()[0]
 
         heat = [[0] * 24 for _ in range(7)]
@@ -285,12 +314,13 @@ class AlertStore:
             "top_ips": [{"ip": ip, "count": n} for ip, n in top_ips],
         }
 
-    def since(self, hours=24, limit=5000):
+    def since(self, hours=24, limit=5000, scope="all"):
         """최근 N시간 알림(실 IP 출발지만) — 상관관계 분석용. 시간 오름차순."""
+        src = self._source(scope)
         with self._lock:
             rows = self._conn.execute(
-                """SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
-                   FROM alerts
+                f"""SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
+                   FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                          AND src_ip LIKE '%.%.%.%'
                    ORDER BY timestamp ASC LIMIT ?""",
@@ -298,19 +328,20 @@ class AlertStore:
         return [{"id": r[0], "threat_type": r[1], "severity": r[2],
                  "src_ip": r[3], "dst_ip": r[4], "timestamp": r[5]} for r in rows]
 
-    def grouped_recent(self, hours=24, min_count=2, limit=20):
+    def grouped_recent(self, hours=24, min_count=2, limit=20, scope="all"):
         """최근 반복 알림을 출발지·위협유형별로 묶어 조사 우선순위로 반환한다."""
+        src = self._source(scope)
         hours = max(1, min(24 * 30, int(hours)))
         min_count = max(2, int(min_count))
         limit = max(1, min(100, int(limit)))
         with self._lock:
             rows = self._conn.execute(
-                """SELECT src_ip, threat_type, COUNT(*) AS cnt,
+                f"""SELECT src_ip, threat_type, COUNT(*) AS cnt,
                           MIN(timestamp), MAX(timestamp),
                           SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END),
                           MAX(CASE severity WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3
                                             WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END)
-                   FROM alerts
+                   FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
                          AND COALESCE(src_ip, '') != ''
                    GROUP BY src_ip, threat_type
@@ -326,16 +357,17 @@ class AlertStore:
                  "first_seen": r[3], "last_seen": r[4], "open_count": r[5],
                  "severity": sev.get(r[6], "INFO")} for r in rows]
 
-    def snort_sid_stats(self, limit=30):
+    def snort_sid_stats(self, limit=30, scope="all"):
         """분석가 확정 판정을 기준으로 SID별 정·오탐 품질을 집계한다."""
+        src = self._source(scope)
         with self._lock:
             rows = self._conn.execute(
-                """SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
+                f"""SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
                           COUNT(*) total,
                           SUM(CASE WHEN verdict='TRUE_POSITIVE' THEN 1 ELSE 0 END) tp,
                           SUM(CASE WHEN verdict='FALSE_POSITIVE' THEN 1 ELSE 0 END) fp,
                           MAX(timestamp) last_seen
-                   FROM alerts WHERE threat_type='SNORT_ALERT'
+                   FROM {src} WHERE threat_type='SNORT_ALERT'
                          AND json_extract(details, '$.signature_id') IS NOT NULL
                    GROUP BY sid ORDER BY total DESC, last_seen DESC LIMIT ?""",
                 (max(1, min(200, int(limit))),)).fetchall()

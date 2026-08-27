@@ -41,7 +41,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
 | `modules/honeypot.py` | 유인 서비스 리스너(SSH/Telnet/Redis 등) — 접촉=고신뢰 침해지표 |
-| `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브 |
+| `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브. 조회는 `scope`(all/live/archive)로 활성+아카이브 통합 |
 | `modules/alert_dedup.py` | 중복제거·억제 레이어 — 핑거프린트 병합·규칙 억제·스톰 요약 |
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
@@ -176,6 +176,12 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
       인시던트 자동종료(30일 조용 → RESOLVED) 후 RESOLVED 365일 경과분 삭제,
       SOAR 실행 이력 종료분 90일 경과분 삭제.
       ※ 진행 중 인시던트와 waiting_approval 실행은 절대 삭제 대상이 아니다.
+
+조회범위: alert_store 의 search/aggregate/since/grouped_recent/snort_sid_stats 는
+      `scope` 를 받는다 — 기본 `all`(임시뷰 `alerts_all` = 활성 UNION 아카이브),
+      `live`(활성만), `archive`(아카이브만). 결과 행의 `archived` 플래그로 출처를
+      구분한다. 아카이브 이동은 **보관이지 삭제가 아니므로 조회에서 빠지지 않는다.**
+      단 상태·판정 변경(update_status/set_verdict)은 활성 테이블에만 적용된다.
 ```
 
 ## 환경 변수 (.env)

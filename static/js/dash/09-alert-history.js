@@ -30,6 +30,7 @@ function _ahParams() {
   if (g('ah-type'))     p.set('threat_type', g('ah-type'));
   if (g('ah-ip'))       p.set('ip', g('ah-ip'));
   if (g('ah-text'))     p.set('text', g('ah-text'));
+  if (g('ah-scope'))    p.set('scope', g('ah-scope'));
   return p;
 }
 
@@ -86,7 +87,7 @@ function renderAlertHistory(d) {
           <td class="font-monospace small">${escapeHtml(a.src_ip || '')}</td>
           <td class="font-monospace small">${escapeHtml(a.dst_ip || '')}</td>
           <td class="small">${escapeHtml(a.description || '')}</td>
-          <td>${_ahStatusBadge(a.status)}</td>
+          <td>${_ahStatusBadge(a.status)}${a.archived ? ' <span class="badge bg-secondary" title="아카이브 보관 — 조회 전용">보관</span>' : ''}</td>
         </tr>`).join('');
     }
   }
@@ -127,6 +128,8 @@ function resetAlertHistory() {
   ['ah-severity', 'ah-status', 'ah-type'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const scope = document.getElementById('ah-scope');
+  if (scope) scope.value = 'all';
   searchAlertHistory(1);
 }
 
