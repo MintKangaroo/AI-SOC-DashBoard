@@ -91,6 +91,16 @@ class Config:
     ALERT_ARCHIVE_RETENTION_DAYS = int(os.getenv("ALERT_ARCHIVE_RETENTION_DAYS", 365))
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", 365))
 
+    # 알림 중복제거·억제 레이어
+    DEDUP_ENABLED = os.getenv("DEDUP_ENABLED", "True")
+    DEDUP_WINDOW_SECONDS = float(os.getenv("DEDUP_WINDOW_SECONDS", 300))   # 병합 윈도우
+    DEDUP_STORM_THRESHOLD = int(os.getenv("DEDUP_STORM_THRESHOLD", 20))    # 스톰 전환 횟수
+    DEDUP_STORM_WINDOW_SECONDS = float(os.getenv("DEDUP_STORM_WINDOW_SECONDS", 60))
+    DEDUP_STORM_SUMMARY_SECONDS = float(os.getenv("DEDUP_STORM_SUMMARY_SECONDS", 300))
+    # 최초 1회 시드용 억제 규칙 "이름=유형:출발지접두:룰ID:사유; ..." (이후 DB/API 에서 편집)
+    DEDUP_SUPPRESS_RULES = os.getenv("DEDUP_SUPPRESS_RULES", "")
+    DEDUP_RETENTION_DAYS = int(os.getenv("DEDUP_RETENTION_DAYS", 90))
+
     # ML 트래픽 피처 보존 — 재학습 소스라 알림보다 길게 잡는다
     ML_FEATURE_RETENTION_DAYS = int(os.getenv("ML_FEATURE_RETENTION_DAYS", 180))
 

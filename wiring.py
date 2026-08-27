@@ -35,6 +35,7 @@ from modules.audit_log import AuditLog
 from modules.watchlist import Watchlist
 from modules.virustotal import VirusTotalClient
 from modules.snort_monitor import SnortMonitor
+from modules.alert_dedup import AlertDeduplicator
 
 
 def build_services(app, socketio):
@@ -54,6 +55,10 @@ def build_services(app, socketio):
     threat_intel    = ThreatIntel(socketio, packet_analyzer=packet_analyzer,
                                   mitre_tracker=mitre_tracker)
     threat_detector.threat_intel = threat_intel   # IoC 기반 정탐 신뢰도 가중
+
+    # 중복제거·억제 레이어 — 탐지 엔진과 SOAR 사이. 알림을 버리지 않고 병합한다.
+    alert_dedup = AlertDeduplicator(app.config)
+    threat_detector.dedup = alert_dedup
 
     ip_reputation = IPReputation(socketio, app.config)
     threat_detector.ip_reputation = ip_reputation  # AbuseIPDB 평판 → 정탐/오탐 근거
@@ -150,6 +155,7 @@ def build_services(app, socketio):
     threat_detector.watchlist = watchlist
 
     # app 컨텍스트에 서비스 등록
+    app.alert_dedup     = alert_dedup
     app.audit           = audit
     app.watchlist       = watchlist
     app.packet_analyzer = packet_analyzer

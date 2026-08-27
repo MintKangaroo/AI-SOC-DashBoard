@@ -102,6 +102,7 @@ class ThreatDetector:
         self.threat_intel = None   # app.py 에서 주입 (IoC 기반 신뢰도 가중)
         self.ip_reputation = None  # app.py 에서 주입 (AbuseIPDB 평판 신뢰도 가중)
         self.soar = None           # app.py 에서 주입 (자동 대응 플레이북)
+        self.dedup = None          # wiring.py 에서 주입 (중복제거·억제 레이어)
         self.decision = None       # app.py 에서 주입 (ML 의사결정 지원)
         self.watchlist = None      # wiring 에서 주입 (IOC 워치리스트 대조)
         self.siem_correlator = None  # wiring 에서 주입 (SIEM 상관관계 분석)
@@ -136,6 +137,7 @@ class ThreatDetector:
         # 통계
         self.stats = {
             "total_alerts": 0,
+            "deduplicated": 0,
             "critical": 0,
             "high": 0,
             "medium": 0,
@@ -519,6 +521,65 @@ class ThreatDetector:
         alert.details["evidence"] = sorted(evidence)
         return max(0.05, min(0.99, round(score, 2)))
 
+    # ------------------------------------------------------------------ #
+    #  중복제거 · 억제 (modules/alert_dedup.py)
+    # ------------------------------------------------------------------ #
+
+    def _dedup_evaluate(self, alert):
+        """dedup 레이어 판정. 레이어가 없거나 실패하면 통과시킨다.
+
+        중복제거가 깨졌을 때 알림이 사라지는 것보다 중복이 나오는 편이 안전하다.
+        """
+        if not self.dedup:
+            return {"action": "pass", "fingerprint": "", "count": 1,
+                    "parent_id": None, "reason": "dedup 미설정"}
+        try:
+            return self.dedup.evaluate(alert.to_dict())
+        except Exception as e:
+            print(f"[ThreatDetector] dedup 판정 실패({e}) — 알림을 통과시킴")
+            return {"action": "pass", "fingerprint": "", "count": 1,
+                    "parent_id": None, "reason": f"dedup 오류: {type(e).__name__}"}
+
+    def _handle_deduplicated(self, alert, verdict):
+        """병합·억제된 알림을 처리한다. 원문은 이미 dedup 이 보관했다.
+
+        새 알림을 만들지 않는 대신 기존 알림의 count/last_seen 을 올리고
+        UI 에 갱신 이벤트를 보낸다. 어떤 경우에도 조용히 사라지지 않는다.
+        """
+        with self._lock:
+            key = "suppressed" if verdict["action"] == "suppress" else "deduplicated"
+            self.stats[key] = self.stats.get(key, 0) + 1
+
+        parent_id = verdict.get("parent_id")
+        if verdict["action"] != "duplicate" or parent_id is None:
+            return
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payload = {"fingerprint": verdict["fingerprint"], "count": verdict["count"],
+                   "last_seen": now}
+
+        # 메모리 상의 알림 갱신
+        with self._lock:
+            for existing in reversed(self.alerts):
+                if existing.id == parent_id:
+                    info = existing.details.setdefault("dedup", {})
+                    info.update(payload)
+                    info.setdefault("first_seen", existing.timestamp)
+                    break
+
+        # 영속 갱신
+        if self.store:
+            try:
+                self.store.update_details(parent_id, {"dedup": payload})
+            except Exception:
+                pass
+
+        self.socketio.emit("alert_dedup", {
+            "alert_id": parent_id, "count": verdict["count"],
+            "last_seen": now, "reason": verdict["reason"],
+            "fingerprint": verdict["fingerprint"],
+        })
+
     def _add_alert(self, alert):
         alert.confidence = self._confidence(alert)
         alert.details["confidence"] = alert.confidence
@@ -542,19 +603,23 @@ class ThreatDetector:
             except Exception:
                 pass
 
+        # 중복제거·억제 레이어 (modules/alert_dedup.py)
+        # 이전 구현은 같은 유형+IP 가 60초 내 OPEN 이면 조용히 drop 했다 —
+        # 카운트도 기록도 없어 잘못 억제한 것을 되짚을 수 없었다.
+        verdict = self._dedup_evaluate(alert)
+        if verdict["action"] in ("duplicate", "suppress"):
+            self._handle_deduplicated(alert, verdict)
+            return
+        alert.details["dedup"] = {
+            "fingerprint": verdict["fingerprint"], "count": 1,
+            "first_seen": alert.timestamp, "last_seen": alert.timestamp,
+        }
+        if verdict["action"] == "storm":
+            alert.details["dedup"]["storm"] = True
+            alert.details["dedup"]["count"] = verdict["count"]
+            alert.description = f"[스톰] {alert.description}"
+
         with self._lock:
-            # 중복 억제: 같은 유형+IP 가 최근 60초 내 OPEN 상태면 drop
-            cutoff = time.time() - 60
-            for existing in list(self.alerts)[-40:]:
-                if (existing.threat_type == alert.threat_type
-                        and existing.src_ip == alert.src_ip
-                        and existing.status == "OPEN"):
-                    try:
-                        ts = time.mktime(time.strptime(existing.timestamp, "%Y-%m-%d %H:%M:%S"))
-                        if ts > cutoff:
-                            return
-                    except Exception:
-                        return
             self.alerts.append(alert)
             self.stats["total_alerts"] += 1
             sev_key = alert.severity.lower()
@@ -567,6 +632,13 @@ class ThreatDetector:
         if self.store:
             try:
                 self.store.save(alert)
+            except Exception:
+                pass
+
+        # 이후 같은 핑거프린트의 재발이 이 알림으로 병합되도록 id 를 확정한다
+        if self.dedup:
+            try:
+                self.dedup.note_alert_id(verdict["fingerprint"], alert.id)
             except Exception:
                 pass
 

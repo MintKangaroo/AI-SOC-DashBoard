@@ -22,6 +22,7 @@ def _policy(app):
         "audit_days": max(30, int(app.config.get("AUDIT_RETENTION_DAYS", 365))),
         "file_days": max(1, int(app.config.get("DATA_RETENTION_DAYS", 30))),
         "feature_days": max(7, int(app.config.get("ML_FEATURE_RETENTION_DAYS", 180))),
+        "dedup_days": max(7, int(app.config.get("DEDUP_RETENTION_DAYS", 90))),
     }
 
 
@@ -67,6 +68,14 @@ def run_cleanup(app, manual=False):
             deleted_features = feature_store.purge_older_than(policy["feature_days"])
         except Exception as e:
             print(f"[Retention] ML 피처 정리 실패: {e}")
+    # 억제·병합 이벤트 보관분 — 잘못 억제한 것을 되짚는 근거라 함부로 줄이지 않는다
+    deleted_dedup = 0
+    dedup = getattr(app, "alert_dedup", None)
+    if dedup is not None:
+        try:
+            deleted_dedup = dedup.purge_older_than(policy["dedup_days"])
+        except Exception as e:
+            print(f"[Retention] 억제 이벤트 정리 실패: {e}")
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for path in _file_candidates(base_dir, policy["file_days"]):
         try:
@@ -78,13 +87,15 @@ def run_cleanup(app, manual=False):
               "trigger": "manual" if manual else "auto", "archived": moved,
               "archive_deleted": deleted_archive, "audit_deleted": deleted_audit,
               "files_deleted": deleted_files, "features_deleted": deleted_features,
+              "dedup_deleted": deleted_dedup,
               "policy": policy}
     with _lock:
         _history.appendleft(result)
-    if any((moved, deleted_archive, deleted_audit, deleted_files, deleted_features)):
+    if any((moved, deleted_archive, deleted_audit, deleted_files,
+            deleted_features, deleted_dedup)):
         print(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
               f"감사 {deleted_audit}건 · 파일 {deleted_files}건 · "
-              f"ML피처 {deleted_features}건 삭제")
+              f"ML피처 {deleted_features}건 · 억제이벤트 {deleted_dedup}건 삭제")
     return result
 
 
