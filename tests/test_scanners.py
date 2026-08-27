@@ -375,11 +375,18 @@ def test_run_command_apply_blocked_without_gate():
 
 
 def test_run_command_dangerous_blocked_even_with_gate():
+    """파괴적 명령은 PATCH_APPLY_ENABLED=True 여도 차단된다.
+
+    차단 방식이 blocklist → allowlist 로 바뀌면서(docs/AUDIT.md C-3) 사유 문구가
+    달라졌다. 문구가 아니라 '차단됐고 사유가 있다'를 검증한다.
+    우회 사례 회귀는 tests/test_security_hardening.py 가 따로 고정한다.
+    """
     pm = make_pm({"PATCH_APPLY_ENABLED": "True"})
-    for danger in ("rm -rf /", "reboot", "mkfs.ext4 /dev/sda", "shutdown now"):
+    for danger in ("rm -rf /", "reboot", "mkfs.ext4 /dev/sda", "shutdown now",
+                   "rm -fr /", "find / -delete"):
         job = pm.run_command(danger, host_ids=["localhost"], mode="apply")
         assert job["status"] == "blocked", danger
-        assert "파괴적" in job["result"]
+        assert job["result"], f"차단 사유가 비어 있음: {danger}"
 
 
 def test_run_job_apply_blocked_without_gate():

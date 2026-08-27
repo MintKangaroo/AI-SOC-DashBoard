@@ -18,9 +18,9 @@
 
 | # | 심각도 | 제목 | 근거 | 작업량 |
 |---|--------|------|------|--------|
-| 1 | **P0** | CORS가 임의 Origin을 credentials와 함께 반영 | `app.py:62` | S |
-| 2 | **P0** | 상태변경 POST 40여 개에 CSRF 방어 없음 | `app.py:62`, `api/*` | M |
-| 3 | **P1** | 파괴적 명령 blocklist 우회 가능 (`rm -fr /` 통과) | `modules/patch_manager.py:28-32,405` | S |
+| 1 | ~~P0~~ **수정됨** | CORS가 임의 Origin을 credentials와 함께 반영 | `app.py:62` | ✅ |
+| 2 | ~~P0~~ **수정됨** | 상태변경 POST 40여 개에 CSRF 방어 없음 | `app.py:62`, `api/*` | ✅ |
+| 3 | ~~P1~~ **수정됨** | 파괴적 명령 blocklist 우회 가능 (`rm -fr /` 통과) | `modules/patch_manager.py:28-32,405` | ✅ |
 | 4 | **P1** | 인시던트 저장이 매번 전량 재작성 — 0.63s 동안 락 점유 | `modules/incidents.py:311-347` | M |
 | 5 | **P1** | `id NOT IN (?×23299)` — 32,766건에서 무성 실패 | `modules/incidents.py:323` | S |
 | 6 | **P1** | incidents.db(18MB)·soar_executions.db(48MB) 보존정책 없음 | `modules/retention.py:12` | M |
@@ -50,9 +50,9 @@
 
 ## 상위 10개 우선순위 요약
 
-1. **CORS + CSRF (P0 #1, #2)** — 하나의 조합으로 원격 공격 표면이 열린다. 최우선.
-2. **파괴적 명령 blocklist 우회 (P1 #3)** — 자동매매 서버를 향한 마지막 안전장치가 실제로 새고 있다.
-3. **인시던트 저장 전량 재작성 (P1 #4)** — 탐지 파이프라인을 주기적으로 정지시킨다.
+1. ~~**CORS + CSRF (P0 #1, #2)**~~ — ✅ 수정 완료 (`fix/p0-cors-csrf`)
+2. ~~**파괴적 명령 blocklist 우회 (P1 #3)**~~ — ✅ 수정 완료 (`fix/p0-cors-csrf`)
+3. **인시던트 저장 전량 재작성 (P1 #4)** ← 현재 최우선 — 탐지 파이프라인을 주기적으로 정지시킨다.
 4. **인시던트 32,766건 상한 (P1 #5)** — 남은 여유 9,467건, 실패가 조용하다.
 5. **DB 보존정책 공백 (P1 #6)** — 66MB가 정책 밖에서 무한 증가 중.
 6. **AI 호출 타임아웃 (P1 #7)** — 최대 30분 스레드 점유.
@@ -269,7 +269,9 @@ GET /api/soar/status   Origin: https://evil.example
 
 `socketio`의 `cors_allowed_origins="*"`(`app.py:65`)도 같은 문제다. 소켓 연결은 세션을 검사하지만(`app.py:141`), 검사를 통과한 뒤에는 임의 Origin이 모든 실시간 이벤트를 구독한다.
 
-**수정 방향**: `CORS(app, origins=[...신뢰 오리진...], supports_credentials=True)`. Tailscale 단독 접근이면 CORS 자체가 불필요하므로 `CORS(app)` 제거가 가장 안전하다. socketio도 동일 목록으로. **작업량 S**
+**✅ 수정 완료** (`fix/p0-cors-csrf`, 2026-08-27): CORS 를 기본적으로 완전히 제거했다. 이 대시보드는 자기 페이지가 자기 API 를 부르는 동일 출처 앱이라 CORS 가 필요 없다. 별도 출처 클라이언트가 필요하면 `CORS_ORIGINS` 에 명시할 때만 활성화된다. SocketIO 의 `cors_allowed_origins` 도 `"*"` → 동일 목록(기본 빈 리스트 = 동일 출처만)으로 바꿨다.
+
+검증: `Origin: https://evil.example` 요청에 `Access-Control-Allow-Origin` 이 더 이상 붙지 않는다. 회귀 테스트 `tests/test_security_hardening.py::test_cors_does_not_reflect_arbitrary_origin`.
 
 ### C-2. [P0] 상태변경 엔드포인트에 CSRF 방어가 없다
 
@@ -289,7 +291,14 @@ Content-Type: application/json  {"ip":"203.0.113.9",...}
 - `/api/alerts/retention/run` — 알림 영구 삭제
 - `/api/soar/approvals/batch` — 대기 중 차단 일괄 승인
 
-**수정 방향**: C-1을 먼저 고치면 위험도가 크게 떨어진다. 그 위에 `SESSION_COOKIE_SAMESITE = "Strict"` + 상태변경 라우트에 `X-Requested-With` 또는 더블서밋 토큰 검사를 `before_request`에 추가. **작업량 M**
+**✅ 수정 완료** (`fix/p0-cors-csrf`, 2026-08-27):
+
+- `SESSION_COOKIE_SAMESITE` 를 `Lax` → **`Strict`** 로 (외부 사이트가 시작한 요청에 쿠키를 아예 안 붙임).
+- `before_request` 에 **Origin/Referer 검증**(`_require_same_origin`)을 추가. 상태변경 메서드(POST/PUT/DELETE/PATCH)는 출처가 자기 호스트여야 통과한다. OWASP 권고 방식이며, 프론트의 fetch 호출부 35곳을 **전혀 건드리지 않고** 적용된다(더블서밋 토큰은 35곳 수정이 필요했다).
+- 인증 가드와 **분리**했다 — `AUTH_ENABLED=False` 여도 API 는 방화벽 조작·프로세스 종료 같은 특권 동작을 하므로 출처 검증은 계속 필요하다. (첫 구현에서 인증 가드 안에 넣었다가 인증 비활성 시 우회되는 것을 테스트로 잡았다.)
+- `/login` POST 도 커버해 로그인 CSRF 를 막는다.
+
+검증: 외부 Origin·외부 Referer·출처 헤더 없음 세 경우 모두 403, 동일 출처는 정상 통과. GET 은 CSRF 대상이 아니며 C-1 로 응답 열람이 막힌다. 회귀 테스트 7건.
 
 ### C-3. [P1] 파괴적 명령 blocklist가 실제로 우회된다
 
@@ -307,7 +316,16 @@ Content-Type: application/json  {"ip":"203.0.113.9",...}
 
 **blocklist 방식 자체가 틀렸다.** `PATCH_APPLY_ENABLED=True`가 전제이고 현재 기본값은 `False`(`config.py:118`)라 즉시 위험은 아니지만, 이것이 **운영 중인 자동매매 서버**를 향한 마지막 게이트이며 C-2와 결합하면 원격에서 트리거된다.
 
-**수정 방향**: blocklist를 allowlist로 전환. 이 기능의 실제 용도(`apt`·`systemctl status`·`dpkg-query` 등 조회성 명령)를 감안하면 허용 명령 화이트리스트가 충분하다. 그리고 **이 우회 케이스들에 대한 회귀 테스트를 반드시 함께 추가**한다 — 현재 `_DANGEROUS_CMD`를 검증하는 테스트가 0건이다. **작업량 S**
+**✅ 수정 완료** (`fix/p0-cors-csrf`, 2026-08-27): `check_command()` 로 **3중 방어**로 전환했다.
+
+1. **셸 메타문자 차단** — `;` `&` `|` `` ` `` `$(` `${` `>` `<` 개행. 명령 연결·리다이렉션·치환 자체를 막는다.
+2. **명령 allowlist** — 첫 토큰(basename 기준, `/bin/rm` 우회 차단)이 조회 전용 목록에 있어야 한다. 목록은 UI 플레이스홀더가 안내하는 용도("예: uptime · df -h · systemctl status trader")에서 도출했다. `PATCH_COMMAND_ALLOWLIST` 로 조정 가능.
+3. **하위명령 제한** — `systemctl` 은 `status`/`is-active` 등 조회만. `restart`/`stop` 은 거부한다(운영 중 자동매매 프로세스를 원격에서 내리는 사고 방지). `apt`/`pip`/`dpkg` 도 동일.
+4. 기존 blocklist 는 중복 방어로 유지.
+
+부수 개선: dry-run 미리보기가 안전장치 판정을 함께 보여줘 '실행'을 누르기 전에 막힐 것을 알 수 있다.
+
+검증: 감사에서 통과했던 4건(`rm -fr /`, `rm  -rf /`, `rm -rf --no-preserve-root /`, `find / -delete`)과 셸 이스케이프 9건 전부 차단, 정상 조회 명령 11건 전부 통과. 회귀 테스트 `tests/test_security_hardening.py` 에 우회 사례를 그대로 고정했다(이전엔 `_DANGEROUS_CMD` 검증 테스트가 0건이었다).
 
 ### C-4. [P2] 보안 헤더 전무
 

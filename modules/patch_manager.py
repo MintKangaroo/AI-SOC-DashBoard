@@ -19,17 +19,98 @@ import time
 import shutil
 import tempfile
 import threading
+import shlex
 import subprocess
 from datetime import datetime
 from collections import deque
 
 
-# 실제 실행(apply) 시 무조건 차단하는 파괴적 명령 패턴 (자동매매 서버 보호)
+# ────────────────────────────────────────────────────────────────────
+#  원격 명령 안전장치 — allowlist 방식
+# ────────────────────────────────────────────────────────────────────
+#
+# 이전에는 파괴적 명령을 **부분 문자열 blocklist** 로 걸렀는데, 실제로 새고 있었다
+# (docs/AUDIT.md C-3). 통과 사례:
+#     rm -fr /                    (옵션 순서만 바꿈)
+#     rm  -rf /                   (공백 하나 추가)
+#     rm -rf --no-preserve-root / (옵션 추가)
+#     find / -delete              (다른 명령으로 같은 결과)
+#
+# 이 게이트는 운영 중인 자동매매 서버로 나가는 `ansible -m shell` 앞의 마지막
+# 방어선이므로 blocklist 로는 부족하다. 세 겹으로 바꾼다.
+#   1) 셸 메타문자 차단 — 명령 연결·리다이렉션·치환 자체를 막는다
+#   2) 명령 allowlist   — 첫 토큰이 허용 목록에 있어야 한다
+#   3) 기존 blocklist   — 위 둘을 통과해도 파괴적 패턴이면 거부(중복 방어)
+
+# 명령 연결·리다이렉션·치환을 가능하게 하는 문자. 하나라도 있으면 거부한다.
+_SHELL_METACHARS = (";", "&", "|", "`", "$(", "${", ">", "<", "\n", "\r")
+
+# 허용 명령 (조회 전용). UI 플레이스홀더가 안내하는 용도와 일치한다:
+#   "예: uptime · df -h · systemctl status trader"
+_DEFAULT_ALLOWED_CMDS = (
+    "uptime", "df", "free", "ps", "uname", "hostname", "id", "whoami", "date",
+    "lsblk", "du", "ss", "ip", "lscpu", "nproc", "getent",
+    "systemctl", "journalctl", "apt", "dpkg-query", "dpkg", "pip", "python3",
+    "tail", "head", "wc", "stat", "ls", "which", "sha256sum", "md5sum",
+)
+
+# systemctl / journalctl 은 조회 하위명령만 허용 (start/stop/restart 금지 —
+# 자동매매 프로세스를 원격에서 내리는 사고를 막는다)
+_READONLY_SUBCMDS = {
+    "systemctl": {"status", "is-active", "is-enabled", "is-failed",
+                  "list-units", "list-timers", "show", "cat"},
+    "apt": {"list", "show", "policy"},
+    "dpkg": {"-l", "-s", "-L", "--list", "--status"},
+    "pip": {"list", "show", "freeze"},
+}
+
+# 실제 실행(apply) 시 무조건 차단하는 파괴적 명령 패턴 (중복 방어)
 _DANGEROUS_CMD = (
     "rm -rf /", "rm -rf /*", "mkfs", "dd if=", "> /dev/sd", "of=/dev/sd",
     ":(){", "shutdown", "reboot", "halt", "poweroff", "init 0", "init 6",
     "chmod -R 000", "chown -R", "> /etc/", "userdel", "kill -9 -1",
 )
+
+
+def check_command(command, allowed=None):
+    """원격 실행 허용 여부. 반환: (ok, 거부사유 or None).
+
+    거부 사유를 문자열로 돌려주므로 UI 가 왜 막혔는지 그대로 보여줄 수 있다.
+    """
+    cmd = (command or "").strip()
+    if not cmd:
+        return False, "빈 명령"
+
+    for meta in _SHELL_METACHARS:
+        if meta in cmd:
+            return False, (f"셸 메타문자 '{meta}' 는 허용되지 않습니다 "
+                           "(명령 연결·리다이렉션 차단)")
+
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError as e:
+        return False, f"명령 구문 오류: {e}"
+    if not tokens:
+        return False, "빈 명령"
+
+    base = os.path.basename(tokens[0])
+    allow = tuple(allowed) if allowed else _DEFAULT_ALLOWED_CMDS
+    if base not in allow:
+        return False, (f"'{base}' 는 허용 목록에 없습니다. 조회 명령만 실행할 수 "
+                       f"있습니다 (허용: {', '.join(sorted(allow)[:8])} …). "
+                       "그 외 명령은 서버에서 직접 실행하세요.")
+
+    sub_allowed = _READONLY_SUBCMDS.get(base)
+    if sub_allowed:
+        sub = tokens[1] if len(tokens) > 1 else ""
+        if sub not in sub_allowed:
+            return False, (f"'{base} {sub}' 는 허용되지 않습니다. "
+                           f"조회 하위명령만 가능합니다: {', '.join(sorted(sub_allowed))}")
+
+    low = cmd.lower()
+    if any(d in low for d in _DANGEROUS_CMD):
+        return False, "파괴적 명령으로 판단되어 차단했습니다."
+    return True, None
 
 
 # 데모/샘플 취약 패키지 (CVE 예시 — 학습·데모용)
@@ -58,6 +139,10 @@ class PatchManager:
         self._lock = threading.Lock()
 
         self.apply_enabled = str(self.config.get("PATCH_APPLY_ENABLED", "False")) == "True"
+        # 원격 실행 허용 명령 — 비우면 조회 전용 기본 목록
+        raw_allow = str(self.config.get("PATCH_COMMAND_ALLOWLIST", "") or "")
+        self.command_allowlist = tuple(
+            c.strip() for c in raw_allow.split(",") if c.strip()) or None
         self.playbook_dir = self.config.get("PATCH_PLAYBOOK_DIR", "data/ansible")
         # 플레이북용(ansible-playbook)·ad-hoc용(ansible) 각각 — venv/bin 도 탐색
         self.ansible_bin = self._find_bin("ansible-playbook")
@@ -391,25 +476,28 @@ class PatchManager:
             self._finish_job(job, "blocked", "명령이 비어 있습니다.")
             return job
 
-        # dry-run(check): 실제 실행하지 않고 무엇이 실행될지 미리보기만
+        # dry-run(check): 실제 실행하지 않고 무엇이 실행될지 미리보기만.
+        # 안전장치 판정도 함께 보여줘 '실행'을 누르기 전에 막힐 것을 알 수 있게 한다.
         if mode != "apply":
+            ok, reason = check_command(command, self.command_allowlist)
+            verdict = ("실행 가능" if ok else f"실행 시 차단됨 — {reason}")
             preview = "\n".join(
                 f"[{h['name']}] $ {command}" for h in sel
-            ) + "\n\n(미리보기 — 실제 실행 안 함. 실행하려면 '실행' 버튼)"
+            ) + f"\n\n[안전장치 판정] {verdict}" \
+              + "\n(미리보기 — 실제 실행 안 함. 실행하려면 '실행' 버튼)"
             self._finish_job(job, "simulated",
                              f"미리보기 — 대상 {len(sel)}대", preview)
             return job
 
-        # apply: 안전장치 3중 (명시 허용 + 파괴적 명령 차단 + ansible 필요)
+        # apply: 안전장치 3중 (명시 허용 + 명령 allowlist + ansible 필요)
         if not self.apply_enabled:
             self._finish_job(job, "blocked",
                              "실제 실행 금지 상태 — PATCH_APPLY_ENABLED=True 필요 "
                              "(운영 중 자동매매 서버 보호).")
             return job
-        low = command.lower()
-        if any(d in low for d in _DANGEROUS_CMD):
-            self._finish_job(job, "blocked",
-                             "파괴적 명령으로 판단되어 차단했습니다. 위험 명령은 서버에서 직접 실행하세요.")
+        ok, reason = check_command(command, self.command_allowlist)
+        if not ok:
+            self._finish_job(job, "blocked", reason)
             return job
         if not self.ansible_adhoc:
             self._finish_job(job, "simulated",

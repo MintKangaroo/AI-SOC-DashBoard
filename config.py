@@ -157,8 +157,27 @@ class Config:
     SESSION_HOURS = float(os.getenv("SESSION_HOURS", 12))     # 로그인 세션 유지 시간
     # 세션 쿠키 보안 (Tailscale는 HTTP라 Secure 플래그는 기본 off)
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+    # Strict: 외부 사이트에서 시작된 요청에는 쿠키를 아예 붙이지 않는다(CSRF 1차 방어).
+    # Lax 는 top-level GET 에 쿠키를 붙여 주므로 링크 클릭 시 로그인 상태가 유지되지만,
+    # 이 대시보드는 북마크/직접 접속으로 쓰므로 Strict 로 얻는 방어가 더 크다.
+    SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Strict")
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False") == "True"
+
+    # ── CORS ──
+    # 이 대시보드는 자기 페이지가 자기 API 를 부르는 동일 출처 앱이라 CORS 가 필요 없다.
+    # 예전에는 CORS(app, supports_credentials=True) 로 열려 있었는데, flask-cors 는
+    # origins 미지정 + credentials 조합에서 **요청의 Origin 을 그대로 반사**한다.
+    # 그 결과 로그인 상태의 분석가가 임의 사이트를 방문하면 그 사이트 스크립트가
+    # 세션 쿠키를 실어 API 전체를 호출하고 응답을 읽을 수 있었다(docs/AUDIT.md C-1).
+    # 별도 출처 클라이언트가 필요할 때만 쉼표로 구분해 명시한다.
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
+
+    # ── CSRF ──
+    # 상태변경 요청(POST/PUT/DELETE/PATCH)의 Origin/Referer 가 자기 호스트인지 검증한다.
+    # 프론트 35개 fetch 호출부를 건드리지 않고 적용되는 표준 방어다(OWASP 권고).
+    CSRF_PROTECTION = os.getenv("CSRF_PROTECTION", "True") == "True"
+    # 대시보드를 여러 주소로 접속한다면(예: Tailscale IP + 호스트명) 여기에 추가
+    CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 
     # Demo mode (use simulated data when real sources unavailable)
     DEMO_MODE = os.getenv("DEMO_MODE", "True") == "True"

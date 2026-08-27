@@ -4,6 +4,7 @@ SOC 대시보드 메인 앱
 import secrets
 import logging
 from datetime import timedelta
+from urllib.parse import urlparse
 from flask import (Flask, render_template, request, session,
                    redirect, jsonify)
 from flask_socketio import SocketIO
@@ -59,10 +60,22 @@ def create_app():
     elif not auth_on:
         print("[SOC] 경고: AUTH_ENABLED=False — 인증 없이 노출됩니다.")
 
-    CORS(app, supports_credentials=True)
+    # ── CORS: 기본은 완전히 닫는다 ──
+    # 이 대시보드는 동일 출처 앱이라 CORS 가 필요 없다. 예전 설정
+    # `CORS(app, supports_credentials=True)` 는 origins 미지정 + credentials 조합이라
+    # flask-cors 가 **요청 Origin 을 그대로 반사**했고, 로그인한 분석가가 방문한
+    # 임의 사이트가 세션 쿠키로 API 전체를 읽을 수 있었다(docs/AUDIT.md C-1).
+    cors_origins = [o.strip() for o in
+                    str(app.config.get("CORS_ORIGINS", "")).split(",") if o.strip()]
+    if cors_origins:
+        CORS(app, origins=cors_origins, supports_credentials=True)
+        print(f"[SOC] CORS 허용 출처: {cors_origins}")
+
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",
+        # "*" 는 임의 출처가 세션 쿠키로 실시간 이벤트를 구독하게 한다.
+        # 명시된 출처가 없으면 동일 출처만 허용한다.
+        cors_allowed_origins=cors_origins or [],
         async_mode="threading",
         logger=False,
         engineio_logger=False,
@@ -82,16 +95,80 @@ def create_app():
         return (path == "/login" or path == "/logout"
                 or path.startswith("/static/"))
 
+    # ------------------------------------------------------------------ #
+    #  CSRF 가드 — 상태변경 요청의 출처 검증
+    # ------------------------------------------------------------------ #
+
+    _STATE_CHANGING = ("POST", "PUT", "DELETE", "PATCH")
+    csrf_on = app.config.get("CSRF_PROTECTION", True)
+    _trusted_origins = {o.strip().rstrip("/") for o in
+                        str(app.config.get("CSRF_TRUSTED_ORIGINS", "")).split(",")
+                        if o.strip()}
+    _trusted_origins |= {o.rstrip("/") for o in cors_origins}
+
+    def _origin_allowed(origin):
+        """Origin(또는 Referer 에서 뽑은 출처)이 자기 자신인지 검사."""
+        if not origin:
+            return False
+        origin = origin.rstrip("/")
+        if origin in _trusted_origins:
+            return True
+        # 요청이 들어온 호스트와 같은지 — 스킴 무관하게 host 로 비교한다.
+        # (Tailscale HTTP 접속과 로컬 접속을 모두 수용하기 위함)
+        try:
+            return urlparse(origin).netloc == request.host
+        except ValueError:
+            return False
+
+    def _csrf_ok():
+        """상태변경 요청이 이 대시보드 자신에서 시작됐는지 확인한다.
+
+        브라우저는 동일 출처 non-GET fetch 에도 Origin 을 붙이고, 교차 출처에서는
+        위조할 수 없다. Origin 이 없으면 Referer 로 대체한다. 둘 다 없으면
+        브라우저 요청이 아니므로 거부한다 — 스크립트 클라이언트가 필요하면
+        CSRF_TRUSTED_ORIGINS 에 명시하거나 CSRF_PROTECTION=False 로 끈다.
+        """
+        origin = request.headers.get("Origin")
+        if origin:
+            return _origin_allowed(origin)
+        referer = request.headers.get("Referer")
+        if referer:
+            parts = urlparse(referer)
+            if parts.scheme and parts.netloc:
+                return _origin_allowed(f"{parts.scheme}://{parts.netloc}")
+        return False
+
+    @app.before_request
+    def _require_same_origin():
+        """상태변경 요청의 출처를 검증한다 (CSRF).
+
+        인증 가드와 분리해 둔다 — AUTH_ENABLED=False 여도 API 는 방화벽 조작·
+        프로세스 종료 같은 특권 동작을 수행하므로 출처 검증은 계속 필요하다.
+        """
+        if not csrf_on or request.method not in _STATE_CHANGING:
+            return
+        if request.path.startswith("/static/"):
+            return
+        if _csrf_ok():
+            return
+        print(f"[SOC] CSRF 차단: {request.method} {request.path} "
+              f"origin={request.headers.get('Origin') or '-'} "
+              f"referer={request.headers.get('Referer') or '-'}")
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "요청 출처를 확인할 수 없습니다 (CSRF 보호)",
+                            "csrf": True}), 403
+        return render_template("login.html",
+                               error="요청 출처를 확인할 수 없습니다"), 403
+
     @app.before_request
     def _require_login():
         if not auth_on or _is_public(request.path):
             return
-        if session.get("user"):
-            return
-        # 미인증: API는 401 JSON, 그 외는 로그인 페이지로
-        if request.path.startswith("/api/"):
-            return jsonify({"error": "인증이 필요합니다", "auth_required": True}), 401
-        return redirect("/login")
+        if not session.get("user"):
+            # 미인증: API는 401 JSON, 그 외는 로그인 페이지로
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "인증이 필요합니다", "auth_required": True}), 401
+            return redirect("/login")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -99,6 +176,7 @@ def create_app():
             return redirect("/")
         error = None
         if request.method == "POST":
+            # 로그인 CSRF(외부 사이트가 폼을 대신 제출)는 _require_same_origin 이 막는다
             ip = request.remote_addr or "?"
             ok, reason = auth.verify(request.form.get("username", ""),
                                      request.form.get("password", ""), ip)
