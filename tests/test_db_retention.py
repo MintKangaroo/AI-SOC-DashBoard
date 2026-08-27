@@ -245,3 +245,115 @@ def test_retention_survives_missing_services():
     out = retention.run_cleanup(FakeApp())
     assert out["incidents_deleted"] == 0
     assert out["soar_executions_deleted"] == 0
+
+
+# ══════════════════════════════════════════════════════════════════
+#  인시던트 자동 종료 (AUDIT B-3a)
+# ══════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("status", ["OPEN", "INVESTIGATING", "CONTAINED"])
+def test_stale_incident_auto_resolved(mgr, status):
+    _incident(mgr, 1, status, days_ago=40)
+    assert mgr.count_auto_resolvable(30) == 1
+    assert mgr.auto_resolve_stale(30) == 1
+    assert mgr.incidents[1]["status"] == "RESOLVED"
+
+
+def test_recent_incident_not_auto_resolved(mgr):
+    _incident(mgr, 1, "OPEN", days_ago=5)
+    assert mgr.count_auto_resolvable(30) == 0
+    assert mgr.auto_resolve_stale(30) == 0
+    assert mgr.incidents[1]["status"] == "OPEN"
+
+
+def test_auto_resolve_records_reason_and_previous_status(mgr):
+    """조용한 종료가 아니어야 한다 — 나중에 되짚을 수 있어야 한다."""
+    _incident(mgr, 1, "INVESTIGATING", days_ago=40)
+    mgr.auto_resolve_stale(30)
+    entry = mgr.incidents[1]["timeline"][-1]
+    assert entry["kind"] == "auto_resolve"
+    assert "30일간 신규 활동 없음" in entry["text"]
+    assert "INVESTIGATING" in entry["text"], "이전 상태가 기록되지 않음"
+
+
+def test_already_resolved_not_touched_again(mgr):
+    _incident(mgr, 1, "RESOLVED", days_ago=40)
+    before = len(mgr.incidents[1]["timeline"])
+    assert mgr.auto_resolve_stale(30) == 0
+    assert len(mgr.incidents[1]["timeline"]) == before
+
+
+def test_auto_resolve_persists(tmp_path):
+    path = str(tmp_path / "inc.db")
+    m1 = IncidentManager(FakeSocketIO(), store_path=path, save_debounce_seconds=0)
+    _incident(m1, 1, "OPEN", days_ago=40)
+    m1.auto_resolve_stale(30)
+    m1._db.close()
+
+    m2 = IncidentManager(FakeSocketIO(), store_path=path)
+    try:
+        assert m2.incidents[1]["status"] == "RESOLVED"
+    finally:
+        m2._db.close()
+
+
+def test_new_alert_after_auto_resolve_opens_new_incident(mgr):
+    """_find_active 가 RESOLVED 를 제외하므로 새 케이스로 다시 열려야 한다."""
+    first = mgr.promote_alert({"id": 1, "threat_type": "BRUTE_FORCE",
+                               "severity": "HIGH", "src_ip": "203.0.113.9",
+                               "threat_label": "무차별 대입"})
+    mgr.incidents[first]["updated"] = _ts(40)
+    assert mgr.auto_resolve_stale(30) == 1
+
+    second = mgr.promote_alert({"id": 2, "threat_type": "BRUTE_FORCE",
+                                "severity": "HIGH", "src_ip": "203.0.113.9",
+                                "threat_label": "무차별 대입"})
+    assert second != first, "종료된 인시던트에 새 알림이 병합됨"
+    assert mgr.incidents[second]["status"] == "OPEN"
+
+
+def test_auto_resolve_respects_limit(mgr):
+    for i in range(1, 6):
+        _incident(mgr, i, "OPEN", days_ago=40)
+    assert mgr.auto_resolve_stale(30, limit=2) == 2
+    assert mgr.count_auto_resolvable(30) == 3
+
+
+def test_auto_resolved_not_purged_immediately(mgr):
+    """방금 종료된 건이 같은 정리 회차에 삭제되면 안 된다."""
+    _incident(mgr, 1, "OPEN", days_ago=400)
+    mgr.auto_resolve_stale(30)
+    assert mgr.count_purgeable(365) == 0, "종료 직후 삭제 대상이 됨"
+    assert 1 in mgr.incidents
+
+
+def test_retention_auto_resolves_then_purges(mgr, store):
+    from modules import retention
+    _incident(mgr, 1, "OPEN", days_ago=400)          # 자동 종료 대상
+    _incident(mgr, 2, "RESOLVED", days_ago=400)      # 즉시 삭제 대상
+    _incident(mgr, 3, "OPEN", days_ago=5)            # 둘 다 아님
+
+    result = retention.run_cleanup(FakeApp(incidents=mgr, soar=FakeSOAR(store)))
+    assert result["incidents_auto_resolved"] == 1
+    assert result["incidents_deleted"] == 1
+    assert set(mgr.incidents) == {1, 3}
+    assert mgr.incidents[1]["status"] == "RESOLVED"
+    assert mgr.incidents[3]["status"] == "OPEN"
+
+
+def test_auto_resolve_disabled_when_zero(mgr):
+    from modules import retention
+    app = FakeApp(incidents=mgr)
+    app.config["INCIDENT_AUTO_RESOLVE_DAYS"] = 0
+    _incident(mgr, 1, "OPEN", days_ago=400)
+    result = retention.run_cleanup(app)
+    assert result["incidents_auto_resolved"] == 0
+    assert mgr.incidents[1]["status"] == "OPEN"
+
+
+def test_preview_reports_auto_resolve_count(mgr):
+    from modules import retention
+    _incident(mgr, 1, "OPEN", days_ago=40)
+    out = retention.preview(FakeApp(incidents=mgr))
+    assert out["incidents_to_auto_resolve"] == 1
+    assert out["policy"]["incident_auto_resolve_days"] == 30

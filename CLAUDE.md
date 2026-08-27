@@ -172,6 +172,10 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 
 보존: alert_store.archive_older_than(days) → alerts_archive 테이블로 무손실 이동
       (config ALERT_AUTO_ARCHIVE=True 시 start_services에서 자동)
+      retention 루프(6시간)가 함께 처리: ML피처·억제이벤트 정리,
+      인시던트 자동종료(30일 조용 → RESOLVED) 후 RESOLVED 365일 경과분 삭제,
+      SOAR 실행 이력 종료분 90일 경과분 삭제.
+      ※ 진행 중 인시던트와 waiting_approval 실행은 절대 삭제 대상이 아니다.
 ```
 
 ## 환경 변수 (.env)

@@ -19,6 +19,8 @@ from datetime import datetime, timedelta
 
 
 VALID_STATUS = ("OPEN", "INVESTIGATING", "CONTAINED", "RESOLVED")
+# 자동 종료 대상 상태 — RESOLVED 는 이미 종료된 것이므로 제외한다
+_AUTO_RESOLVABLE = ("OPEN", "INVESTIGATING", "CONTAINED")
 _SEV_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
 
@@ -326,6 +328,52 @@ class IncidentManager:
     # ------------------------------------------------------------------ #
     #  보존 정리
     # ------------------------------------------------------------------ #
+
+    def count_auto_resolvable(self, days):
+        """자동 종료 대상(마지막 활동 후 N일 경과) 건수. 변경 없이 조회만."""
+        cutoff = (datetime.now() - timedelta(days=int(days))).strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            return sum(1 for inc in self.incidents.values()
+                       if inc.get("status") in _AUTO_RESOLVABLE
+                       and str(inc.get("updated", "")) < cutoff)
+
+    def auto_resolve_stale(self, days, limit=None):
+        """마지막 활동 후 N일간 조용한 인시던트를 자동 종료한다.
+
+        인시던트를 닫는 자동 경로가 없어 생성만 되고 절대 닫히지 않았다
+        (실측 23,299건 중 RESOLVED 0건, CONTAINED 0건 — docs/AUDIT.md B-3a).
+        그 결과 보존정책이 영원히 아무것도 지우지 못했고 MTTR 지표도 산출되지
+        않았다. 실무 SOC 의 stale case auto-close 관행을 따른다.
+
+        조용한 종료가 아니다 — 각 인시던트의 타임라인에 사유와 **이전 상태**를
+        남기므로 나중에 되짚을 수 있다. 새 알림이 오면 `_find_active` 가
+        RESOLVED 를 제외하므로 새 인시던트로 다시 열린다.
+
+        반환: 종료 건수.
+        """
+        cutoff = (datetime.now() - timedelta(days=int(days))).strftime("%Y-%m-%d %H:%M:%S")
+        now = _now()
+        with self._lock:
+            targets = [inc for inc in self.incidents.values()
+                       if inc.get("status") in _AUTO_RESOLVABLE
+                       and str(inc.get("updated", "")) < cutoff]
+            if limit:
+                targets = targets[:int(limit)]
+            for inc in targets:
+                previous = inc["status"]
+                inc["status"] = "RESOLVED"
+                inc["updated"] = now
+                inc["timeline"].append({
+                    "ts": now, "kind": "auto_resolve",
+                    "text": (f"자동 종료 — {int(days)}일간 신규 활동 없음 "
+                             f"(이전 상태: {previous})"),
+                })
+                self._dirty.add(inc["id"])
+            if targets:
+                self._save()
+        if targets:
+            self._emit()
+        return len(targets)
 
     def count_purgeable(self, days):
         """정리 대상(종료된 지 N일 지난 RESOLVED) 건수. 변경 없이 조회만."""

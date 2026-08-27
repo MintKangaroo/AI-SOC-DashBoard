@@ -107,6 +107,9 @@ class Config:
 
     # 인시던트 보존 — RESOLVED 만 대상. 진행 중 케이스는 대상 아님
     INCIDENT_RETENTION_DAYS = int(os.getenv("INCIDENT_RETENTION_DAYS", 365))
+    # 마지막 활동 후 이 기간 조용하면 자동 종료(RESOLVED). 0 이면 비활성.
+    # 인시던트를 닫는 자동 경로가 없어 생성만 되고 닫히지 않던 문제 해소(AUDIT B-3a)
+    INCIDENT_AUTO_RESOLVE_DAYS = int(os.getenv("INCIDENT_AUTO_RESOLVE_DAYS", 30))
     # SOAR 실행 이력 보존 — 종료된 것만. 승인 대기·진행 중은 대상 아님
     SOAR_EXECUTION_RETENTION_DAYS = int(os.getenv("SOAR_EXECUTION_RETENTION_DAYS", 90))
 
