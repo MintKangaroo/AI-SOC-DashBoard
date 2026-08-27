@@ -73,6 +73,15 @@ class Config:
     VIRUSTOTAL_TIMEOUT = float(os.getenv("VIRUSTOTAL_TIMEOUT", 8))
     VIRUSTOTAL_CACHE_HOURS = float(os.getenv("VIRUSTOTAL_CACHE_HOURS", 6))
 
+    # ── Claude API 호출 회복력 ──
+    # SDK 기본은 타임아웃 10분 × 재시도 2회 = 최대 30분. 단일 워커 큐라
+    # 한 번 막히면 그만큼 트리아지 전체가 정체된다(AUDIT B-4).
+    AI_TIMEOUT_SECONDS = float(os.getenv("AI_TIMEOUT_SECONDS", 30))
+    AI_MAX_RETRIES = int(os.getenv("AI_MAX_RETRIES", 1))
+    # 연속 실패가 이 횟수를 넘으면 아래 시간만큼 호출을 멈추고 규칙 기반으로 대체
+    AI_BREAKER_THRESHOLD = int(os.getenv("AI_BREAKER_THRESHOLD", 3))
+    AI_BREAKER_COOLDOWN = float(os.getenv("AI_BREAKER_COOLDOWN", 300))
+
     # EDR (엔드포인트 탐지·대응) — AI 기반 프로세스 행위 관제
     EDR_SCAN_INTERVAL = float(os.getenv("EDR_SCAN_INTERVAL", 5))
     EDR_RESPONSE_MODE = os.getenv("EDR_RESPONSE_MODE", "simulate")  # simulate | kill

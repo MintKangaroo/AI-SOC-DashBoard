@@ -264,7 +264,16 @@ retention 루프에서 **자동 종료 → 정리** 순서로 돈다. 방금 종
 
 더 나쁜 쪽은 챗봇이다. `on_chat`(`app.py:153`)이 `app.ai_analyst.chat()`을 **동기로** 호출하고, `chat()`은 `_do_chat` → `messages.create`를 그대로 탄다(`ai_analyst.py:92`). threading 모드 SocketIO에서 이는 요청 처리 스레드를 최대 30분 잡는다는 뜻이다.
 
-**수정 방향**: `anthropic.Anthropic(api_key=..., timeout=30.0, max_retries=1)`. 챗봇은 큐잉 후 `chat_response`를 나중에 emit하는 비동기로 전환. **작업량 S**
+**✅ 수정 완료** (`fix/ai-resilience`, 2026-08-27):
+
+- `anthropic.Anthropic(api_key=..., timeout=30.0, max_retries=1)` — 최악 대기가 30분 → **60초**로 제한된다. `AI_TIMEOUT_SECONDS`/`AI_MAX_RETRIES` 로 조정.
+- **서킷브레이커 신설** — 연속 실패가 `AI_BREAKER_THRESHOLD`(기본 3)를 넘으면 `AI_BREAKER_COOLDOWN`(기본 300초) 동안 호출을 멈추고 규칙 기반 판정으로 대체한다. API 가 죽었을 때 알림마다 타임아웃을 기다리는 것을 막는다. 결과에 `degraded: true` 와 사유를 실어 UI 가 열화 상태임을 알 수 있다.
+- **타입별 예외 처리** — 하나의 광범위한 `except Exception` 으로는 재시도 가능한 실패(429/5xx/네트워크)와 불가능한 실패(401/400/모델 없음)를 구분할 수 없다. `APITimeoutError` → `RateLimitError` → `AuthenticationError` → … 순으로 좁은 것부터 잡아 사람이 읽을 사유로 바꾼다.
+- `/api/ai/status` 의 `resilience` 필드로 브레이커 상태·연속 실패 수·마지막 오류·호출 통계를 노출한다.
+
+**챗봇 비동기화는 하지 않았다.** 확인 결과 프론트엔드가 챗봇을 **전혀 사용하지 않는다**(`chat_message` emit 0건, `/api/ai/chat` fetch 0건). 동기 호출이 남아 있지만 클라이언트 타임아웃으로 최대 60초로 제한되므로, 쓰이지 않는 경로를 위해 SocketIO 세션 처리를 재구성하는 것은 균형이 맞지 않는다고 판단했다. 사용하게 되면 그때 비동기로 전환한다.
+
+테스트 17건 (`tests/test_ai_resilience.py`) — 브레이커 개폐, 차단 중 API 미호출, 쿨다운 후 복구, 성공 시 카운터 초기화, AI 실패 시에도 파이프라인이 결과를 받는지.
 
 ### B-5. [P1] 연결당 무제한 스레드 생성
 
@@ -542,13 +551,23 @@ jobs:
 
 주의: CI 러너에는 ansible/nmap이 없으므로 D-2의 flake가 오히려 CI에서는 안 난다. 반대로 로컬에서만 깨진다 — D-2를 먼저 고쳐야 하는 이유다. **작업량 M**
 
-### D-4. 의존성 고정 — 양호, 갱신 필요
+### D-4. [~~양호~~ **정정 · 수정됨**] 의존성 고정값이 실제와 달랐다
 
-`requirements.txt` 전 항목 `==` 고정. 다만 다수가 1~2년 된 버전이다: `flask 3.0.3`, `requests 2.32.3`, `anthropic 0.40.0`, `scikit-learn 1.5.2`, `numpy 1.26.4`.
+**초판의 "의존성 고정 — 양호"는 오판이었다.** `==` 고정이 있는지만 보고 그 값이 실제 설치 버전과 맞는지 확인하지 않았다. B-4 작업 중 SDK 버전을 확인하다 드러났다.
 
-`anthropic 0.40.0`이 특히 뒤처져 있다. SDK는 이후 1.x 메이저를 냈고 `httpx2` 전환, 비동기 `.with_raw_response` 등 파괴적 변경이 있다. 현재 코드가 쓰는 API(`messages.create`)는 안정적이라 급하지 않지만, 새 기능(structured outputs, 프롬프트 캐싱)을 쓰려면 업그레이드가 필요하다.
+실측 (2026-08-27, 나열된 14개 중):
 
-**취약 패키지 여부는 확인하지 않았다** — `pip-audit`를 이 감사에서 실행하지 않았으므로 단정할 수 없다. D-3의 CI에 포함시켜 지속 확인할 것을 권한다. **작업량 S (audit 실행) / M (업그레이드)**
+| 상태 | 수 | 예 |
+|---|---|---|
+| 불일치 | **10** | `numpy` 1.26.4 고정 / **2.2.6** 설치 (메이저 차이), `anthropic` 0.40.0 / **0.116.0** |
+| 미설치 | 3 | `pyshark`, `scapy`(실환경 전용), `python-dateutil`(**사용처 0건**) |
+| 일치 | 1 | `PyYAML` |
+
+**의미**: fresh clone 에서 `pip install -r requirements.txt` 를 하면 **이 저장소의 테스트가 한 번도 통과해 본 적 없는 조합**을 받는다. 포트폴리오로서 치명적이다 — 리뷰어가 클론하면 다른 환경을 얻는다.
+
+**✅ 수정 완료** (`fix/ai-resilience`): 고정값을 실제 검증된 조합(pytest 379건 통과)으로 갱신했다. `pyshark`/`scapy`/`tensorflow` 는 데모 fallback 이 있으므로 선택 사항으로 주석 처리하고 그 사실을 파일에 적었다. 사용처가 0건인 `python-dateutil` 은 제거했다.
+
+**남은 것**: `pip-audit` 는 여전히 실행하지 않았으므로 취약 패키지 여부는 단정할 수 없다. D-3 의 CI 에 포함시킬 것.
 
 참고로 모델 ID `claude-sonnet-4-6`(`ai_analyst.py:39`)은 **유효한 현행 모델이다** (1M 컨텍스트, $3/$15 per MTok). 문서와도 일치한다 — 수정 불필요. 다만 `claude-sonnet-5`가 더 저렴하고($2/$10) 컨텍스트가 같으므로 전환을 검토할 가치는 있다.
 

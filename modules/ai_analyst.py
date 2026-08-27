@@ -19,6 +19,13 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 
+def _num(value, default):
+    try:
+        return float(value) if value is not None else float(default)
+    except (TypeError, ValueError):
+        return float(default)
+
+
 SYSTEM_PROMPT = """당신은 숙련된 SOC(Security Operations Center) 분석가 AI입니다.
 실시간 보안 이벤트, 네트워크 패킷, Sysmon 로그, 위협 알림을 분석하여 다음을 제공합니다:
 
@@ -34,7 +41,8 @@ JSON 형식으로 구조화된 분석 결과를 반환하세요.
 
 
 class AIAnalyst:
-    def __init__(self, socketio, api_key=None, ml_analyst=None):
+    def __init__(self, socketio, api_key=None, ml_analyst=None, config=None):
+        cfg = config or {}
         self.socketio = socketio
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self.model = os.getenv("AI_MODEL", "claude-sonnet-4-6")
@@ -47,12 +55,84 @@ class AIAnalyst:
         self._worker_thread = None
         self.running = False
 
+        # 호출 한계 — SDK 기본은 타임아웃 10분 × 재시도 2회 = 최대 30분이다.
+        # 단일 워커 큐라 한 번 막히면 그 시간만큼 트리아지 전체가 정체된다.
+        self.timeout_seconds = _num(cfg.get("AI_TIMEOUT_SECONDS"), 30.0)
+        self.max_retries = int(_num(cfg.get("AI_MAX_RETRIES"), 1))
+
+        # 서킷브레이커 — 연속 실패가 쌓이면 일정 시간 호출을 멈춘다.
+        # API 가 죽었을 때 매 알림마다 타임아웃을 기다리는 것을 막는다.
+        self.breaker_threshold = int(_num(cfg.get("AI_BREAKER_THRESHOLD"), 3))
+        self.breaker_cooldown = _num(cfg.get("AI_BREAKER_COOLDOWN"), 300.0)
+        self._fail_streak = 0
+        self._breaker_until = 0.0
+        self._last_error = ""
+        self.call_stats = {"ok": 0, "failed": 0, "skipped_breaker": 0}
+
         if ANTHROPIC_AVAILABLE and self.api_key:
             try:
-                self.client = anthropic.Anthropic(api_key=self.api_key)
+                self.client = anthropic.Anthropic(
+                    api_key=self.api_key,
+                    timeout=self.timeout_seconds,
+                    max_retries=self.max_retries,
+                )
                 self.available = True
             except Exception as e:
                 print(f"[AIAnalyst] Claude API 초기화 실패: {e}")
+
+    # ------------------------------------------------------------------ #
+    #  호출 회복력 (타임아웃 · 재시도 · 서킷브레이커)
+    # ------------------------------------------------------------------ #
+
+    def _breaker_open(self):
+        return time.time() < self._breaker_until
+
+    def _record_success(self):
+        with self._lock:
+            self._fail_streak = 0
+            self._breaker_until = 0.0
+            self._last_error = ""
+            self.call_stats["ok"] += 1
+
+    def _record_failure(self, message):
+        with self._lock:
+            self._fail_streak += 1
+            self._last_error = message
+            self.call_stats["failed"] += 1
+            opened = False
+            if self._fail_streak >= self.breaker_threshold:
+                self._breaker_until = time.time() + self.breaker_cooldown
+                opened = True
+        if opened:
+            print(f"[AIAnalyst] 연속 실패 {self._fail_streak}회 — "
+                  f"{int(self.breaker_cooldown)}초간 호출 중단 (사유: {message})")
+
+    @staticmethod
+    def _describe_error(exc):
+        """SDK 예외를 사람이 읽을 사유로 바꾼다.
+
+        하나의 광범위한 except 로 잡으면 재시도 가능한 실패(429/5xx/네트워크)와
+        불가능한 실패(401/400)를 구분할 수 없다. 좁은 것부터 잡는다.
+        """
+        if not ANTHROPIC_AVAILABLE:
+            return f"{type(exc).__name__}: {exc}"
+        if isinstance(exc, anthropic.APITimeoutError):
+            return "응답 시간 초과"
+        if isinstance(exc, anthropic.RateLimitError):
+            return "요청 한도 초과(429)"
+        if isinstance(exc, anthropic.AuthenticationError):
+            return "인증 실패 — ANTHROPIC_API_KEY 확인 필요"
+        if isinstance(exc, anthropic.PermissionDeniedError):
+            return "권한 없음 — API 키 권한 확인 필요"
+        if isinstance(exc, anthropic.NotFoundError):
+            return f"모델/엔드포인트 없음 — AI_MODEL={os.getenv('AI_MODEL', '')} 확인"
+        if isinstance(exc, anthropic.BadRequestError):
+            return f"잘못된 요청(400): {exc}"
+        if isinstance(exc, anthropic.APIStatusError):
+            return f"API 오류({getattr(exc, 'status_code', '?')})"
+        if isinstance(exc, anthropic.APIConnectionError):
+            return "네트워크 연결 실패"
+        return f"{type(exc).__name__}: {exc}"
 
     # ------------------------------------------------------------------ #
 
@@ -90,8 +170,13 @@ class AIAnalyst:
         return self._do_analyze_packet(summary)
 
     def chat(self, user_message: str, context: dict = None):
-        """SOC 챗봇 — 동기 응답"""
-        if not self.available:
+        """SOC 챗봇 — 동기 응답.
+
+        호출자(SocketIO 핸들러·REST 라우트)의 스레드를 잡는다. 클라이언트
+        타임아웃이 걸려 있어 최대 대기가 timeout × (max_retries+1) 로 제한된다
+        (기본 30s × 2 = 60s). 이전에는 SDK 기본값이라 최대 30분이었다.
+        """
+        if not self.available or self._breaker_open():
             return self._mock_chat(user_message)
         return self._do_chat(user_message, context or {})
 
@@ -100,12 +185,26 @@ class AIAnalyst:
             return list(self.analysis_history)[-limit:]
 
     def get_status(self):
+        with self._lock:
+            stats = dict(self.call_stats)
+            streak = self._fail_streak
+            last_error = self._last_error
+        remaining = max(0, int(self._breaker_until - time.time()))
         return {
             "available": self.available,
             "model": self.model if self.available else "demo",
             "queue_size": len(self._queue),
             "total_analyses": len(self.analysis_history),
             "api_key_set": bool(self.api_key),
+            "resilience": {
+                "timeout_seconds": self.timeout_seconds,
+                "max_retries": self.max_retries,
+                "breaker_open": remaining > 0,
+                "breaker_reopen_in": remaining,
+                "fail_streak": streak,
+                "last_error": last_error,
+                "calls": stats,
+            },
         }
 
     # ------------------------------------------------------------------ #
@@ -187,8 +286,14 @@ class AIAnalyst:
         return result.get("summary", "분석을 완료할 수 없습니다.") if result else "오류가 발생했습니다."
 
     def generate_text(self, prompt, system=None, max_tokens=1200):
-        """자유 서술형 텍스트 생성 (일일 리포트 등). API 없으면 None 반환."""
+        """자유 서술형 텍스트 생성 (일일 리포트 등). API 없거나 차단 중이면 None."""
         if not self.available:
+            return None
+        if self._breaker_open():
+            with self._lock:
+                self.call_stats["skipped_breaker"] += 1
+            print(f"[AIAnalyst] 서킷브레이커 열림 — 리포트 생성 건너뜀 "
+                  f"({self._last_error})")
             return None
         try:
             response = self.client.messages.create(
@@ -197,14 +302,27 @@ class AIAnalyst:
                 system=system or SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return response.content[0].text
         except Exception as e:
-            print(f"[AIAnalyst] 리포트 생성 오류: {e}")
+            reason = self._describe_error(e)
+            self._record_failure(reason)
+            print(f"[AIAnalyst] 리포트 생성 오류: {reason}")
             return None
+        self._record_success()
+        return response.content[0].text
 
     def _call_claude(self, prompt, analysis_type, ref_id, system_override=None):
         if not self.available:
             return self._mock_analysis(analysis_type, ref_id)
+        if self._breaker_open():
+            # API 가 죽었을 때 알림마다 타임아웃을 기다리지 않는다.
+            # 규칙 기반 mock 으로 즉시 응답해 파이프라인을 흐르게 한다.
+            with self._lock:
+                self.call_stats["skipped_breaker"] += 1
+            result = self._mock_analysis(analysis_type, ref_id)
+            if isinstance(result, dict):
+                result["degraded"] = True
+                result["degraded_reason"] = f"AI 호출 중단 중 ({self._last_error})"
+            return result
 
         try:
             response = self.client.messages.create(
@@ -237,11 +355,18 @@ class AIAnalyst:
                 self.analysis_history.append(entry)
 
             self._feedback_to_ml(analysis_type, parsed)
+            self._record_success()
             return entry
 
         except Exception as e:
-            print(f"[AIAnalyst] Claude API 오류: {e}")
-            return self._mock_analysis(analysis_type, ref_id)
+            reason = self._describe_error(e)
+            self._record_failure(reason)
+            print(f"[AIAnalyst] Claude API 오류: {reason}")
+            result = self._mock_analysis(analysis_type, ref_id)
+            if isinstance(result, dict):
+                result["degraded"] = True
+                result["degraded_reason"] = reason
+            return result
 
     def _feedback_to_ml(self, analysis_type, parsed):
         """AI가 오탐/정탐을 판정하면 Q-Learning 보상 루프에 자동 반영."""
