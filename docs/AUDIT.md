@@ -92,7 +92,17 @@
 - **응답 스키마**: 성공 응답이 제각각이다. `{"alerts": [...], "total": n}`(detection_routes.py:91), 최상위 배열, 벌거벗은 객체(`jsonify(vs.get_status())`)가 섞여 있다. 에러는 `{"error": "..."}`로 비교적 일관적이나 HTTP 코드 부여가 들쭉날쭉하다.
 - **페이지네이션**: 7개 엔드포인트만 `page`/`limit`을 지원하고 나머지는 `limit` 하드코딩 또는 전량 반환이다. `/api/incidents`는 `limit=100` 고정으로 23,299건 중 100건만 보여준다.
 
-**수정 방향**: `api/_common.py`에 `@api_bp.errorhandler(Exception)` 하나를 추가해 `{"error": ..., "type": ...}` 500 JSON으로 통일한다. 스키마 통일은 프론트 동시 수정이 필요하므로 나중. **작업량 M**
+**✅ 수정 완료** (`fix/api-error-handling`, 2026-08-27):
+
+서버 측 — `app.py` 에 핸들러 2개:
+- `@app.errorhandler(HTTPException)` — 404/405/403 등을 `/api/` 경로에서는 JSON 으로. 그 외 경로는 기존 HTML 을 유지한다(대시보드 페이지까지 JSON 으로 바꾸면 브라우저 UX 가 깨진다).
+- `@app.errorhandler(Exception)` — 서버 로그에는 전체 트레이스백, 클라이언트에는 **8자리 `error_id`**. 예외 메시지에 내부 경로·구조가 섞일 수 있어 그대로 내보내지 않고, `DEBUG=True` 일 때만 `detail` 을 붙인다.
+
+프론트 측 — 호출부 39곳을 고치는 대신 **`fetch` 를 한 겹 감쌌다**(`01-core.js`). 응답 본문은 `clone()` 에서만 읽으므로 기존 코드는 그대로 동작하고, `/api/` 응답이 실패했을 때만 우하단에 배너가 뜬다. 같은 오류가 반복되면 쌓지 않고 `×N` 으로 센다. `auth_required` 는 배너 대신 로그인 페이지로 보낸다.
+
+부수 정리: `escapeHtml` 이 `04-ml-mitre.js` 에 정의돼 있는데 `01-core.js` 부터 쓰이고 있었다. 런타임에는 동작하지만 로드 순서에 취약해 `01-core.js` 로 옮겼다.
+
+테스트 13건 (`tests/test_api_error_handling.py`) — 404/405 JSON 화, 모듈 예외 시 JSON 500, `error_id` 유일성, 비DEBUG 시 내부 정보 미노출, 의도적 4xx·CSRF 403 이 삼켜지지 않는지, **인자 없는 GET 엔드포인트 전수**가 JSON 을 돌려주는지(파일 다운로드 1개 제외), CSV 내보내기 실패 시에도 JSON 인지.
 
 ### A-4. 죽은 코드 / 미사용 import — [P3]
 

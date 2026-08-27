@@ -356,6 +356,5 @@ function showTechniqueDetail(techId) {
     });
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+/* escapeHtml 은 01-core.js 로 이동했다 — 1번 파일부터 쓰이는 공용 헬퍼가
+   4번 파일에 정의돼 있어 로드 순서에 취약했다. */

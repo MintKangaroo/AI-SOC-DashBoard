@@ -3,8 +3,12 @@ SOC 대시보드 메인 앱
 """
 import secrets
 import logging
+import traceback
+import uuid
 from datetime import timedelta
 from urllib.parse import urlparse
+
+from werkzeug.exceptions import HTTPException
 from flask import (Flask, render_template, request, session,
                    redirect, jsonify)
 from flask_socketio import SocketIO
@@ -198,6 +202,54 @@ def create_app():
     def logout():
         session.clear()
         return redirect("/login")
+
+    # ------------------------------------------------------------------ #
+    #  에러 처리 — API 는 항상 JSON 으로 답한다
+    # ------------------------------------------------------------------ #
+    #
+    # 이전에는 라우트 93개에 try/except 도 errorhandler 도 없었다. 모듈이
+    # 예외를 던지면 Flask 기본 500 **HTML** 이 나가고, 프론트의
+    # `.then(r => r.json())` 이 파싱 에러로 죽은 뒤 `.catch(() => {})`
+    # (39곳)가 그것을 삼켜 **패널이 조용히 빈 채로 남았다**. 어디가 왜
+    # 깨졌는지 화면에도 로그에도 남지 않는 것이 문제였다. (docs/AUDIT.md A-3)
+
+    def _wants_json():
+        return request.path.startswith("/api/")
+
+    @app.errorhandler(HTTPException)
+    def _handle_http_error(e):
+        """404/405/403 등 — API 경로면 JSON, 그 외는 기본 HTML 유지."""
+        if not _wants_json():
+            return e
+        return jsonify({
+            "error": e.description,
+            "status": e.code,
+            "path": request.path,
+        }), e.code
+
+    @app.errorhandler(Exception)
+    def _handle_unexpected_error(e):
+        """예상 못한 예외 — 서버에는 전체 트레이스백, 클라이언트에는 식별자.
+
+        내부 예외 메시지에는 경로·쿼리·내부 구조가 섞일 수 있어 그대로
+        내보내지 않는다. error_id 로 서버 로그와 대조한다.
+        """
+        error_id = uuid.uuid4().hex[:8]
+        print(f"[SOC] 처리되지 않은 예외 [{error_id}] "
+              f"{request.method} {request.path}: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        if not _wants_json():
+            return ("<h1>500 Internal Server Error</h1>"
+                    f"<p>오류 식별자: {error_id}</p>"), 500
+        payload = {
+            "error": "서버 내부 오류가 발생했습니다",
+            "error_id": error_id,
+            "status": 500,
+            "path": request.path,
+        }
+        if app.config.get("DEBUG"):
+            payload["detail"] = f"{type(e).__name__}: {e}"
+        return jsonify(payload), 500
 
     # ------------------------------------------------------------------ #
     #  라우트

@@ -17,7 +17,106 @@
   };
 })();
 
+/* HTML 이스케이프 — 여러 파일이 공유하는 공용 헬퍼다.
+   원래 04-ml-mitre.js 에 있었으나 01 부터 쓰이므로 여기로 옮겼다. */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 const socket = io();
+
+/* ════════════════════ API 오류 표면화 ════════════════════
+   서버는 이제 어떤 실패에도 /api/ 에 JSON 을 돌려준다(docs/AUDIT.md A-3).
+   문제는 프론트다 — 39곳이 `.catch(() => {})` 로 실패를 조용히 삼켜
+   패널이 빈 채로 남고 사용자는 이유를 알 수 없었다.
+
+   호출부 39곳을 고치는 대신 fetch 를 한 겹 감싼다. 응답 본문은 건드리지
+   않으므로 기존 코드는 그대로 동작하고, 실패했을 때만 배너가 뜬다.
+   error_id 를 함께 보여줘 서버 로그와 대조할 수 있게 한다. */
+(function wrapFetchForErrorSurfacing() {
+  const original = window.fetch;
+  if (!original || window.__socFetchWrapped) return;
+  window.__socFetchWrapped = true;
+
+  window.fetch = function (input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    return original.call(this, input, init).then(response => {
+      if (url.includes('/api/') && !response.ok) {
+        // 본문을 소비하면 호출부가 못 읽으므로 복제본에서만 읽는다
+        response.clone().json()
+          .then(body => showApiError(url, response.status, body))
+          .catch(() => showApiError(url, response.status, null));
+      }
+      return response;
+    }).catch(err => {
+      if (url.includes('/api/')) showApiError(url, 0, null);
+      throw err;
+    });
+  };
+})();
+
+function showApiError(url, status, body) {
+  // 인증 만료는 로그인 페이지로 보내는 것이 자연스럽다 — 배너 대신 이동
+  if (body && body.auth_required) {
+    window.location.href = '/login';
+    return;
+  }
+  const path = String(url).replace(/^https?:\/\/[^/]+/, '');
+  const parts = [];
+  if (status) parts.push(`HTTP ${status}`);
+  if (body && body.error) parts.push(body.error);
+  if (body && body.error_id) parts.push(`오류 ID ${body.error_id}`);
+  if (!parts.length) parts.push('요청 실패');
+  renderApiErrorBanner(`${path} — ${parts.join(' · ')}`);
+}
+
+/* 같은 메시지가 반복될 때 배너를 쌓지 않고 횟수만 올린다 */
+const _apiErrorSeen = new Map();
+
+function renderApiErrorBanner(message) {
+  let box = document.getElementById('api-error-stack');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'api-error-stack';
+    box.setAttribute('style',
+      'position:fixed;right:16px;bottom:16px;z-index:2000;max-width:460px;' +
+      'display:flex;flex-direction:column;gap:6px');
+    document.body.appendChild(box);
+  }
+  const existing = _apiErrorSeen.get(message);
+  if (existing && document.body.contains(existing.el)) {
+    existing.count += 1;
+    const badge = existing.el.querySelector('.api-err-count');
+    if (badge) badge.textContent = `×${existing.count}`;
+    return;
+  }
+
+  const item = document.createElement('div');
+  item.className = 'api-error-toast';
+  item.setAttribute('style',
+    'background:#2d1416;border:1px solid #f85149;border-left:3px solid #f85149;' +
+    'color:#e6edf3;border-radius:6px;padding:8px 10px;font-size:11.5px;' +
+    'display:flex;gap:8px;align-items:flex-start;box-shadow:0 2px 8px rgba(0,0,0,.4)');
+  item.innerHTML =
+    '<i class="fa fa-triangle-exclamation" style="color:#f85149;margin-top:2px"></i>' +
+    `<span style="flex:1;word-break:break-all">${escapeHtml(message)}</span>` +
+    '<span class="api-err-count" style="color:#8b949e">×1</span>' +
+    '<button type="button" style="background:none;border:none;color:#8b949e;' +
+    'cursor:pointer;padding:0 2px;line-height:1">&times;</button>';
+  item.querySelector('button').onclick = () => {
+    item.remove();
+    _apiErrorSeen.delete(message);
+  };
+  box.appendChild(item);
+  _apiErrorSeen.set(message, { el: item, count: 1 });
+
+  setTimeout(() => {
+    item.remove();
+    _apiErrorSeen.delete(message);
+  }, 15000);
+}
+
 // 소켓 인증 실패(미로그인) 시 로그인 페이지로
 socket.on('connect_error', () => { window.location.href = '/login'; });
 
