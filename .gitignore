@@ -30,3 +30,7 @@ portfolio/
 docs/portfolio.md
 # 스크린샷/브라우저 도구 임시물
 scratchpad/
+.coverage
+data/ml_features.db
+data/ml_features.db-wal
+data/ml_features.db-shm
