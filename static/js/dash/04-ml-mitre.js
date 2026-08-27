@@ -196,10 +196,10 @@ function mitreLogRow(e) {
   return `<tr style="color:#e6edf3">
     <td style="font-size:11px;color:#e6edf3">${time}</td>
     <td><span class="${sevCls}" style="font-size:10px">${sev}</span></td>
-    <td><span class="small" style="color:#e6edf3">${e.tactic_ko || e.tactic_id || ''}</span></td>
+    <td><span class="small" style="color:#e6edf3">${escapeHtml(e.tactic_ko || e.tactic_id || '')}</span></td>
     <td>
-      <a href="javascript:;" onclick="showTechniqueDetail('${e.technique_id}')" class="text-info font-monospace me-1">${e.technique_id}</a>
-      <span class="small" style="color:#e6edf3">${e.technique_ko || ''}</span>
+      <a href="javascript:;" onclick="showTechniqueDetail('${escapeHtml(e.technique_id)}')" class="text-info font-monospace me-1">${escapeHtml(e.technique_id)}</a>
+      <span class="small" style="color:#e6edf3">${escapeHtml(e.technique_ko || '')}</span>
     </td>
     <td class="font-monospace small" style="color:#e6edf3">${e.src_ip || '-'}</td>
     <td class="font-monospace small" style="color:#e6edf3">${e.dst_ip || '-'}</td>
@@ -224,9 +224,9 @@ function renderMitreMatrix(data) {
 
   tactics.forEach(tac => {
     html += `<div class="mitre-tactic">
-      <div class="mitre-tactic-header" title="${tac.name} (${tac.id})">
-        <span class="t-ko">${tac.ko}</span>
-        <span class="t-en">${tac.name}</span>
+      <div class="mitre-tactic-header" title="${escapeHtml(tac.name)} (${escapeHtml(tac.id)})">
+        <span class="t-ko">${escapeHtml(tac.ko)}</span>
+        <span class="t-en">${escapeHtml(tac.name)}</span>
         <span class="t-count">${tac.total}</span>
       </div>`;
 
@@ -238,11 +238,11 @@ function renderMitreMatrix(data) {
       else if (count >= 10)               hitClass = 'hit-high';
 
       html += `<div class="mitre-technique clickable ${hitClass}"
-                    title="${tech.name} — 탐지 ${count}건 · 클릭 시 상세"
-                    onclick="showTechniqueDetail('${tech.id}')"
-                    data-tactic="${tac.id}" data-technique="${tech.id}">
-        <div class="tech-id">${tech.id}</div>
-        <div class="tech-name">${tech.ko}</div>
+                    title="${escapeHtml(tech.name)} — 탐지 ${count}건 · 클릭 시 상세"
+                    onclick="showTechniqueDetail('${escapeHtml(tech.id)}')"
+                    data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
+        <div class="tech-id">${escapeHtml(tech.id)}</div>
+        <div class="tech-name">${escapeHtml(tech.ko)}</div>
         ${count > 0 ? `<div class="tech-count">${count}</div>` : ''}
       </div>`;
     });
@@ -274,8 +274,8 @@ function showTechniqueDetail(techId) {
         body.innerHTML = `<div class="alert alert-warning">${d.message || '해당 Technique 정보가 없습니다.'}</div>`;
         return;
       }
-      title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${d.technique_id} · ${d.technique_ko}
-        <span class="badge bg-secondary ms-2" style="font-size:11px">${d.tactic_id} · ${d.tactic_ko}</span>`;
+      title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${escapeHtml(d.technique_id)} · ${escapeHtml(d.technique_ko)}
+        <span class="badge bg-secondary ms-2" style="font-size:11px">${escapeHtml(d.tactic_id)} · ${escapeHtml(d.tactic_ko)}</span>`;
       ref.href = d.reference_url;
 
       const sev = d.severity_dist || {};

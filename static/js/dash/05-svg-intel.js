@@ -92,8 +92,8 @@ function loadMitreTop() {
         const pct = max ? (t.count / max * 100).toFixed(0) : 0;
         return `<div class="mitre-top-item">
           <span class="rank">#${i + 1}</span>
-          <span class="tech-code font-monospace">${t.technique_id}</span>
-          <span class="tech-name">${t.ko} <span class="text-muted">(${t.tactic_name})</span></span>
+          <span class="tech-code font-monospace">${escapeHtml(t.technique_id)}</span>
+          <span class="tech-name">${escapeHtml(t.ko)} <span class="text-muted">(${escapeHtml(t.tactic_name)})</span></span>
           <div class="bar-wrap"><div class="bar" style="width:${pct}%"></div></div>
           <span class="count">${t.count}</span>
         </div>`;
@@ -120,9 +120,9 @@ function loadMitreRecent() {
         return `
         <div class="mitre-recent-item" style="color:#e6edf3">
           <span class="ts" style="color:#e6edf3">${(e.timestamp||'').split(' ')[1] || e.timestamp}</span>
-          <span class="badge bg-danger font-monospace">${e.technique_id}</span>
+          <span class="badge bg-danger font-monospace">${escapeHtml(e.technique_id)}</span>
           <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
-          <span class="tactic" style="color:#e6edf3">${e.tactic_ko || e.tactic_id}</span>
+          <span class="tactic" style="color:#e6edf3">${escapeHtml(e.tactic_ko || e.tactic_id)}</span>
           <span class="desc" style="color:#e6edf3">${escapeHtml(e.description||'')}</span>
         </div>`;
       }).join('');
@@ -170,9 +170,9 @@ socket.on('mitre_hit', entry => {
     div.setAttribute('style', 'color:#e6edf3');
     div.innerHTML = `
       <span class="ts" style="color:#e6edf3">${(entry.timestamp||'').split(' ')[1] || entry.timestamp}</span>
-      <span class="badge bg-danger font-monospace">${entry.technique_id}</span>
+      <span class="badge bg-danger font-monospace">${escapeHtml(entry.technique_id)}</span>
       <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
-      <span class="tactic" style="color:#e6edf3">${entry.tactic_ko || entry.tactic_id}</span>
+      <span class="tactic" style="color:#e6edf3">${escapeHtml(entry.tactic_ko || entry.tactic_id)}</span>
       <span class="desc" style="color:#e6edf3">${escapeHtml(entry.description||'')}</span>`;
     recentList.insertBefore(div, recentList.firstChild);
     while (recentList.children.length > 30) recentList.removeChild(recentList.lastChild);
@@ -217,7 +217,7 @@ function renderThreatIntel(d) {
       const okCls = /ok/i.test(s.status) ? 'text-success' : 'text-danger';
       return `<tr style="color:#e6edf3">
         <td class="small" style="color:#e6edf3">${escapeHtml(s.name)}</td>
-        <td class="small" style="color:#e6edf3">${s.type}</td>
+        <td class="small" style="color:#e6edf3">${escapeHtml(s.type)}</td>
         <td class="small font-monospace text-end" style="color:#e6edf3">${(s.count||0).toLocaleString()}</td>
         <td class="small ${okCls}">${escapeHtml(s.status||'-')}</td>
       </tr>`;
@@ -305,8 +305,8 @@ function checkThreatIntel() {
       const box = document.getElementById('ti-check-result');
       if (!box) return;
       const ipMsg = d.ip ? (d.ip_malicious
-          ? `<span class="badge bg-danger">악성</span> ${d.ip}`
-          : `<span class="badge bg-success">정상</span> ${d.ip}`)
+          ? `<span class="badge bg-danger">악성</span> ${escapeHtml(d.ip)}`
+          : `<span class="badge bg-success">정상</span> ${escapeHtml(d.ip)}`)
         : '';
       const urlMsg = d.url ? (d.url_malicious
           ? `<span class="badge bg-danger">악성</span> ${escapeHtml(d.url)}`

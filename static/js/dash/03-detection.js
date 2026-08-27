@@ -422,7 +422,7 @@ function updateSysmonTable(events, highlight = false) {
     if (ev.suspicious || highlight) row.style.background = 'rgba(248,81,73,.08)';
     row.innerHTML = `
       <td style="color:#e6edf3">${escapeHtml(ev.timestamp)}</td>
-      <td style="color:#e6edf3">${ev.event_id}</td>
+      <td style="color:#e6edf3">${escapeHtml(ev.event_id)}</td>
       <td style="color:#e6edf3">${escapeHtml(ev.event_name)}</td>
       <td>${sevBadge(ev.severity)}</td>
       <td class="font-monospace text-truncate" style="max-width:120px;color:#e6edf3" title="${escapeHtml(ev.process||'')}">${escapeHtml(ev.process||'-')}</td>
@@ -580,9 +580,9 @@ function animateAttack(entry) {
   const atk = {
     lat: entry.src_lat, lng: entry.src_lng, color,
     radius: 0.35, alt: 0.008,
-    label: `<b style="color:${color}">⚠ ${entry.src_country || ''}</b> ${entry.src_city || ''}<br/>
-            IP: <span style="font-family:monospace">${entry.ip}</span><br/>
-            유형: <b>${entry.threat_type}</b><br/>등급: ${entry.severity}`,
+    label: `<b style="color:${color}">⚠ ${escapeHtml(entry.src_country || '')}</b> ${escapeHtml(entry.src_city || '')}<br/>
+            IP: <span style="font-family:monospace">${escapeHtml(entry.ip)}</span><br/>
+            유형: <b>${escapeHtml(entry.threat_type)}</b><br/>등급: ${escapeHtml(entry.severity)}`,
   };
   _globePoints.push(atk);
   if (_globePoints.length > 80) _globePoints.splice(1, 1);  // 0번은 방어자

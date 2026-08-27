@@ -24,26 +24,26 @@
 | 4 | ~~P1~~ **수정됨** | 인시던트 저장이 매번 전량 재작성 — 0.63s 동안 락 점유 | `modules/incidents.py:311-347` | ✅ |
 | 5 | ~~P1~~ **수정됨** | `id NOT IN (?×23299)` — 32,766건에서 무성 실패 | `modules/incidents.py:323` | ✅ |
 | 6 | ~~P1~~ **부분 수정** | incidents.db(18MB)·soar_executions.db(48MB) 보존정책 없음 | `modules/retention.py:12` | ⚠️ |
-| 7 | **P1** | Anthropic 클라이언트 타임아웃 미설정 + 동기 chat | `modules/ai_analyst.py:52,92`, `app.py:153` | S |
+| 7 | ~~P1~~ **수정됨** | Anthropic 타임아웃 미설정 + 동기 chat (챗봇 비동기화는 미사용 경로라 의도적 보류 — B-4 참조) | `modules/ai_analyst.py:52,92` | ✅ |
 | 8 | ~~P1~~ **수정됨** | 허니팟/Syslog 연결당 무제한 스레드 생성 | `modules/honeypot.py:164` | ✅ |
-| 9 | **P1** | 라우트 88개에 예외 처리·에러 핸들러 전무 | `api/*.py` (try 0건) | M |
-| 10 | **P1** | `api/`·`app.py`·`wiring.py` 테스트 커버리지 0% | 측정치 | L |
-| 11 | **P2** | 보안 헤더(CSP·X-Frame-Options 등) 전무 | 실측 확인 | S |
-| 12 | **P2** | 문서화된 탐지 임계값 env가 죽어 있음 (하드코딩) | `modules/threat_detector.py:236,251` | S |
+| 9 | ~~P1~~ **수정됨** | 라우트 88개에 예외 처리·에러 핸들러 전무 | `api/*.py` (try 0건) | ✅ |
+| 10 | ~~P1~~ **수정됨** | `api/` 커버리지 0% → **46~68%**(전체 75%, CI 게이트 70%) | 측정치 | ✅ |
+| 11 | ~~P2~~ **수정됨** | 보안 헤더 전무 → 5종 + CSP `'self'`(E-1 이후) | 실측 확인 | ✅ |
+| 12 | ~~P2~~ **수정됨** | 문서화된 탐지 임계값 env가 죽어 있음 (하드코딩) | `modules/threat_detector.py:236,251` | ✅ |
 | 13 | ~~P2~~ **수정됨** | 아카이브 알림 110,748건이 모든 조회 경로에서 불가시 | `modules/alert_store.py:171` | ✅ |
 | 14 | ~~P2~~ **수정됨** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | ✅ |
-| 15 | **P2** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | S |
+| 15 | ~~P2~~ **수정됨** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | ✅ |
 | 16 | ~~P2~~ **수정됨** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | ✅ |
 | 17 | ~~P2~~ **수정됨** | `print()` 102회 · 구조화 로깅 없음 | 전역 | ✅ |
-| 18 | **P2** | 린터·CI·Dockerfile 전부 부재 | 파일 없음 | M |
-| 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
+| 18 | ~~P2~~ **부분 수정** | 린터·CI 도입(ruff+pytest+커버리지+pip-audit). Dockerfile 은 '안 고쳐도 되는 것'으로 분류 | 파일 없음 | ⚠️ |
+| 19 | ~~P2~~ **수정됨** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | ✅ |
 | 20 | ~~P2~~ **수정됨** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | ✅ |
 | 21 | ~~P2~~ **수정됨** | alert_store·audit_log·watchlist에 WAL/busy_timeout 미설정 | `alert_store.py:16` 외 | ✅ |
 | 22 | ~~P3~~ **수정됨** | `get_services()` 6-튜플 위치 결합 | `api/_common.py:36` | ✅ |
-| 23 | **P3** | JS 전역 선언 323개 · 로드 순서 의존 | `static/js/dash/*` | L |
+| 23 | **P3** *(안 함)* | JS 전역 선언 323개 · 로드 순서 의존 — ES 모듈 전면 전환은 18파일을 건드려 얻는 게 안전성뿐. IIFE 점진 적용으로 대체 | `static/js/dash/*` | — |
 | 24 | ~~P3~~ **수정됨** | `_attackerCounter` 무한 증가 + 알림마다 전량 정렬 | `02-overview.js:101-105` | ✅ |
-| 25 | **P3** | 미사용 import 40건 · 타입힌트 1% | pyflakes | S |
-| 26 | **P3** | 저장소명 오타 `DaschBoard` | git remote | S |
+| 25 | ~~P3~~ **부분 수정** | 미사용 import 40건 정리 + ruff 상시 검사. 타입힌트는 '안 고쳐도 되는 것'으로 분류(mypy 소음) | pyflakes | ⚠️ |
+| 26 | ~~P3~~ **수정됨** | 저장소명 오타 `DaschBoard` → `AI-SOC-DashBoard` | git remote | ✅ |
 | 27 | ~~P3~~ **문서화·경고 추가** | `SESSION_COOKIE_SECURE` 기본 False · `allow_unsafe_werkzeug=True` | `config.py:144`, `app.py:188` | ✅ |
 
 ---
@@ -563,7 +563,7 @@ SocketIO도 `connect` 핸들러가 세션을 검사하고 `False`를 반환해 �
 
 주의점 둘: `AUTH_ENABLED=False`면 전부 무방비인데(`app.py:59`에서 경고는 출력) 기본값이 `True`라 괜찮다. `SESSION_COOKIE_SECURE` 기본 `False`(`config.py:144`)는 Tailscale HTTP 환경에서는 타당한 선택 — 문서화만 되어 있으면 된다.
 
-### C-6. [P2] XSS — 확증된 공격 경로는 없으나 방어가 불균질하다
+### C-6. [~~P2~~ **수정됨**] XSS — 확증된 공격 경로는 없으나 방어가 불균질하다
 
 **공격자가 제어하는 필드는 전부 이스케이프되어 있다**. 확인 결과:
 
@@ -586,7 +586,28 @@ SocketIO도 `connect` 핸들러가 세션을 검사하고 `False`를 반환해 �
 
 `src_ip`는 파서들이 IP 정규식으로 추출하고 EDR은 운영자가 설정한 `EDR_HOST_LABEL`을 쓴다. **현시점에 악용 가능한 경로를 찾지 못했다** — 이 항목을 P2로 두는 이유다. 문제는 이것이 "안전하다"가 아니라 "우연히 안전하다"라는 점이다. 새 이벤트 소스가 `src_ip`에 자유 문자열을 넣는 순간 조용히 XSS가 된다.
 
-**수정 방향**: C-4의 CSP를 먼저 넣고(백스톱 확보), 이후 `escapeHtml` 누락 지점을 기계적으로 채운다. **작업량 S**
+**수정 (2026-08-27)** — C-4 의 CSP 와 E-1 의 `'self'` 조이기를 백스톱으로 깔고,
+누락 지점 **24곳**을 채웠다(`02-overview` 4 · `03-detection` 6 · `04-ml-mitre` 13 ·
+`05-svg-intel` 9 — 감사가 지목한 `${ip}`/`${info.type}` 포함).
+
+**기계적으로 다 채우지는 않았다.** 후보를 훑으면 599건이 잡히는데 대부분 숫자·
+CSS 값이고, 그중 `${bars}`·`${meta}`·`${e.html}` 은 **의도적으로 조립한 HTML** 이라
+이스케이프하면 화면이 깨진다. 서버 데이터 문자열 필드로 좁혀 42건을 뽑고, 하나씩
+sink 를 열어 확인했다. 확인 결과 상당수가 이미 안전했다:
+
+- `06-sources.js` 의 `raw` 는 조립부가 아니라 **sink 에서** `escapeHtml(raw)` 된다.
+- `box()` 헬퍼(`06-sources.js:485`)는 내부에서 `title`·`sub` 를 이스케이프한다.
+- `07-ops.js`·`08-response-init.js` 의 다수는 `textContent`/`alert()` — HTML 이 아니다.
+- `item.className = ...` 대입은 HTML 파싱을 거치지 않는다.
+- `05-svg-intel.js:139` 의 `tactic_id`/`technique_id` 는 `querySelector` **선택자**다.
+
+진짜 불균질의 예: `05-svg-intel.js:308` 이 바로 옆 `d.url` 은 이스케이프하면서
+`d.ip` 는 하지 않고 있었다. MITRE 매트릭스 셀의 `data-technique="${tech.id}"` 도
+비어 있었다(이스케이프해도 DOM 속성값은 파서가 디코드하므로 선택자 매칭은 그대로).
+
+회귀 테스트 2건(`tests/test_frontend_counters.py`): 서버 문자열 필드가 이스케이프
+없이 렌더되면 실패하고, **면제 목록(18건)이 낡으면도 실패한다** — 면제가 낡은 채
+남아 있으면 다음 사람이 '검토된 것'으로 오해한다. 각 면제에는 이유를 적었다.
 
 ### C-7. 커맨드 인젝션 표면 — 깨끗함 ✅
 

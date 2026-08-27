@@ -223,7 +223,7 @@ function renderLiveStream() {
   box.innerHTML = items.slice(0, 60).map(e => {
     const meta = LIVE_KIND_META[e.kind] || { cls: '', label: e.kind };
     return `<div class="live-item">
-      <div class="lv-bar b-${e.severity}"></div>
+      <div class="lv-bar b-${escapeHtml(e.severity)}"></div>
       <div class="lv-time">${escapeHtml(e.time)}</div>
       <div class="lv-kind ${meta.cls}">${meta.label}</div>
       <div class="lv-text">${e.html}</div>
@@ -300,8 +300,8 @@ function renderTopAttackers() {
   el.innerHTML = sorted.map(([ip, info], i) => `
     <div class="top-attacker-row">
       <span class="rnk">#${i+1}</span>
-      <span class="ip">${ip}</span>
-      <span class="ttype">${info.type}</span>
+      <span class="ip">${escapeHtml(ip)}</span>
+      <span class="ttype">${escapeHtml(info.type)}</span>
       <span class="cnt">${info.count}</span>
     </div>`).join('');
 }
@@ -365,7 +365,7 @@ function renderOverviewSysmon(events) {
   el.innerHTML = latest.map(ev => `
     <div class="sysmon-mini-row ${ev.suspicious ? 'suspicious' : ''}">
       <span class="ts">${(ev.timestamp||'').split(' ')[1] || ''}</span>
-      <span class="eid">${ev.event_id}</span>
+      <span class="eid">${escapeHtml(ev.event_id)}</span>
       <span class="ename" title="${escapeHtml(ev.event_name)}">${escapeHtml(ev.event_name)}</span>
       <span>${sevBadge(ev.severity)}</span>
     </div>`).join('');
