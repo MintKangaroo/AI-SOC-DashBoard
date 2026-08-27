@@ -206,6 +206,13 @@ class Config:
     # 별도 출처 클라이언트가 필요할 때만 쉼표로 구분해 명시한다.
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "")
 
+    # ── 보안 헤더 ──
+    SECURITY_HEADERS_ENABLED = os.getenv("SECURITY_HEADERS_ENABLED", "True") == "True"
+    # CSP 를 차단 대신 보고 전용으로 (새 CDN 추가 시 영향 확인용)
+    CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", "False") == "True"
+    # 추가 허용 출처 (공백 구분) — 새 CDN·폰트 호스트를 붙일 때
+    CSP_EXTRA_SOURCES = os.getenv("CSP_EXTRA_SOURCES", "")
+
     # ── CSRF ──
     # 상태변경 요청(POST/PUT/DELETE/PATCH)의 Origin/Referer 가 자기 호스트인지 검증한다.
     # 프론트 35개 fetch 호출부를 건드리지 않고 적용되는 표준 방어다(OWASP 권고).

@@ -204,6 +204,68 @@ def create_app():
         return redirect("/login")
 
     # ------------------------------------------------------------------ #
+    #  보안 헤더
+    # ------------------------------------------------------------------ #
+    #
+    # 이전에는 CSP·X-Frame-Options·X-Content-Type-Options 가 전부 없었다
+    # (docs/AUDIT.md C-4).
+    #
+    # ⚠️ script-src 에 'unsafe-inline' 이 들어간다. 템플릿에 onclick 등
+    # 인라인 핸들러가 104개, JS 가 생성하는 것이 28개, 인라인 style 이 486개다.
+    # 이를 빼면 대시보드가 통째로 동작하지 않는다. 따라서 **이 CSP 는 XSS
+    # 스크립트 주입을 막지 못한다.** 132개 핸들러를 addEventListener 로 옮기는
+    # 리팩터링이 선행되어야 하며, 그때 'unsafe-inline' 을 제거한다.
+    #
+    # 그럼에도 나머지 지시어는 실익이 있다:
+    #   object-src 'none'    — 플러그인/오브젝트 주입 차단
+    #   base-uri 'self'      — <base> 태그 주입으로 상대경로를 탈취하는 공격 차단
+    #   frame-ancestors      — 클릭재킹 차단
+    #   form-action 'self'   — 주입된 폼이 외부로 제출되는 것 차단
+    #   connect-src          — 주입된 스크립트의 데이터 반출 대상 제한
+    #
+    # HSTS 는 넣지 않는다 — Tailscale HTTP 접속이라 Strict-Transport-Security 가
+    # 걸리면 접속 자체가 막힌다.
+
+    _CDN_HOSTS = ("https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+                  "https://unpkg.com https://cdn.datatables.net "
+                  "https://code.jquery.com https://cdn.socket.io")
+
+    def _build_csp():
+        extra = str(app.config.get("CSP_EXTRA_SOURCES", "") or "").strip()
+        cdn = _CDN_HOSTS + (" " + extra if extra else "")
+        return "; ".join([
+            "default-src 'self'",
+            # 인라인 핸들러 132개 때문에 불가피하다 — 위 주석 참조
+            f"script-src 'self' 'unsafe-inline' {cdn}",
+            f"style-src 'self' 'unsafe-inline' {cdn}",
+            f"font-src 'self' data: {cdn}",
+            # 공격 지도 타일·GeoIP 조회 결과 이미지
+            "img-src 'self' data: blob: https:",
+            # 대시보드가 실제로 통신하는 곳: 자기 자신(REST/WebSocket)
+            "connect-src 'self' ws: wss:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        ])
+
+    @app.after_request
+    def _security_headers(response):
+        if not app.config.get("SECURITY_HEADERS_ENABLED", True):
+            return response
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        # 브라우저 기능 최소화 — 대시보드는 카메라·마이크·위치를 쓰지 않는다
+        response.headers.setdefault(
+            "Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        header = ("Content-Security-Policy-Report-Only"
+                  if app.config.get("CSP_REPORT_ONLY", False)
+                  else "Content-Security-Policy")
+        response.headers.setdefault(header, _build_csp())
+        return response
+
+    # ------------------------------------------------------------------ #
     #  에러 처리 — API 는 항상 JSON 으로 답한다
     # ------------------------------------------------------------------ #
     #

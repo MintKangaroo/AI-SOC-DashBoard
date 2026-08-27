@@ -448,13 +448,45 @@ Content-Type: application/json  {"ip":"203.0.113.9",...}
 
 검증: 감사에서 통과했던 4건(`rm -fr /`, `rm  -rf /`, `rm -rf --no-preserve-root /`, `find / -delete`)과 셸 이스케이프 9건 전부 차단, 정상 조회 명령 11건 전부 통과. 회귀 테스트 `tests/test_security_hardening.py` 에 우회 사례를 그대로 고정했다(이전엔 `_DANGEROUS_CMD` 검증 테스트가 0건이었다).
 
-### C-4. [P2] 보안 헤더 전무
+### C-4. [~~P2~~ **부분 수정**] 보안 헤더 전무
 
 실측: `Content-Security-Policy`·`X-Frame-Options`·`X-Content-Type-Options`·`Strict-Transport-Security` **전부 `None`**.
 
 CSP 부재가 특히 아프다 — C-6의 XSS 리스크에 대한 유일한 백스톱이 없다는 뜻이고, E-1의 CDN 9개 의존과 겹치면 CDN 하나가 오염될 때 막을 수단이 없다.
 
-**수정 방향**: `after_request`에서 헤더 4종 부착. CSP는 CDN 도메인을 명시한 `script-src`로 시작(E-1을 먼저 처리하면 `'self'`로 조일 수 있다). HSTS는 Tailscale HTTP 환경이므로 보류. **작업량 S**
+**⚠️ 부분 수정** (`feat/csp-vendor`, 2026-08-27): 헤더는 넣었으나 **CSP 가 XSS 를 막지 못한다.** 그 이유가 중요하다.
+
+넣은 것:
+
+| 헤더 | 값 | 효과 |
+|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | MIME 스니핑 차단 |
+| `X-Frame-Options` | `DENY` | 클릭재킹 |
+| `Referrer-Policy` | `same-origin` | 대시보드 URL 이 외부로 새지 않음 |
+| `Permissions-Policy` | 위치·마이크·카메라 차단 | 불필요 기능 최소화 |
+| `Content-Security-Policy` | 아래 | 부분적 |
+
+HSTS 는 의도적으로 넣지 않았다 — Tailscale HTTP 접속이라 걸면 접속 자체가 막힌다.
+
+**CSP 의 한계 — `script-src` 에 `'unsafe-inline'` 이 들어간다.**
+
+측정 결과 인라인 이벤트 핸들러가 템플릿에 **104개**, JS 가 생성하는 것이 **28개**, 인라인 `style=` 이 **486개**다. `'unsafe-inline'` 을 빼면 대시보드가 통째로 동작하지 않는다. 따라서 **이 CSP 는 C-6 의 XSS 백스톱 역할을 하지 못한다.** 132개 핸들러를 `addEventListener` 로 옮기는 리팩터링이 선행되어야 한다.
+
+그럼에도 나머지 지시어는 실익이 있어 함께 넣었다:
+
+```
+object-src 'none'        플러그인/오브젝트 주입 차단
+base-uri 'self'          <base> 주입으로 상대경로를 탈취하는 공격 차단
+form-action 'self'       주입된 폼의 외부 제출 차단
+frame-ancestors 'none'   클릭재킹 (CSP 판)
+connect-src 'self' ws:   주입된 스크립트의 데이터 반출 대상 제한
+```
+
+`CSP_REPORT_ONLY=True` 로 보고 전용 전환, `CSP_EXTRA_SOURCES` 로 출처 추가가 가능하다.
+
+테스트 10건. 그중 `test_csp_documents_its_own_weakness` 는 `'unsafe-inline'` 의 존재를 **명시적으로 고정**한다 — 나중에 리팩터링으로 제거하면 그 테스트가 실패하며 이 문서 갱신을 요구한다.
+
+**남은 것**: 인라인 핸들러 132개 제거 (작업량 L) → 그 후 `'unsafe-inline'` 제거. E-1(CDN 자체 호스팅)을 하면 CDN 6개 호스트도 CSP 에서 뺄 수 있다.
 
 ### C-5. REST API 인증 가드 — 누락 없음 ✅
 

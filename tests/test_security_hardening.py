@@ -236,3 +236,75 @@ def test_session_cookie_samesite_is_strict(client):
     import app as app_module
     assert app_module.app.config["SESSION_COOKIE_SAMESITE"] == "Strict"
     assert app_module.app.config["SESSION_COOKIE_HTTPONLY"] is True
+
+
+# ══════════════════════════════════════════════════════════════════
+#  C-4: 보안 헤더
+# ══════════════════════════════════════════════════════════════════
+
+def _csp(client, path="/"):
+    return client.get(path).headers.get("Content-Security-Policy") or ""
+
+
+@pytest.mark.parametrize("header,expected", [
+    ("X-Content-Type-Options", "nosniff"),
+    ("X-Frame-Options", "DENY"),
+    ("Referrer-Policy", "same-origin"),
+])
+def test_security_headers_present(client, header, expected):
+    assert client.get("/").headers.get(header) == expected
+
+
+def test_permissions_policy_disables_unused_features(client):
+    value = client.get("/").headers.get("Permissions-Policy") or ""
+    for feature in ("geolocation=()", "microphone=()", "camera=()"):
+        assert feature in value
+
+
+def test_headers_apply_to_api_responses_too(client):
+    r = client.get("/api/soar/status")
+    assert r.headers.get("X-Frame-Options") == "DENY"
+    assert r.headers.get("Content-Security-Policy")
+
+
+def test_no_hsts_on_http_deployment(client):
+    """Tailscale 은 HTTP 다 — HSTS 를 걸면 접속 자체가 막힌다."""
+    assert client.get("/").headers.get("Strict-Transport-Security") is None
+
+
+@pytest.mark.parametrize("directive", [
+    "default-src 'self'",
+    "object-src 'none'",        # 플러그인 주입 차단
+    "base-uri 'self'",          # <base> 주입으로 상대경로 탈취 차단
+    "form-action 'self'",       # 주입된 폼의 외부 제출 차단
+    "frame-ancestors 'none'",   # 클릭재킹
+])
+def test_csp_hardening_directives(client, directive):
+    """script-src 가 약해도 이 지시어들은 실익이 있다."""
+    assert directive in _csp(client)
+
+
+def test_csp_connect_src_limits_exfiltration(client):
+    """주입된 스크립트가 임의 서버로 데이터를 보내지 못하게 한다."""
+    csp = _csp(client)
+    assert "connect-src 'self' ws: wss:" in csp
+
+
+def test_csp_documents_its_own_weakness(client):
+    """script-src 'unsafe-inline' 은 인라인 핸들러 132개 때문에 불가피하다.
+
+    이 테스트는 그 사실을 **명시적으로 고정**한다. 나중에 핸들러를
+    addEventListener 로 옮기고 'unsafe-inline' 을 제거하면 이 테스트가
+    실패하며 docs/AUDIT.md C-4 갱신을 요구한다.
+    """
+    csp = _csp(client)
+    assert "'unsafe-inline'" in csp, (
+        "'unsafe-inline' 이 제거됐다면 인라인 핸들러 리팩터링이 끝났다는 뜻이다. "
+        "docs/AUDIT.md C-4 와 이 테스트를 갱신할 것.")
+
+
+def test_dashboard_still_renders_with_csp(client):
+    """헤더를 넣으면서 페이지가 깨지면 안 된다."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert b"panel-overview" in r.data
