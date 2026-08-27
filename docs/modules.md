@@ -33,6 +33,7 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 | `correlation` | — | 같은 출발지 알림을 시간 윈도우로 묶어 MITRE 전술 순서 캠페인 구성 | `build_campaigns()` · `compute()` |
 | `ml_analyst` | MLAnalyst | Isolation Forest 이상탐지(참고용, 탐지 경로 미연결) | `ml_analysis` |
 | `ml_feature_store` | MLFeatureStore | 트래픽 피처 영속화 — 재학습·평가의 전제 | — |
+| `alert_dedup` | AlertDeduplicator | 핑거프린트 중복 병합·규칙 억제·스톰 요약 | `alert_dedup` |
 | `ai_analyst` | AIAnalyst | Claude 비동기 분석 큐·대응 권고·챗봇·리포트 텍스트 | `ai_analysis` · `generate_text()` |
 | `decision_support` | DecisionSupport | 위협 그룹핑 + 정오탐 학습 prior | `get_recommendations()` |
 

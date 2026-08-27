@@ -42,6 +42,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
 | `modules/honeypot.py` | 유인 서비스 리스너(SSH/Telnet/Redis 등) — 접촉=고신뢰 침해지표 |
 | `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브 |
+| `modules/alert_dedup.py` | 중복제거·억제 레이어 — 핑거프린트 병합·규칙 억제·스톰 요약 |
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
@@ -91,6 +92,31 @@ packet_analyzer.get_stats() → ml_analyst.feed_traffic() (3초 주기)
 ※ 성능 수치는 scripts/eval_ml.py 가 출력한 값으로만 주장한다. 현재는 실트래픽
    피처와 사람 라벨이 부족해 '측정 불가'이며, 부족분은 docs/ml_models.md 에 기록.
 ```
+
+## 알림 중복제거·억제 흐름
+
+```
+report_alert() / analyze_packet() → Alert → _add_alert()
+  → alert_dedup.evaluate(alert)
+     ├ suppress  : 운영자 규칙 매치 → 실시간 표시 억제 (CRITICAL 은 면제)
+     ├ duplicate : 윈도우 내 동일 핑거프린트 → 기존 알림 count/last_seen 증가
+     │             emit("alert_dedup") → ×N 뱃지 갱신 (새 알림 생성 안 함)
+     ├ storm     : 동일 핑거프린트 급증 → 요약 알림 1건 발행 후 카운트만
+     └ pass      : 신규 → 기존 파이프라인(저장·emit·SOAR·MITRE) 진행
+```
+핑거프린트 = sha1(룰ID ‖ 유형 ‖ 출발지 ‖ 목적지 ‖ 정규화된 설명).
+룰ID 는 소스별로 details 의 다른 키(rule_id/sid/rule/category/service)에 있어
+`extract_rule_id()` 가 흡수한다. src_ip 는 IP 가 아닐 수 있다(SIGMA_MATCH=None,
+EDR_THREAT=호스트명 — 실측 26%).
+
+※ **어떤 알림도 조용히 사라지지 않는다.** 병합·억제된 이벤트는 전부
+   `data/alert_dedup.db` 의 `suppressed_events` 에 원문째 보관되고
+   `/api/dedup/suppressed` 로 복구 조회한다. dedup 이 예외를 던지거나
+   미설정이면 알림을 통과시킨다 — 중복이 나오는 편이 유실보다 안전하다.
+※ dedup(카운트 병합)은 전 심각도 적용(정보 손실 0), suppression(운영자 규칙)만
+   CRITICAL 을 면제한다. 억제 규칙은 하드코딩하지 않고 `suppression_rules` 에 둔다.
+※ 실측: 아카이브 110,748건 리플레이 → 76,191건으로 **31.2% 감축**,
+   병합분 34,557건 전량 복구 가능, 처리 5,231건/초.
 
 ## MITRE ATT&CK 매핑 흐름
 
@@ -169,3 +195,8 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 | `HONEYPOT_BIND` | 127.0.0.1 | 허니팟 바인드(실포착은 0.0.0.0+외부노출) |
 | `HONEYPOT_PORTS` | (기본셋) | 유인 포트 "2222,2323,3306,6379,8081,9200" |
 | `HONEYPOT_COOLDOWN` | 30 | 동일 IP 재알림 최소 간격(초) |
+| `DEDUP_ENABLED` | True | 알림 중복제거·억제 레이어 활성 |
+| `DEDUP_WINDOW_SECONDS` | 300 | 중복 병합 윈도우(초). 실측 5분에서 30.4% 병합 |
+| `DEDUP_STORM_THRESHOLD` | 20 | 60초 내 동일 핑거프린트 이 횟수 초과 시 스톰 |
+| `DEDUP_SUPPRESS_RULES` | - | 최초 1회 시드 "이름=유형:출발지접두:룰ID:사유;..." |
+| `DEDUP_RETENTION_DAYS` | 90 | 억제·병합 이벤트 보관 기간 |
