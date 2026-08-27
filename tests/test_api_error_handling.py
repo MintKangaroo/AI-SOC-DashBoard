@@ -9,7 +9,6 @@ Flask 기본 500 **HTML** 이 나가고, 프론트의 `.then(r => r.json())` 이
 """
 import os
 import sys
-import tempfile
 
 import pytest
 
