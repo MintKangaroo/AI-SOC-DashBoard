@@ -331,3 +331,23 @@ def test_synthetic_control_carries_caveat():
     s = ev.synthetic_control()
     assert s["caveat"] and "모델 품질이 아니라" in s["caveat"]
     assert s["rule_f1_macro"] > 0.99   # 규칙만으로도 거의 만점
+
+
+def test_result_before_model_ready_is_not_reported_normal(tmp_path):
+    """모델 로드 전 결과가 '정상'으로 읽히면 모델 부재가 정상 판정으로 둔갑한다."""
+    s = MLFeatureStore(db_path=str(tmp_path / "f.db"), flush_every=1)
+    a = MLAnalyst(FakeSocketIO(), feature_store=s, demo=True)   # 학습 안 함
+    try:
+        result = a.analyze_now(_stats())
+        assert result["model_ready"] is False
+        assert result["summary"]["severity"] == "UNKNOWN"
+        assert result["summary"]["verdict"] == "모델 준비 안 됨"
+        assert "isolation_forest" not in result
+    finally:
+        s.close()
+
+
+def test_result_after_model_ready_reports_model_ready(analyst):
+    result = analyst.analyze_now(_stats())
+    assert result["model_ready"] is True
+    assert result["summary"]["severity"] in ("NORMAL", "LOW")

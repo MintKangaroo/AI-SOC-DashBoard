@@ -239,19 +239,29 @@ class MLAnalyst:
 
         feat_arr = np.asarray(feat, dtype=np.float32).reshape(1, -1)
         anomaly = False
+        ready = self.iso_forest is not None and self.scaler is not None
+        result["model_ready"] = ready
 
-        if self.iso_forest is not None and self.scaler is not None:
-            scaled = self.scaler.transform(feat_arr)
-            anomaly = bool(self.iso_forest.predict(scaled)[0] == -1)
-            if_score = float(self.iso_forest.score_samples(scaled)[0])
-            if anomaly:
-                with self._lock:
-                    self.stats["if_anomalies"] += 1
-            result["isolation_forest"] = {
-                "anomaly": anomaly,
-                "score": round(if_score, 4),
-                "label": "이상 탐지" if anomaly else "정상",
+        if not ready:
+            # 모델 로드 전이다. 이 상태를 '정상'으로 보고하면 모델이 없다는 사실이
+            # 정상 판정으로 둔갑한다 — 침묵보다 나쁜 오독이다.
+            result["summary"] = {
+                "severity": "UNKNOWN", "threats": [], "verdict": "모델 준비 안 됨",
+                "advisory_only": True,
             }
+            return result
+
+        scaled = self.scaler.transform(feat_arr)
+        anomaly = bool(self.iso_forest.predict(scaled)[0] == -1)
+        if_score = float(self.iso_forest.score_samples(scaled)[0])
+        if anomaly:
+            with self._lock:
+                self.stats["if_anomalies"] += 1
+        result["isolation_forest"] = {
+            "anomaly": anomaly,
+            "score": round(if_score, 4),
+            "label": "이상 탐지" if anomaly else "정상",
+        }
 
         # 단일 모델이므로 합의 규칙 없이 그대로 보고한다.
         # 이 판정은 탐지·차단 경로에 연결되어 있지 않다 (관측 전용).

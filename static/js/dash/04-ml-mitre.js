@@ -59,6 +59,8 @@ function updateOverviewML(data) {
 }
 
 function updateMLDisplay(data) {
+  // 모델 로드 전에는 점수가 없다 — 0으로 그리면 '정상'으로 오독된다.
+  if (data.model_ready === false) return;
   // IF
   const ifRes = data.isolation_forest || {};
   if (ifRes.score !== undefined) {
