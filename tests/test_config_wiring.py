@@ -217,3 +217,71 @@ def test_env_example_documents_tuning_knobs():
     }
     missing = sorted(must_document - documented)
     assert missing == [], f".env.example 에 없는 튜닝 노브: {missing}"
+
+
+# `config.py` 를 거치지 않고 os.getenv 로 직접 읽는 변수들.
+# 여기 적힌 것도 .env.example 에는 있어야 한다.
+DIRECTLY_READ_ENV = {
+    "ANTHROPIC_API_KEY",        # modules/ai_analyst.py
+    "AI_MODEL",                 # modules/ai_analyst.py
+    "HASH_SCAN_ALLOWED_DIRS",   # api/_common.py
+}
+
+
+def _env_vars_read_by_config():
+    """config.py 가 os.getenv 로 읽는 환경변수 전체."""
+    text = (REPO / "config.py").read_text(encoding="utf-8")
+    return set(re.findall(
+        r"(?:getenv|environ\.get)\(\s*[\"\']([A-Z][A-Z0-9_]*)[\"\']", text))
+
+
+def test_env_example_covers_every_environment_variable():
+    """`.env.example` 이 실제로 읽히는 환경변수 전부를 담아야 한다.
+
+    이전에는 26개가 빠져 있었다. 운영자가 `.env.example` 만 보고는
+    `SESSION_COOKIE_SECURE`(Tailscale HTTP 에서 로그인이 안 되는 원인)나
+    `HASH_SCAN_ALLOWED_DIRS`(경로 탈출 방지 범위) 같은 값이 존재한다는 것
+    자체를 알 수 없었다. 이름을 명시적으로 나열하지 않고 소스에서 뽑아
+    비교하므로, 새 설정을 추가하면서 문서화를 잊으면 여기서 실패한다.
+    """
+    documented = _env_example_keys()
+    used = _env_vars_read_by_config() | DIRECTLY_READ_ENV
+    missing = sorted(used - documented)
+    assert missing == [], (
+        f".env.example 에 없는 환경변수 {len(missing)}개: {missing}\n"
+        f"— 기본값과 한 줄 설명을 붙여 추가할 것.")
+
+
+def test_env_example_has_no_phantom_variables():
+    """반대 방향 — 아무도 읽지 않는 변수를 안내하면 그것도 거짓말이다."""
+    documented = _env_example_keys()
+    used = _env_vars_read_by_config() | DIRECTLY_READ_ENV
+    phantom = sorted(documented - used)
+    assert phantom == [], (
+        f".env.example 에만 있고 코드가 읽지 않는 변수: {phantom}\n"
+        f"— 코드에 연결하거나 .env.example 에서 제거할 것.")
+
+
+# ─────────── 문서 수치가 실제와 맞는가 (docs/AUDIT.md F-3) ───────────
+
+def test_documented_module_and_panel_counts_match_reality():
+    """README·CLAUDE.md 가 주장하는 개수는 셀 수 있고, 그러니 맞아야 한다.
+
+    이전에는 "34개 모듈"(실제 40개), "패널 31개"(실제 33개)처럼 문서가 코드
+    성장을 못 따라왔다. 포트폴리오 문서에서 수치가 틀리면 나머지 주장의
+    신뢰도까지 깎인다. LOC·테스트 개수는 커밋마다 바뀌므로 여기서 고정하지
+    않는다(README 는 '약'·'450+' 로 표기).
+    """
+    modules = len([p for p in (REPO / "modules").glob("*.py")
+                   if p.name != "__init__.py"])
+    panels = len(list((REPO / "templates" / "panels").glob("*.html")))
+
+    readme = (REPO / "README.md").read_text(encoding="utf-8")
+    claude_md = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
+
+    assert f"{modules}개 모듈" in readme, (
+        f"README 의 모듈 수가 실제({modules}개)와 다르다")
+    assert f"({panels}개, Jinja include)" in readme, (
+        f"README 의 패널 수가 실제({panels}개)와 다르다")
+    assert f"(Jinja include, {panels}개)" in claude_md, (
+        f"CLAUDE.md 의 패널 수가 실제({panels}개)와 다르다")

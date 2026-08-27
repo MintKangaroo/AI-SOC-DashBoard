@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **41개 모듈 / 약 13,200 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **42개 모듈 / 약 13,400 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -166,7 +166,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **436개** (CI 에서 매 push 자동 실행, 커버리지 74%) (탐지·SOAR·인증·스캐너·퍼저·안전장치)
+- **테스트** — pytest **450+개** (CI 에서 매 push 자동 실행, 커버리지 72% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·안전장치)
 
 ---
 
@@ -208,7 +208,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 41개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 42개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -216,12 +216,12 @@ SOC_DashBoard/
 │   ├── 취약점  vuln_scanner · web_fuzzer · patch_manager · purple_team
 │   ├── 운영    soc_metrics · audit_log · system_health
 │   └── 플랫폼  auth · geoip · alert_store · system_info
-├── api/                      # REST API Blueprint (도메인별 분리 + _common)
+├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 93개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (29개, Jinja include)
-├── static/js/dash/           # 패널별 JS (01~14, 순서대로 로드)
-├── tests/                    # pytest 436개
+│   └── panels/               # 패널별 UI 조각 (33개, Jinja include)
+├── static/js/dash/           # 패널별 JS (01~18, 순서대로 로드)
+├── tests/                    # pytest 450+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

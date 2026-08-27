@@ -31,13 +31,13 @@
 | 11 | **P2** | 보안 헤더(CSP·X-Frame-Options 등) 전무 | 실측 확인 | S |
 | 12 | **P2** | 문서화된 탐지 임계값 env가 죽어 있음 (하드코딩) | `modules/threat_detector.py:236,251` | S |
 | 13 | ~~P2~~ **수정됨** | 아카이브 알림 110,748건이 모든 조회 경로에서 불가시 | `modules/alert_store.py:171` | ✅ |
-| 14 | **P2** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | S |
+| 14 | ~~P2~~ **수정됨** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | ✅ |
 | 15 | **P2** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | S |
 | 16 | **P2** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | S |
 | 17 | **P2** | `print()` 102회 · 구조화 로깅 없음 | 전역 | M |
 | 18 | **P2** | 린터·CI·Dockerfile 전부 부재 | 파일 없음 | M |
 | 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
-| 20 | **P2** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | S |
+| 20 | ~~P2~~ **수정됨** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | ✅ |
 | 21 | ~~P2~~ **수정됨** | alert_store·audit_log·watchlist에 WAL/busy_timeout 미설정 | `alert_store.py:16` 외 | ✅ |
 | 22 | **P3** | `get_services()` 6-튜플 위치 결합 | `api/_common.py:36` | S |
 | 23 | **P3** | JS 전역 선언 323개 · 로드 순서 의존 | `static/js/dash/*` | L |
@@ -794,7 +794,7 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 
 ⚠️ **운영자 확인 필요**: 로컬 `.env` 에 `DDOS_PACKET_THRESHOLD=1000` / `PORT_SCAN_THRESHOLD=20` 이 들어 있다. 지금까지는 무시됐지만 이제 **실제로 적용된다** — 재시작하면 탐지 민감도가 2배가 된다. 기존 동작을 유지하려면 `.env` 를 2000/40 으로 바꿔야 한다. (`.env` 는 사용자 파일이라 임의로 수정하지 않았다)
 
-### F-2. [P2] `.env.example`이 config.py를 커버하지 못한다
+### F-2. [~~P2~~ **수정됨**] `.env.example`이 config.py를 커버하지 못한다
 
 87개 변수 중 **25개 누락**:
 
@@ -812,9 +812,21 @@ VULN_SCAN_PORTS  WINDOWS_EVENT_LOG_MAX
 
 반대로 `ANTHROPIC_API_KEY`는 `.env.example`에만 있고 `config.py`에는 없다. `ai_analyst.py:38`이 `os.getenv`로 직접 읽는 구조라 동작은 하지만, 설정 일원화 원칙에서 벗어나 있다.
 
-**수정 방향**: F-1의 정리 후 `.env.example`을 config.py에서 생성하고, CI에 두 파일 동기화 검사를 추가. **작업량 S**
+**수정 (2026-08-27)** — 실측 재확인 후 **28개** 추가(감사 목록의 `CAPTURE_TIMEOUT`·
+`DDOS_BYTE_THRESHOLD`·`WINDOWS_EVENT_LOG_MAX` 는 그 사이 제거돼 대상이 아니었고,
+대신 `AUDIT_DB`·`WATCHLIST_DB`·`SIEM_PROMOTE_ALERTS`·`SIEM_STATE_PATH`·
+`AI_MODEL`·`HASH_SCAN_ALLOWED_DIRS` 가 새로 누락돼 있었다). 이제 121개 전부 문서화.
 
-### F-3. [P2] README 수치 불일치
+`SIEM_CORR_*` 가 `config.py` 에 없다던 지적은 **이미 해소된 상태였다**(F-1 수정 때
+반영됨) — 감사 시점 기록이다.
+
+`.env.example` 을 config.py 에서 생성하지는 않았다. 기본값 옆의 한 줄 설명이
+생성물로는 유지되지 않기 때문이다. 대신 **양방향 동기화 검사**를 테스트로 넣었다
+(`test_env_example_covers_every_environment_variable` / `..._has_no_phantom_variables`).
+소스에서 변수를 뽑아 비교하므로, 새 설정을 추가하며 문서화를 잊거나 죽은 변수를
+남겨두면 CI 에서 실패한다.
+
+### F-3. [~~P2~~ **수정됨**] README 수치 불일치
 
 | README 주장 | 실제 |
 |-------------|------|
@@ -825,6 +837,12 @@ VULN_SCAN_PORTS  WINDOWS_EVENT_LOG_MAX
 | CLAUDE.md "`01~16-*.js`" | **`01~18-*.js`** |
 
 기능 자체는 전부 존재한다 — 없는 기능을 주장하는 곳은 찾지 못했다. 단순히 문서가 코드 성장을 못 따라온 것이다. 포트폴리오 문서에서 수치가 실제보다 **작게** 적혀 있는 건 손해이기도 하다.
+
+**수정 (2026-08-27)** — 실측으로 정정: 모듈 **42개**, 약 **13,400 LOC**,
+패널 **33개**, API 라우트 **93개**, `01~18-*.js`. 테스트 수와 LOC 은 커밋마다
+바뀌므로 README 를 '약'·'450+' 표기로 바꿔 계속 참이 되게 했다. 셀 수 있고
+잘 안 바뀌는 값(모듈·패널 수)은 `test_documented_module_and_panel_counts_match_reality`
+가 문서와 대조한다 — 다시 어긋나면 CI 에서 실패한다.
 
 ### F-4. [P3] 저장소명 오타 `AI-SOC-DaschBoard`
 
@@ -875,7 +893,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 - **E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)
 - **E-3** `_attackerCounter` 상한 + 렌더 스로틀
 - **A-5** `ruff` 도입 + A-4 미사용 import 40건 정리
-- **F-2/F-3** `.env.example` 동기화, README 수치 정정
+- ~~**F-2/F-3** `.env.example` 동기화, README 수치 정정~~ — ✅ 수정 완료
 - **F-4** 저장소 리네임 (안전 확인됨, 언제든)
 - **D-4** `pip-audit` 실행 후 판단
 

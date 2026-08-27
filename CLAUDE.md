@@ -54,8 +54,8 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 31개) |
-| `static/js/dash/01~16-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드) |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 33개) |
+| `static/js/dash/01~18-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드) |
 
 ## 외부 시스템 연동 확장 방법
 
