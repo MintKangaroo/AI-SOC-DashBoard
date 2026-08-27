@@ -1,7 +1,9 @@
 """모니터링: 내정보/헬스 · SIEM · IP평판 · EDR · 네트워크
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
+import re
+
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, _hash_scan_allowed
+from api._common import api_bp, audit_record, _actor
 
 
 # ------------------------------------------------------------------ #
@@ -23,7 +25,10 @@ def metrics_soc():
     store = getattr(app.threat_detector, "store", None)
     incidents = getattr(app.incidents, "incidents", {})
     soar_stats = (app.soar.get_status() or {}).get("stats") if hasattr(app, "soar") else None
-    out = soc_metrics.compute(store, incidents, soar_stats, days=days)
+    dedup = getattr(app, "alert_dedup", None)
+    dedup_stats = dedup.get_stats() if dedup is not None else None
+    out = soc_metrics.compute(store, incidents, soar_stats, days=days,
+                              dedup_stats=dedup_stats)
     out["labels"] = app.threat_detector.threat_type_labels()
     return jsonify(out)
 
@@ -200,3 +205,97 @@ def edr_kill():
 @api_bp.route("/integrations/network", methods=["GET"])
 def network_status():
     return jsonify(current_app._get_current_object().net_monitor.get_status())
+
+
+# ------------------------------------------------------------------ #
+#  알림 중복제거 · 억제 (modules/alert_dedup.py)
+# ------------------------------------------------------------------ #
+
+def _dedup():
+    layer = getattr(current_app._get_current_object(), "alert_dedup", None)
+    if layer is None:
+        raise LookupError("중복제거 레이어가 설정되지 않았습니다")
+    return layer
+
+
+@api_bp.route("/dedup/status", methods=["GET"])
+def dedup_status():
+    """중복제거·억제 현황 + 등록된 규칙."""
+    try:
+        layer = _dedup()
+    except LookupError as e:
+        return jsonify({"enabled": False, "error": str(e)}), 200
+    return jsonify({"stats": layer.get_stats(), "rules": layer.get_rules()})
+
+
+@api_bp.route("/dedup/suppressed", methods=["GET"])
+def dedup_suppressed():
+    """억제·병합된 이벤트 조회 — 잘못 억제한 것을 되짚는 경로."""
+    try:
+        layer = _dedup()
+    except LookupError as e:
+        return jsonify({"error": str(e)}), 503
+    a = request.args
+    page = max(1, a.get("page", 1, type=int))
+    limit = min(200, max(1, a.get("limit", 50, type=int)))
+    rows, total = layer.suppressed(
+        limit=limit, offset=(page - 1) * limit,
+        kind=a.get("kind") or None,
+        fingerprint_value=a.get("fingerprint") or None,
+        parent_alert=a.get("parent_alert", type=int),
+    )
+    return jsonify({"events": rows, "total": total, "page": page, "limit": limit,
+                    "pages": max(1, (total + limit - 1) // limit)})
+
+
+@api_bp.route("/dedup/rules", methods=["POST"])
+def dedup_add_rule():
+    """억제 규칙 등록. CRITICAL 은 규칙으로 억제되지 않는다."""
+    try:
+        layer = _dedup()
+    except LookupError as e:
+        return jsonify({"error": str(e)}), 503
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "규칙 이름이 필요합니다"}), 400
+    if not any(data.get(k) for k in ("threat_type", "src_prefix", "rule_id", "desc_regex")):
+        return jsonify({"error": "조건을 최소 하나는 지정하세요 "
+                                 "(threat_type/src_prefix/rule_id/desc_regex)"}), 400
+    try:
+        rule_id = layer.add_rule(
+            name=name,
+            threat_type=(data.get("threat_type") or "").strip(),
+            src_prefix=(data.get("src_prefix") or "").strip(),
+            rule_id=(data.get("rule_id") or "").strip(),
+            desc_regex=(data.get("desc_regex") or "").strip(),
+            reason=(data.get("reason") or "").strip(),
+        )
+    except re.error as e:
+        return jsonify({"error": f"정규식 오류: {e}"}), 400
+    audit_record("DEDUP_RULE_ADD", target=name, detail=data.get("reason", ""))
+    return jsonify({"ok": True, "id": rule_id})
+
+
+@api_bp.route("/dedup/rules/<int:rule_id>", methods=["DELETE"])
+def dedup_delete_rule(rule_id):
+    try:
+        layer = _dedup()
+    except LookupError as e:
+        return jsonify({"error": str(e)}), 503
+    layer.delete_rule(rule_id)
+    audit_record("DEDUP_RULE_DELETE", target=str(rule_id))
+    return jsonify({"ok": True})
+
+
+@api_bp.route("/dedup/rules/<int:rule_id>/toggle", methods=["POST"])
+def dedup_toggle_rule(rule_id):
+    try:
+        layer = _dedup()
+    except LookupError as e:
+        return jsonify({"error": str(e)}), 503
+    enabled = bool((request.get_json() or {}).get("enabled", True))
+    layer.set_rule_enabled(rule_id, enabled)
+    audit_record("DEDUP_RULE_TOGGLE", target=str(rule_id),
+                 detail=f"{_actor()} → {'활성' if enabled else '비활성'}")
+    return jsonify({"ok": True, "enabled": enabled})

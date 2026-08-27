@@ -69,8 +69,9 @@ def _incident_times(incidents, days):
     }
 
 
-def compute(store, incidents=None, soar_stats=None, days=14):
-    """store: AlertStore, incidents: {id:inc}, soar_stats: dict."""
+def compute(store, incidents=None, soar_stats=None, days=14, dedup_stats=None):
+    """store: AlertStore, incidents: {id:inc}, soar_stats: dict,
+    dedup_stats: AlertDeduplicator.get_stats() (없으면 지표 생략)."""
     agg = store.aggregate(days=days) if store else {
         "days": days, "total": 0, "by_day": [], "by_status": {},
         "heatmap": [[0] * 24 for _ in range(7)], "top_types": [], "top_ips": []}
@@ -112,4 +113,25 @@ def compute(store, incidents=None, soar_stats=None, days=14):
         "heatmap": agg["heatmap"],
         "top_types": agg["top_types"],
         "top_ips": agg["top_ips"],
+        "dedup": _dedup_section(dedup_stats),
+    }
+
+
+def _dedup_section(stats):
+    """중복제거·억제 지표. 레이어가 없으면 enabled=False 로만 알린다."""
+    if not stats:
+        return {"enabled": False}
+    return {
+        "enabled": bool(stats.get("enabled", True)),
+        "seen": stats.get("seen", 0),
+        "deduplicated": stats.get("deduplicated", 0),
+        "suppressed": stats.get("suppressed", 0),
+        "passed": stats.get("passed", 0),
+        "dedup_rate": stats.get("dedup_rate", 0.0),
+        "suppression_rate": stats.get("suppression_rate", 0.0),
+        "reduction_rate": stats.get("reduction_rate", 0.0),
+        "storms": stats.get("storms", 0),
+        "active_storms": stats.get("active_storms", 0),
+        "active_fingerprints": stats.get("active_fingerprints", 0),
+        "window_seconds": stats.get("window_seconds"),
     }

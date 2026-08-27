@@ -348,3 +348,22 @@ def test_detector_different_sources_are_not_merged(detector):
     td.report_alert("BRUTE_FORCE", "HIGH", "203.0.113.5", "192.168.1.5", "실패 50회")
     td.report_alert("BRUTE_FORCE", "HIGH", "198.51.100.9", "192.168.1.5", "실패 50회")
     assert len([d for e, d in sio.events if e == "new_alert"]) == 2
+
+
+# ─────────── soc_metrics 지표 노출 ───────────
+
+def test_soc_metrics_includes_dedup_section(dedup):
+    from modules import soc_metrics
+    for _ in range(4):
+        dedup.evaluate(_alert())
+    out = soc_metrics.compute(None, {}, None, days=7, dedup_stats=dedup.get_stats())
+    d = out["dedup"]
+    assert d["enabled"] is True
+    assert d["seen"] == 4 and d["deduplicated"] == 3
+    assert d["dedup_rate"] == 75.0
+
+
+def test_soc_metrics_without_dedup_layer():
+    from modules import soc_metrics
+    out = soc_metrics.compute(None, {}, None, days=7)
+    assert out["dedup"] == {"enabled": False}
