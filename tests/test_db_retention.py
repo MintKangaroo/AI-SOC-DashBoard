@@ -11,7 +11,6 @@ alerts/audit/파일은 보존정책이 있었으나 `incidents.db`(18MB)와
 - SOAR 실행: `waiting_approval` 은 사람의 결정을 기다리는 항목이다. 지우면
   그 결정 기회 자체가 없어진다(실 DB 기준 1,685건).
 """
-import json
 from datetime import datetime, timedelta
 
 import pytest
