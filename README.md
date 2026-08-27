@@ -12,10 +12,11 @@
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
 Vulnerability Management · Purple Team · SOC Metrics)을 **41개 모듈 / 약 13,200 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
-모든 모듈은 **데모 fallback**을 갖춰 실제 센서(Npcap·Sysmon·nmap·ansible 등) 없이도 전체 기능이 동작합니다.
+센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
 
+> 🔍 **실제 탐지 사례는 [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)** — 원본 로그 근거로 정리한 잡은 사례 3건, 놓친 사례 2건, 그리고 시뮬레이터 산출물을 실침해로 오인한 사례 1건.
 > 📸 **화면 중심 소개는 [docs/PORTFOLIO.md](docs/PORTFOLIO.md)** 에서 12개 패널을 스크린샷으로 볼 수 있습니다.
 
 ---
@@ -226,6 +227,8 @@ SOC_DashBoard/
 
 ## 문서
 
+- 🔍 **[실제 탐지 케이스 스터디](docs/CASE_STUDIES.md)** — 원본 로그 근거, 오탐·미탐 사례 포함
+- 🧪 **[코드 감사 보고서](docs/AUDIT.md)** — 구조·신뢰성·보안·테스트 진단 27건
 - 📸 **[포트폴리오 (화면 소개)](docs/PORTFOLIO.md)** — 스크린샷으로 보는 대시보드·기술 소개
 - [아키텍처](docs/architecture.md) · [모듈 상세](docs/modules.md) · [연동 가이드](docs/integrations.md)
 - [탐지 규칙](docs/detection_rules.md) · [MITRE ATT&CK](docs/mitre_attack.md) · [AI 모델](docs/ml_models.md)
