@@ -8,7 +8,14 @@
           <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
         </div>
         <div class="small" style="color:#e6edf3; line-height:1.7">
-          탐지 엔진이 생성한 모든 알림을 관리합니다. <strong class="text-danger">CRITICAL → HIGH → MEDIUM</strong> 순으로 우선 처리하세요. 각 행의 <strong>AI 분석</strong> 버튼은 Claude에게 대응 권고를 받고, <strong>확인(ACK)</strong>은 조사 중, <strong>종료(CLOSED)</strong>는 처리 완료 의미입니다. 상단 필터로 심각도·상태별로 좁혀 볼 수 있고, 우측 상단 <strong>AI 트래픽 분석</strong>은 최근 전체 트래픽을 Claude에 요약 질의합니다.
+          탐지 엔진이 생성한 모든 알림을 관리합니다. <strong class="text-danger">CRITICAL → HIGH → MEDIUM</strong> 순으로 우선 처리하세요. 각 행의 <strong>AI 분석</strong> 버튼은 Claude에게 대응 권고를 받고, <strong>확인(ACK)</strong>은 조사 중, <strong>종료(CLOSED)</strong>는 처리 완료 의미입니다.
+          <div class="mt-2 p-2 rounded" style="background:rgba(57,208,216,.07);border-left:3px solid var(--cyan);font-size:11.5px">
+            <i class="fa fa-layer-group text-cyan me-1"></i>
+            유형 옆의 <span class="badge bg-info text-dark" style="font-size:9px">×N</span> 은
+            동일 이벤트가 윈도우 내에 N번 재발해 <strong>한 알림으로 병합</strong>됐다는 뜻입니다.
+            병합·억제된 이벤트는 버리지 않고 <strong>억제됨</strong> 탭에 원문째 보관되어
+            잘못 억제한 것을 되짚을 수 있습니다.
+          </div>
         </div>
       </div>
 
@@ -43,14 +50,80 @@
           </button>
         </div>
       </div>
-      <div class="card-panel p-0">
-        <table id="alerts-table" class="table table-dark table-hover table-sm mb-0">
-          <thead>
-            <tr>
-              <th>시각</th><th>심각도</th><th>유형</th><th>출처</th><th>출발지</th><th>목적지</th><th>설명</th><th>처리</th><th>확정 판정</th><th>조치</th>
-            </tr>
-          </thead>
-          <tbody id="alerts-tbody"></tbody>
-        </table>
+      <ul class="nav nav-tabs mb-2" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-alerts-live" type="button">
+            <i class="fa fa-list me-1"></i>알림 목록
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-alerts-suppressed"
+                  type="button" onclick="loadSuppressed(1)">
+            <i class="fa fa-layer-group me-1"></i>억제됨
+            <span class="badge bg-secondary ms-1" id="dedup-suppressed-count">0</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-alerts-live">
+          <div class="card-panel p-0">
+            <table id="alerts-table" class="table table-dark table-hover table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>시각</th><th>심각도</th><th>유형</th><th>출처</th><th>출발지</th><th>목적지</th><th>설명</th><th>처리</th><th>확정 판정</th><th>조치</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-alerts-suppressed">
+          <div class="row g-2 mb-2">
+            <div class="col-sm-2"><div class="stat-card border-cyan">
+              <div class="stat-value text-cyan" style="font-size:20px" id="dedup-seen">0</div>
+              <div class="stat-label">평가된 이벤트</div></div></div>
+            <div class="col-sm-2"><div class="stat-card border-purple">
+              <div class="stat-value text-purple" style="font-size:20px" id="dedup-merged-count">0</div>
+              <div class="stat-label">중복 병합</div></div></div>
+            <div class="col-sm-2"><div class="stat-card border-warning">
+              <div class="stat-value text-warning" style="font-size:20px" id="dedup-reduction">0%</div>
+              <div class="stat-label">총 감축률</div></div></div>
+            <div class="col-sm-2"><div class="stat-card border-danger">
+              <div class="stat-value text-danger" style="font-size:20px" id="dedup-storms">0</div>
+              <div class="stat-label">스톰 발생</div></div></div>
+            <div class="col-sm-2"><div class="stat-card border-secondary">
+              <div class="stat-value" style="font-size:20px;color:#8b949e" id="dedup-window">-</div>
+              <div class="stat-label">병합 윈도우</div></div></div>
+            <div class="col-sm-2 d-flex align-items-center">
+              <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                      id="supp-kind-filter" onchange="loadSuppressed(1)">
+                <option value="">전체 종류</option>
+                <option value="duplicate">중복 병합</option>
+                <option value="suppressed">규칙 억제</option>
+                <option value="storm">스톰</option>
+              </select>
+            </div>
+          </div>
+          <div class="small text-muted px-1 pb-1" style="font-size:10.5px">
+            병합·억제된 이벤트는 삭제되지 않고 원문째 보관됩니다.
+            CRITICAL 은 억제 규칙 대상에서 제외되며, 중복 병합만 적용됩니다(정보 손실 없음).
+          </div>
+          <div class="card-panel p-0">
+            <div class="table-responsive" style="max-height:520px;overflow-y:auto">
+              <table class="table table-dark table-hover table-sm mb-0" style="font-size:12px">
+                <thead><tr>
+                  <th>시각</th><th>종류</th><th>심각도</th><th>유형</th>
+                  <th>출발지</th><th>설명</th><th>사유</th><th>병합 대상</th>
+                </tr></thead>
+                <tbody id="suppressed-tbody">
+                  <tr><td colspan="8" class="text-muted text-center p-3">억제됨 탭을 열면 조회합니다</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="small text-muted mt-1" id="supp-summary"></div>
+        </div>
       </div>
     </div>

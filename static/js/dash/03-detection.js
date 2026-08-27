@@ -41,6 +41,16 @@ function confBadge(alert) {
   return ` <span class="badge ${cls}" style="font-size:9px" title="정탐 신뢰도">${Math.round(c*100)}%</span>`;
 }
 
+/* 중복 병합 횟수 뱃지 — 같은 핑거프린트가 윈도우 내에 몇 번 재발했는지 */
+function dedupBadge(alert) {
+  const n = alert.details?.dedup?.count;
+  if (!n || n < 2) return '';
+  const storm = alert.details?.dedup?.storm;
+  const cls = storm ? 'bg-danger' : 'bg-info text-dark';
+  const title = `동일 이벤트 ${n}건 병합 · 최근 ${alert.details.dedup.last_seen || '-'}`;
+  return ` <span class="badge ${cls} dedup-count" style="font-size:9px" title="${escapeHtml(title)}">×${n}</span>`;
+}
+
 function verdictBadge(alert) {
   const map = {
     UNREVIEWED: ['bg-secondary', '미판정'], INVESTIGATING: ['bg-info text-dark', '조사 중'],
@@ -62,7 +72,7 @@ function prependAlertRow(alert, prepend = true, draw = true) {
   row.innerHTML = `
     <td>${escapeHtml(alert.timestamp)}</td>
     <td>${sevBadge(alert.severity)}</td>
-    <td><span style="color:${threatColor(alert.threat_type)}">${escapeHtml(alert.threat_label)}</span>${confBadge(alert)}${demoBadge(alert.details)}</td>
+    <td><span style="color:${threatColor(alert.threat_type)}">${escapeHtml(alert.threat_label)}</span>${dedupBadge(alert)}${confBadge(alert)}${demoBadge(alert.details)}</td>
     <td>${alert.origin === 'demo' ? '<span class="badge demo-badge">데모</span>' : alert.origin === 'real' ? '<span class="badge bg-primary">실데이터</span>' : '<span class="badge bg-secondary">기존</span>'}</td>
     <td class="font-monospace">${escapeHtml(alert.src_ip)}</td>
     <td class="font-monospace">${escapeHtml(alert.dst_ip)}</td>
@@ -91,6 +101,87 @@ function prependAlertRow(alert, prepend = true, draw = true) {
     if (prepend && tbody.firstChild) tbody.insertBefore(row, tbody.firstChild);
     else tbody.appendChild(row);
     while (tbody.children.length > maxRows) tbody.removeChild(tbody.lastChild);
+  }
+}
+
+/* 중복 병합 알림: 새 행을 만들지 않고 기존 행의 ×N 뱃지만 갱신한다 */
+socket.on('alert_dedup', d => {
+  const row = document.getElementById(`alert-row-${d.alert_id}`);
+  if (row) {
+    const cell = row.querySelector('td:nth-child(3)');
+    if (cell) {
+      const existing = cell.querySelector('.dedup-count');
+      const title = `동일 이벤트 ${d.count}건 병합 · 최근 ${d.last_seen || '-'}`;
+      if (existing) {
+        existing.textContent = `×${d.count}`;
+        existing.title = title;
+      } else {
+        const span = document.createElement('span');
+        span.className = 'badge bg-info text-dark dedup-count';
+        span.style.fontSize = '9px';
+        span.textContent = `×${d.count}`;
+        span.title = title;
+        cell.appendChild(document.createTextNode(' '));
+        cell.appendChild(span);
+      }
+    }
+  }
+  const badge = document.getElementById('dedup-merged-count');
+  if (badge) badge.textContent = (parseInt(badge.textContent.replace(/,/g, '')) || 0) + 1;
+});
+
+/* ── 억제됨 탭 ── */
+function loadSuppressed(page = 1) {
+  const kind = document.getElementById('supp-kind-filter')?.value || '';
+  const params = new URLSearchParams({ page, limit: 50 });
+  if (kind) params.set('kind', kind);
+  fetch('/api/dedup/suppressed?' + params)
+    .then(r => r.json())
+    .then(renderSuppressed)
+    .catch(() => {});
+  fetch('/api/dedup/status')
+    .then(r => r.json())
+    .then(d => {
+      const s = d.stats || {};
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('dedup-seen', (s.seen || 0).toLocaleString());
+      set('dedup-merged-count', (s.deduplicated || 0).toLocaleString());
+      set('dedup-suppressed-count', (s.suppressed || 0).toLocaleString());
+      set('dedup-reduction', (s.reduction_rate ?? 0) + '%');
+      set('dedup-window', (s.window_seconds ?? '-') + '초');
+      set('dedup-storms', (s.storms || 0).toLocaleString());
+    })
+    .catch(() => {});
+}
+
+function renderSuppressed(d) {
+  const tbody = document.getElementById('suppressed-tbody');
+  if (!tbody) return;
+  const rows = d.events || [];
+  const kindMeta = {
+    duplicate: ['bg-info text-dark', '중복 병합'],
+    suppressed: ['bg-warning text-dark', '규칙 억제'],
+    storm: ['bg-danger', '스톰'],
+  };
+  tbody.innerHTML = rows.length
+    ? rows.map(e => {
+        const [cls, label] = kindMeta[e.kind] || ['bg-secondary', e.kind];
+        return `<tr style="color:#e6edf3">
+          <td class="small font-monospace text-nowrap">${escapeHtml(e.ts)}</td>
+          <td><span class="badge ${cls}" style="font-size:9px">${label}</span></td>
+          <td>${sevBadge(e.severity)}</td>
+          <td class="small">${escapeHtml(e.threat_type || '')}</td>
+          <td class="small font-monospace">${escapeHtml(e.src_ip || '-')}</td>
+          <td class="small">${escapeHtml(e.description || '')}</td>
+          <td class="small text-muted">${escapeHtml(e.reason || '')}</td>
+          <td class="small font-monospace">${e.parent_alert ? '#' + e.parent_alert : '-'}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="8" class="text-muted text-center p-3">억제된 이벤트 없음</td></tr>';
+
+  const summary = document.getElementById('supp-summary');
+  if (summary) {
+    summary.textContent = `총 ${(d.total || 0).toLocaleString()}건 중 ${rows.length}건 표시 (${d.page}/${d.pages} 페이지)`;
   }
 }
 
