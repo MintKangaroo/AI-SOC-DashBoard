@@ -21,6 +21,7 @@ def _policy(app):
         "archive_days": max(30, int(app.config.get("ALERT_ARCHIVE_RETENTION_DAYS", 365))),
         "audit_days": max(30, int(app.config.get("AUDIT_RETENTION_DAYS", 365))),
         "file_days": max(1, int(app.config.get("DATA_RETENTION_DAYS", 30))),
+        "feature_days": max(7, int(app.config.get("ML_FEATURE_RETENTION_DAYS", 180))),
     }
 
 
@@ -58,6 +59,14 @@ def run_cleanup(app, manual=False):
     audit = getattr(app, "audit", None)
     if audit is not None:
         deleted_audit = audit.purge_older_than(policy["audit_days"])
+    # ML 트래픽 피처 — 재학습 소스이므로 알림보다 길게 보존한다(기본 180일)
+    deleted_features = 0
+    feature_store = getattr(getattr(app, "ml_analyst", None), "store", None)
+    if feature_store is not None:
+        try:
+            deleted_features = feature_store.purge_older_than(policy["feature_days"])
+        except Exception as e:
+            print(f"[Retention] ML 피처 정리 실패: {e}")
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for path in _file_candidates(base_dir, policy["file_days"]):
         try:
@@ -68,12 +77,14 @@ def run_cleanup(app, manual=False):
     result = {"ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
               "trigger": "manual" if manual else "auto", "archived": moved,
               "archive_deleted": deleted_archive, "audit_deleted": deleted_audit,
-              "files_deleted": deleted_files, "policy": policy}
+              "files_deleted": deleted_files, "features_deleted": deleted_features,
+              "policy": policy}
     with _lock:
         _history.appendleft(result)
-    if any((moved, deleted_archive, deleted_audit, deleted_files)):
+    if any((moved, deleted_archive, deleted_audit, deleted_files, deleted_features)):
         print(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
-              f"감사 {deleted_audit}건 · 파일 {deleted_files}건 삭제")
+              f"감사 {deleted_audit}건 · 파일 {deleted_files}건 · "
+              f"ML피처 {deleted_features}건 삭제")
     return result
 
 
@@ -97,4 +108,5 @@ def start(app, interval_hours=6):
     threading.Thread(target=_loop, daemon=True).start()
     p = _policy(app)
     print(f"[Retention] 활성 {p['live_days']}일→아카이브 · 아카이브/감사 "
-          f"{p['archive_days']}/{p['audit_days']}일 · 파일 {p['file_days']}일")
+          f"{p['archive_days']}/{p['audit_days']}일 · 파일 {p['file_days']}일 · "
+          f"ML피처 {p['feature_days']}일")

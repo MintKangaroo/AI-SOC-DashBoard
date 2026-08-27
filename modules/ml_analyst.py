@@ -23,6 +23,8 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
+from modules.ml_feature_store import MLFeatureStore
+
 # ─────────────────────────────────────────
 #  Feature 정의 (8개 수치형 피처)
 # ─────────────────────────────────────────
@@ -67,10 +69,15 @@ class MLAnalyst:
 
     WINDOW = 30   # 피처 슬라이딩 윈도우 길이
 
-    def __init__(self, socketio):
+    def __init__(self, socketio, feature_store=None, demo=False):
         self.socketio = socketio
         self.running = False
+        self.demo = demo
         self._lock = threading.Lock()
+
+        # 트래픽 피처 영속화 — 실트래픽 재학습·평가의 전제 조건.
+        # 이게 없으면 모델 입력 공간에 데이터가 한 건도 남지 않는다.
+        self.store = feature_store if feature_store is not None else MLFeatureStore()
 
         # 피처 버퍼 (슬라이딩 윈도우)
         self._feature_buffer = deque(maxlen=self.WINDOW * 2)
@@ -94,20 +101,31 @@ class MLAnalyst:
 
     # ──────────────────── 공개 API ────────────────────
 
-    def start(self):
+    def start(self, demo=None):
         if self.running:
             return
+        if demo is not None:
+            self.demo = bool(demo)
         self.running = True
         threading.Thread(target=self._init_models, daemon=True).start()
 
     def stop(self):
         self.running = False
+        try:
+            self.store.flush()
+        except Exception as e:
+            print(f"[MLAnalyst] 피처 플러시 실패: {e}")
 
     def feed_traffic(self, stats: dict):
-        """PacketAnalyzer 통계를 피처로 변환해 버퍼에 넣는다."""
+        """PacketAnalyzer 통계를 피처로 변환해 버퍼에 넣고 영속화한다."""
         feat = self._extract_features(stats)
         with self._lock:
             self._feature_buffer.append(feat)
+        # 저장 실패가 분석을 멈추면 안 된다 — 기록은 부가 기능이다.
+        try:
+            self.store.record(feat, origin="demo" if self.demo else "real")
+        except Exception as e:
+            print(f"[MLAnalyst] 피처 기록 실패: {e}")
         return feat
 
     def analyze_now(self, stats: dict) -> dict:
@@ -116,7 +134,12 @@ class MLAnalyst:
 
     def get_stats(self) -> dict:
         with self._lock:
-            return dict(self.stats)
+            out = dict(self.stats)
+        try:
+            out["feature_store"] = self.store.stats()
+        except Exception:
+            out["feature_store"] = {"total": 0, "real": 0, "demo": 0, "pending": 0}
+        return out
 
     def get_log(self, limit=20) -> list:
         with self._lock:

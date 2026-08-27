@@ -91,6 +91,9 @@ class Config:
     ALERT_ARCHIVE_RETENTION_DAYS = int(os.getenv("ALERT_ARCHIVE_RETENTION_DAYS", 365))
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", 365))
 
+    # ML 트래픽 피처 보존 — 재학습 소스라 알림보다 길게 잡는다
+    ML_FEATURE_RETENTION_DAYS = int(os.getenv("ML_FEATURE_RETENTION_DAYS", 180))
+
     # 파일 로그·리포트·생성 플레이북 보존 (DB 보존과 분리)
     DATA_RETENTION_DAYS = int(os.getenv("DATA_RETENTION_DAYS", 30))
     DATA_RETENTION_INTERVAL_HOURS = float(os.getenv("DATA_RETENTION_INTERVAL_HOURS", 6))

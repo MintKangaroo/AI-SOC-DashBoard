@@ -49,7 +49,7 @@ def build_services(app, socketio):
     sysmon_parser   = SysmonParser(socketio, app.config, mitre_tracker=mitre_tracker)
     hash_checker    = HashChecker(app.config.get("MALICIOUS_HASH_DB"))
     virustotal      = VirusTotalClient(app.config)
-    ml_analyst      = MLAnalyst(socketio)
+    ml_analyst      = MLAnalyst(socketio, demo=app.config.get("DEMO_MODE", True))
     ai_analyst      = AIAnalyst(socketio, ml_analyst=ml_analyst)
     threat_intel    = ThreatIntel(socketio, packet_analyzer=packet_analyzer,
                                   mitre_tracker=mitre_tracker)
@@ -193,7 +193,7 @@ def start_services(app, socketio):
     app.snort.start(demo=False)       # Snort는 합성 이벤트를 만들지 않음
     app.sysmon_parser.start(demo=demo)
     app.ai_analyst.start()
-    app.ml_analyst.start()
+    app.ml_analyst.start(demo=demo)   # 피처 origin(real/demo) 구분 저장
     app.attack_map.start(demo=demo)
     app.threat_intel.start(demo=demo)
     app.ip_reputation.set_own_ips(getattr(app.soar, "_own_ips", set()))
