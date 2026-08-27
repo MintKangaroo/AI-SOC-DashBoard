@@ -19,6 +19,10 @@ import threading
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import psutil
     PSUTIL_OK = True
@@ -95,9 +99,9 @@ class EDRSensor:
             self.stats["mode"] = "real" if real else "demo"
         threading.Thread(target=self._scan_loop, args=(real,), daemon=True).start()
         if real:
-            print(f"[EDR] 실센서 활성 — psutil 프로세스 관제 (호스트: {self.host})")
+            _log.info(f"[EDR] 실센서 활성 — psutil 프로세스 관제 (호스트: {self.host})")
         else:
-            print("[EDR] 데모 모드 — 가상 프로세스/위협 시나리오로 동작")
+            _log.warning("[EDR] 데모 모드 — 가상 프로세스/위협 시나리오로 동작")
 
     def stop(self):
         self.running = False
@@ -157,7 +161,7 @@ class EDRSensor:
                 snapshot = self._scan_real() if real else self._scan_demo()
                 self._process_snapshot(snapshot)
             except Exception as e:
-                print(f"[EDR] 스캔 오류: {e}")
+                _log.error(f"[EDR] 스캔 오류: {e}")
             for _ in range(int(self.scan_interval * 2)):
                 if not self.running:
                     return
@@ -364,7 +368,7 @@ class EDRSensor:
                              "ioas": det["ioas"]},
                 )
             except Exception as e:
-                print(f"[EDR] 파이프라인 투입 오류: {e}")
+                _log.error(f"[EDR] 파이프라인 투입 오류: {e}")
 
     # ------------------------------------------------------------------ #
     #  대응 안전장치

@@ -17,6 +17,10 @@ import threading
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import psutil
     PSUTIL_OK = True
@@ -91,7 +95,7 @@ class NetworkMonitor:
         with self._lock:
             self.stats["mode"] = "real" if real else "demo"
         threading.Thread(target=self._loop, args=(real,), daemon=True).start()
-        print(f"[NetMon] 네트워크 관제 시작 — {'실측(psutil)' if real else '데모'}, "
+        _log.info(f"[NetMon] 네트워크 관제 시작 — {'실측(psutil)' if real else '데모'}, "
               f"감시대상 {len(self.targets)}개")
 
     def stop(self):
@@ -122,7 +126,7 @@ class NetworkMonitor:
                 self._check_targets()
                 self._emit()
             except Exception as e:
-                print(f"[NetMon] 수집 오류: {e}")
+                _log.error(f"[NetMon] 수집 오류: {e}")
             for _ in range(int(self.interval * 2)):
                 if not self.running:
                     return
@@ -154,7 +158,7 @@ class NetworkMonitor:
                     "external": bool(external),
                 })
         except Exception as e:
-            print(f"[NetMon] net_connections 오류: {e}")
+            _log.error(f"[NetMon] net_connections 오류: {e}")
 
         self._update_bandwidth_real()
         self._finalize(conns, listening, peers)

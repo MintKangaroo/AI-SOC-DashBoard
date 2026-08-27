@@ -20,6 +20,10 @@ import time
 import threading
 from collections import deque, defaultdict
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # 정찰/침투 위협 분류
 _RECON = {"PORT_SCAN", "ANOMALY", "NETWORK_ANOMALY"}
 _INTRUSION = {"HONEYPOT", "BRUTE_FORCE", "WEB_ATTACK", "MALWARE_BEACON", "EDR_THREAT", "SIGMA_MATCH"}
@@ -52,7 +56,7 @@ class SIEMCorrelator:
 
     def start(self, demo=True):
         self.running = True
-        print("[SIEMCorr] 상관관계 분석 시작 — "
+        _log.info("[SIEMCorr] 상관관계 분석 시작 — "
               f"윈도우 {int(self.window)}s · 다중벡터≥{self.multi_vector_min} · "
               f"브루트≥{self.brute_min} · 분산≥{self.distributed_min}")
         if demo:
@@ -233,7 +237,7 @@ class SIEMCorrelator:
                      "bytes_out": f.get("bytes_out", 0),
                      "evidence": f.get("evidence", [])})
             except Exception as e:
-                print(f"[SIEMCorr] 알림 전달 오류: {e}")
+                _log.error(f"[SIEMCorr] 알림 전달 오류: {e}")
 
     @staticmethod
     def _is_internal(ip):

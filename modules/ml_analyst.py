@@ -25,6 +25,10 @@ from sklearn.preprocessing import StandardScaler
 
 from modules.ml_feature_store import MLFeatureStore
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # ─────────────────────────────────────────
 #  Feature 정의 (8개 수치형 피처)
 # ─────────────────────────────────────────
@@ -114,7 +118,7 @@ class MLAnalyst:
         try:
             self.store.flush()
         except Exception as e:
-            print(f"[MLAnalyst] 피처 플러시 실패: {e}")
+            _log.error(f"[MLAnalyst] 피처 플러시 실패: {e}")
 
     def feed_traffic(self, stats: dict):
         """PacketAnalyzer 통계를 피처로 변환해 버퍼에 넣고 영속화한다."""
@@ -125,7 +129,7 @@ class MLAnalyst:
         try:
             self.store.record(feat, origin="demo" if self.demo else "real")
         except Exception as e:
-            print(f"[MLAnalyst] 피처 기록 실패: {e}")
+            _log.error(f"[MLAnalyst] 피처 기록 실패: {e}")
         return feat
 
     def analyze_now(self, stats: dict) -> dict:
@@ -185,7 +189,7 @@ class MLAnalyst:
         except Exception as e:
             with self._lock:
                 self.stats["model_status"] = f"오류: {e}"
-            print(f"[MLAnalyst] 모델 초기화 오류: {e}")
+            _log.error(f"[MLAnalyst] 모델 초기화 오류: {e}")
             return
 
         threading.Thread(target=self._analysis_loop, daemon=True).start()
@@ -201,7 +205,7 @@ class MLAnalyst:
                 return
             except Exception as e:
                 # sklearn 버전 불일치 등으로 로드 실패 → 재학습
-                print(f"[MLAnalyst] IF 모델 로드 실패({e}) — 재학습")
+                _log.warning(f"[MLAnalyst] IF 모델 로드 실패({e}) — 재학습")
 
         normal_X = _synthetic_normal_profile()
         self.scaler = StandardScaler().fit(normal_X)

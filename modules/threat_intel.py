@@ -21,6 +21,10 @@ import random
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import requests
     REQUESTS_OK = True
@@ -152,7 +156,7 @@ class ThreatIntel:
         new_ips, new_urls = set(), set()
 
         if not REQUESTS_OK:
-            print("[ThreatIntel] requests 미설치 — 데모 데이터 사용")
+            _log.warning("[ThreatIntel] requests 미설치 — 데모 데이터 사용")
             new_ips.update(DEMO_BAD_IPS)
             new_urls.update(DEMO_BAD_URLS)
             sources.append({
@@ -219,7 +223,7 @@ class ThreatIntel:
             self.stats["bad_url_count"] = len(new_urls)
             self.stats["last_refresh"]  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        print(f"[ThreatIntel] 피드 갱신: 악성 IP {len(new_ips):,}개 / URL {len(new_urls):,}개")
+        _log.info(f"[ThreatIntel] 피드 갱신: 악성 IP {len(new_ips):,}개 / URL {len(new_urls):,}개")
         self.socketio.emit("ti_feed_update", self.get_status())
 
     # ─────────────── 실시간 매칭 루프 ─────────────── #
@@ -236,7 +240,7 @@ class ThreatIntel:
                 else:
                     self._check_real_traffic()
             except Exception as e:
-                print(f"[ThreatIntel] 매칭 오류: {e}")
+                _log.error(f"[ThreatIntel] 매칭 오류: {e}")
 
     def _demo_match(self):
         """데모 모드: 가끔 악성 IP/URL 통신 이벤트를 생성."""

@@ -17,6 +17,10 @@ import threading
 from datetime import datetime
 from collections import deque, defaultdict, Counter
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 _IP = r"(\d{1,3}(?:\.\d{1,3}){3})"
 # OpenSSH 표준 로그 패턴
 _RE_FAILED = re.compile(r"Failed (?:password|publickey) for (invalid user )?(\S+) from " + _IP + r" port (\d+)")
@@ -57,15 +61,15 @@ class AuthLogMonitor:
         self.running = True
         if os.path.exists(self.log_path) and os.access(self.log_path, os.R_OK):
             self.stats["mode"] = "real"
-            print(f"[AuthLog] 실시간 SSH 인증 로그 감시 시작: {self.log_path}")
+            _log.info(f"[AuthLog] 실시간 SSH 인증 로그 감시 시작: {self.log_path}")
             threading.Thread(target=self._tail_loop, daemon=True).start()
         elif demo:
             self.stats["mode"] = "demo"
-            print(f"[AuthLog] {self.log_path} 접근 불가 — 데모 모드")
+            _log.warning(f"[AuthLog] {self.log_path} 접근 불가 — 데모 모드")
             threading.Thread(target=self._demo_loop, daemon=True).start()
         else:
             self.stats["mode"] = "off"
-            print(f"[AuthLog] {self.log_path} 접근 불가 — 비활성")
+            _log.warning(f"[AuthLog] {self.log_path} 접근 불가 — 비활성")
 
     def stop(self):
         self.running = False
@@ -106,7 +110,7 @@ class AuthLogMonitor:
             except FileNotFoundError:
                 offset = 0
             except Exception as e:
-                print(f"[AuthLog] tail 오류: {e}")
+                _log.error(f"[AuthLog] tail 오류: {e}")
             time.sleep(1.0)
 
     def _process_line(self, line):
@@ -181,7 +185,7 @@ class AuthLogMonitor:
                      "last_user": user, "source": "auth.log",
                      "evidence": ["auth_bruteforce"], "demo": False})
             except Exception as e:
-                print(f"[AuthLog] 알림 전달 오류: {e}")
+                _log.error(f"[AuthLog] 알림 전달 오류: {e}")
 
     # ------------------------------------------------------------------ #
 

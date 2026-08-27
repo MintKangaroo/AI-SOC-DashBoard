@@ -34,7 +34,7 @@
 | 14 | ~~P2~~ **수정됨** | `.env.example`에 25개 변수 누락 · `SIEM_CORR_*`는 config에도 없음 | 비교 결과 | ✅ |
 | 15 | **P2** | 프론트 XSS 이스케이프 불일치 (확증된 경로 없음) | `02-overview.js:257` 외 | S |
 | 16 | ~~P2~~ **수정됨** | CDN 9개 의존 · SRI 없음 · 오프라인 불가 | `templates/dashboard.html:252-261` | ✅ |
-| 17 | **P2** | `print()` 102회 · 구조화 로깅 없음 | 전역 | M |
+| 17 | ~~P2~~ **수정됨** | `print()` 102회 · 구조화 로깅 없음 | 전역 | ✅ |
 | 18 | **P2** | 린터·CI·Dockerfile 전부 부재 | 파일 없음 | M |
 | 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
 | 20 | ~~P2~~ **수정됨** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | ✅ |
@@ -380,13 +380,39 @@ WAL이 없는 3개는 **외부 프로세스**(`scripts/production_cutover.py`, �
 
 한 모듈이 죽어서 대시보드 전체가 죽는 경로는 **찾지 못했다**. `system_health.py`가 방어적 `getattr` 조회를 하고, `_emit()` 계열이 전부 `except Exception: pass`로 감싸여 있으며(`incidents.py:202-210`), 모듈 간 직접 import가 없다. 다만 그 대가가 B-9의 문제다.
 
-### B-9. [P2] 로깅 — `print()` 102회, 구조화 로깅 없음
+### B-9. [~~P2~~ **수정됨**] 로깅 — `print()` 102회, 구조화 로깅 없음
 
 `modules/`·`api/`·`app.py`·`wiring.py`에 `print()` 102회. `logging`을 쓰는 파일은 `app.py` 하나뿐이고, 그마저 werkzeug 로그를 **끄는** 용도다(`app.py:12-15`). `logs/server.out`으로 리다이렉트한 stdout이 사실상 유일한 로그다.
 
 여기에 `except Exception: pass` 81건이 겹친다. 레벨도, 타임스탬프도, 모듈명도, 검색 가능한 필드도 없다. **보안관제 도구가 자기 자신의 관측성을 갖고 있지 않다.**
 
-**수정 방향**: `logging.getLogger(__name__)` + 모듈명 prefix 포맷터. 구조화(JSON) 로깅은 그 다음 단계. `print(f"[SOAR] ...")` 패턴이 일관적이라 기계적 치환이 가능하다. **작업량 M**
+**수정 (2026-08-27)** — `modules/logging_setup.py` 신설, `print()` **119건**(감사 시점
+102건에서 늘어 있었다)을 전부 로거 호출로 전환. 파일마다 `_log = get_logger(__name__)`.
+
+- **레벨을 손으로 분류했다**: error 51 · warning 39 · info 27 · debug 2.
+  일괄 `info` 로 밀면 "정상 시작"과 "저장 실패"가 같은 무게로 남아 도입 의미가
+  없다. 예: `[SOAR] 엔진 시작`=info, `[Syslog] 바인딩 불가 — 데모 모드`=warning,
+  `[Incidents] SQLite 저장 실패`=error, 클라이언트 연결/해제=debug(매 접속마다
+  찍혀 노이즈였다).
+- **메시지 문자열은 건드리지 않았다.** `[Tag]` 접두가 이미 컴포넌트 표시로
+  동작하고 있어, 119개 문자열을 고치면 그만큼 위험만 늘어난다. 호출부에서 바꾼
+  것은 `print(` → `_log.<level>(` 한 토큰뿐이다(AST 로 위치를 찾아 치환).
+- 출력: `2026-08-27 20:11:29 WARNING [Syslog] 127.0.0.1:5514 바인딩 불가 — 데모 모드`.
+  콘솔 + `logs/soc.log` 회전 파일(5MB×5). 파일 생성에 실패해도 콘솔 로깅은 살린다
+  — 로깅 설정 때문에 대시보드가 못 뜨는 일은 없어야 한다.
+- `configure_logging()` 을 부르지 않아도 모듈은 정상 동작한다(테스트·스크립트가
+  그냥 import 하는 경우). 앱은 `create_app()` 맨 앞에서 부른다 — 이후 초기화
+  과정의 경고·실패가 파일에도 남도록.
+- `LOG_LEVEL`·`LOG_DIR`·`LOG_FILE`·`LOG_MAX_BYTES`·`LOG_BACKUP_COUNT` 로 조절.
+  werkzeug/engineio/socketio/urllib3 소음은 WARNING 으로 억제.
+
+회귀 테스트 9건(`tests/test_logging.py`): print 0건 유지, 로거 정의 누락 없음,
+콘솔+파일 기록, 로그 디렉터리 불가 시에도 기동, 설정 없이 import 가능,
+**except 블록에서 info/debug 로 남기지 않음**(AST 검사). 변이 주입으로
+print 복원·레벨 하향 모두 실패 확인.
+
+구조화(JSON) 로깅은 하지 않았다 — 이 대시보드의 로그 소비자는 사람이고,
+JSON 은 로그 수집기를 붙일 때 포맷터만 바꾸면 된다.
 
 ### B-10. 메모리 누수 — 파이썬 측은 문제 없음
 
@@ -911,7 +937,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 - **A-3** API 에러 핸들러 + 응답 스키마 통일 (프론트 동시 수정 필요)
 - **B-5** 허니팟/syslog 연결 세마포어 (`HONEYPOT_BIND=0.0.0.0` 전환 **전에는 반드시**)
 - ~~**B-7** alert_store WAL + 읽기 전용 커넥션 분리~~ — ✅ 수정 완료
-- **B-9** `print()` → `logging` 일괄 전환
+- ~~**B-9** `print()` → `logging` 일괄 전환~~ — ✅ 수정 완료
 - ~~**E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)~~ — ✅ 수정 완료
 - **E-3** `_attackerCounter` 상한 + 렌더 스로틀
 - **A-5** `ruff` 도입 + A-4 미사용 import 40건 정리

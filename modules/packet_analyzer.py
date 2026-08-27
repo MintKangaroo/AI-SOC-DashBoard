@@ -8,6 +8,10 @@ import random
 from datetime import datetime
 from collections import defaultdict, deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import pyshark
     PYSHARK_AVAILABLE = True
@@ -129,7 +133,7 @@ class PacketAnalyzer:
                     break
                 self._process_pyshark_packet(pkt)
         except Exception as e:
-            print(f"[PacketAnalyzer] PyShark error: {e} — fallback to demo")
+            _log.warning(f"[PacketAnalyzer] PyShark error: {e} — fallback to demo")
             self._demo_loop()
 
     def _process_pyshark_packet(self, pkt):
@@ -171,7 +175,7 @@ class PacketAnalyzer:
                 stop_filter=lambda _: not self.running,
             )
         except Exception as e:
-            print(f"[PacketAnalyzer] Scapy error: {e} — fallback to demo")
+            _log.warning(f"[PacketAnalyzer] Scapy error: {e} — fallback to demo")
             self._demo_loop()
 
     def _process_scapy_packet(self, pkt):

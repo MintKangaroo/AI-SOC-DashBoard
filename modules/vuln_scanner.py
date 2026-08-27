@@ -26,6 +26,10 @@ from datetime import datetime
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 # 기본 점검 포트 (자주 노출되는 서비스 + 자동매매 대시보드 포트)
 DEFAULT_PORTS = [
@@ -218,7 +222,7 @@ class VulnScanner:
             self.stats["mode"] = "real"
         n = "nmap 있음(정밀)" if self.nmap_bin else "nmap 미설치(소켓 스캔)"
         a = "ansible 있음(원격 교차검증)" if self.ansible_bin else "ansible 미설치(원격 미확인)"
-        print(f"[VulnScan] 취약점 스캐너 준비 — {'데모' if demo else '실측'}, {n}, {a}, "
+        _log.info(f"[VulnScan] 취약점 스캐너 준비 — {'데모' if demo else '실측'}, {n}, {a}, "
               f"대상 {len(self.hosts)}대 · 포트 {len(self.ports)}개")
 
     def stop(self):
@@ -257,7 +261,7 @@ class VulnScanner:
                     "vulns": self.stats["vulns"],
                 })
         except Exception as e:
-            print(f"[VulnScan] 스캔 오류: {e}")
+            _log.error(f"[VulnScan] 스캔 오류: {e}")
         finally:
             with self._lock:
                 self._scanning = False
@@ -408,7 +412,7 @@ class VulnScanner:
             # 마커가 있으면 성공(연결·실행됨). 없으면 연결 실패로 간주.
             return self._parse_remote_apt(r.stdout)
         except Exception as e:
-            print(f"[VulnScan] 원격 apt 조회 실패({host['name']}): {e}")
+            _log.error(f"[VulnScan] 원격 apt 조회 실패({host['name']}): {e}")
             return None
         finally:
             try:
@@ -564,7 +568,7 @@ class VulnScanner:
                 return None
             return self._parse_nmap_xml(r.stdout)
         except (subprocess.TimeoutExpired, OSError) as e:
-            print(f"[VulnScan] nmap 실패: {e}")
+            _log.error(f"[VulnScan] nmap 실패: {e}")
             return None
 
     def _parse_nmap_xml(self, xml):

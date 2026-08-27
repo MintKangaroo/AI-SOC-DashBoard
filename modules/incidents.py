@@ -17,6 +17,10 @@ import tempfile
 import threading
 from datetime import datetime, timedelta
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 VALID_STATUS = ("OPEN", "INVESTIGATING", "CONTAINED", "RESOLVED")
 # 자동 종료 대상 상태 — RESOLVED 는 이미 종료된 것이므로 제외한다
@@ -242,13 +246,13 @@ class IncidentManager:
                     max(loaded.keys(), default=0) + 1,
                 )
                 if path.endswith(".bak"):
-                    print("[Incidents] 기본 저장본 손상 — 백업에서 복구")
+                    _log.warning("[Incidents] 기본 저장본 손상 — 백업에서 복구")
                     self._save(create_backup=False)
                 return
             except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
                 last_error = e
         if last_error:
-            print(f"[Incidents] 로드 실패(백업 포함): {last_error}")
+            _log.error(f"[Incidents] 로드 실패(백업 포함): {last_error}")
 
     def _save(self, create_backup=True):
         """완성된 임시 파일만 원본과 교체해 중단 시 JSON 절단을 방지한다."""
@@ -279,7 +283,7 @@ class IncidentManager:
                 except OSError:
                     pass
         except Exception as e:
-            print(f"[Incidents] 저장 실패: {e}")
+            _log.error(f"[Incidents] 저장 실패: {e}")
         finally:
             if tmp_path:
                 try:
@@ -323,7 +327,7 @@ class IncidentManager:
             if self.incidents:
                 self._mark_all_dirty()
                 self._save_sqlite()
-                print(f"[Incidents] JSON → SQLite 무손실 이관: {len(self.incidents)}건")
+                _log.info(f"[Incidents] JSON → SQLite 무손실 이관: {len(self.incidents)}건")
 
     # ------------------------------------------------------------------ #
     #  보존 정리
@@ -408,7 +412,7 @@ class IncidentManager:
                             "DELETE FROM incidents WHERE id=?",
                             [(i,) for i in victims])
                 except (OSError, sqlite3.Error) as e:
-                    print(f"[Incidents] 정리 실패({e}) — 메모리만 반영됨")
+                    _log.error(f"[Incidents] 정리 실패({e}) — 메모리만 반영됨")
             else:
                 self._save()
         self._emit()
@@ -457,7 +461,7 @@ class IncidentManager:
                         (str(self._next_id),))
         except (OSError, sqlite3.Error, ValueError, TypeError) as e:
             # dirty 를 비우지 않는다 — 다음 저장에서 재시도한다.
-            print(f"[Incidents] SQLite 저장 실패: {e}")
+            _log.error(f"[Incidents] SQLite 저장 실패: {e}")
             return
         self._dirty -= pending
         self._meta_dirty = False

@@ -8,6 +8,10 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 KNOWN_MALICIOUS = {
     # 데모용 알려진 악성 해시 샘플
@@ -147,4 +151,4 @@ class HashChecker:
                             self.malicious_hashes[algo] = {}
                         self.malicious_hashes[algo][h.lower()] = desc
         except Exception as e:
-            print(f"[HashChecker] DB 로드 오류: {e}")
+            _log.error(f"[HashChecker] DB 로드 오류: {e}")

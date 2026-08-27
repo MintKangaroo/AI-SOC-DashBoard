@@ -18,6 +18,10 @@ import threading
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 # 문서용 TEST-NET (RFC5737) — 실제 라우팅되지 않는 안전한 가짜 공격자 IP
 ATTACKER_IP = "203.0.113.66"
@@ -66,7 +70,7 @@ class PurpleTeam:
     # ------------------------------------------------------------------ #
 
     def start(self, demo=True):
-        print(f"[Purple] 퍼플팀 하네스 준비 — 시나리오 {len(self.scenarios)}개 "
+        _log.info(f"[Purple] 퍼플팀 하네스 준비 — 시나리오 {len(self.scenarios)}개 "
               f"(TEST-NET IP만 사용, 실제 공격 없음)")
 
     def stop(self):

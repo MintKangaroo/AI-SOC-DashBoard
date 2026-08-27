@@ -20,6 +20,10 @@ import threading
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import yaml
     YAML_OK = True
@@ -176,11 +180,11 @@ class SigmaEngine:
     def start(self, demo=True):
         self.running = True
         if not YAML_OK:
-            print("[Sigma] PyYAML 미설치 — Sigma 엔진 비활성(룰 파싱 불가)")
+            _log.warning("[Sigma] PyYAML 미설치 — Sigma 엔진 비활성(룰 파싱 불가)")
             return
         self._bundle_default_rules()
         self.load_rules()
-        print(f"[Sigma] 룰 엔진 시작 — {self.stats['rules_loaded']}개 룰 로드")
+        _log.info(f"[Sigma] 룰 엔진 시작 — {self.stats['rules_loaded']}개 룰 로드")
 
     def stop(self):
         self.running = False
@@ -195,7 +199,7 @@ class SigmaEngine:
                 with open(os.path.join(self.rules_dir, fname), "w", encoding="utf-8") as f:
                     f.write(content.lstrip())
         except Exception as e:
-            print(f"[Sigma] 기본 룰 생성 실패: {e}")
+            _log.error(f"[Sigma] 기본 룰 생성 실패: {e}")
 
     # ------------------------------------------------------------------ #
     #  룰 로드
@@ -215,7 +219,7 @@ class SigmaEngine:
                 rules.append(self._normalize_rule(doc, path))
             except Exception as e:
                 errors += 1
-                print(f"[Sigma] 룰 파싱 오류 {os.path.basename(path)}: {e}")
+                _log.error(f"[Sigma] 룰 파싱 오류 {os.path.basename(path)}: {e}")
         with self._lock:
             self.rules = rules
             self.stats["rules_loaded"] = len(rules)
@@ -284,7 +288,7 @@ class SigmaEngine:
                 if self._match_rule(rule, event):
                     matched.append(rule)
             except Exception as e:
-                print(f"[Sigma] 평가 오류({rule.get('file')}): {e}")
+                _log.error(f"[Sigma] 평가 오류({rule.get('file')}): {e}")
         for rule in matched:
             self._record_match(rule, event)
         return matched
@@ -478,7 +482,7 @@ class SigmaEngine:
                              "level": rule["level"], "mitre": rule["mitre"],
                              "cmdline": event.get("CommandLine"), "pid": event.get("_pid")})
             except Exception as e:
-                print(f"[Sigma] 파이프라인 투입 오류: {e}")
+                _log.error(f"[Sigma] 파이프라인 투입 오류: {e}")
 
     def _emit_status(self):
         try:

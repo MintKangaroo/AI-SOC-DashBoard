@@ -10,6 +10,10 @@ import time
 from collections import deque
 from datetime import datetime
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 _FILE_TARGETS = ["logs/*", "data/*.log", "data/reports/*", "data/ansible/*.yml"]
 _history = deque(maxlen=20)
 _lock = threading.Lock()
@@ -86,7 +90,7 @@ def run_cleanup(app, manual=False):
         try:
             deleted_features = feature_store.purge_older_than(policy["feature_days"])
         except Exception as e:
-            print(f"[Retention] ML 피처 정리 실패: {e}")
+            _log.error(f"[Retention] ML 피처 정리 실패: {e}")
     # 억제·병합 이벤트 보관분 — 잘못 억제한 것을 되짚는 근거라 함부로 줄이지 않는다
     deleted_dedup = 0
     dedup = getattr(app, "alert_dedup", None)
@@ -94,7 +98,7 @@ def run_cleanup(app, manual=False):
         try:
             deleted_dedup = dedup.purge_older_than(policy["dedup_days"])
         except Exception as e:
-            print(f"[Retention] 억제 이벤트 정리 실패: {e}")
+            _log.error(f"[Retention] 억제 이벤트 정리 실패: {e}")
     # 인시던트: 자동 종료 → 그 다음 정리. 순서가 중요하다 — 방금 종료된 건은
     # updated 가 갱신되므로 이번 정리 대상이 되지 않는다(보존기간이 새로 시작).
     resolved_incidents = 0
@@ -106,11 +110,11 @@ def run_cleanup(app, manual=False):
             try:
                 resolved_incidents = incidents.auto_resolve_stale(auto_days)
             except Exception as e:
-                print(f"[Retention] 인시던트 자동 종료 실패: {e}")
+                _log.error(f"[Retention] 인시던트 자동 종료 실패: {e}")
         try:
             deleted_incidents = incidents.purge_resolved_older_than(policy["incident_days"])
         except Exception as e:
-            print(f"[Retention] 인시던트 정리 실패: {e}")
+            _log.error(f"[Retention] 인시던트 정리 실패: {e}")
 
     # SOAR 실행 이력 — 종료된 것만. 승인 대기는 사람의 결정을 기다리므로 보존한다.
     deleted_execs = 0
@@ -119,7 +123,7 @@ def run_cleanup(app, manual=False):
         try:
             deleted_execs = exec_store.purge_terminal_older_than(policy["soar_exec_days"])
         except Exception as e:
-            print(f"[Retention] SOAR 실행 이력 정리 실패: {e}")
+            _log.error(f"[Retention] SOAR 실행 이력 정리 실패: {e}")
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for path in _file_candidates(base_dir, policy["file_days"]):
@@ -142,7 +146,7 @@ def run_cleanup(app, manual=False):
     if any((moved, deleted_archive, deleted_audit, deleted_files,
             deleted_features, deleted_dedup, deleted_incidents, deleted_execs,
             resolved_incidents)):
-        print(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
+        _log.info(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
               f"감사 {deleted_audit}건 · 파일 {deleted_files}건 · "
               f"ML피처 {deleted_features}건 · 억제이벤트 {deleted_dedup}건 · "
               f"인시던트 자동종료 {resolved_incidents}건/삭제 {deleted_incidents}건 · "
@@ -165,11 +169,11 @@ def start(app, interval_hours=6):
             try:
                 run_cleanup(app)
             except Exception as e:
-                print(f"[Retention] 정리 루프 오류: {e}")
+                _log.error(f"[Retention] 정리 루프 오류: {e}")
             time.sleep(max(1, float(interval_hours)) * 3600)
     threading.Thread(target=_loop, daemon=True).start()
     p = _policy(app)
-    print(f"[Retention] 활성 {p['live_days']}일→아카이브 · 아카이브/감사 "
+    _log.info(f"[Retention] 활성 {p['live_days']}일→아카이브 · 아카이브/감사 "
           f"{p['archive_days']}/{p['audit_days']}일 · 파일 {p['file_days']}일 · "
           f"ML피처 {p['feature_days']}일 · 인시던트(RESOLVED) {p['incident_days']}일 · "
           f"SOAR실행(종료분) {p['soar_exec_days']}일"

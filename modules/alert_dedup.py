@@ -43,6 +43,10 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # 기본값 — config 로 덮어쓸 수 있다
 DEFAULT_WINDOW = 300.0          # 중복 병합 윈도우(초). 실측 기준 5분에서 30.4% 병합
 # 아카이브 실측상 전체 알림이 분당 최대 34건이었다. 단일 핑거프린트가 60초에
@@ -416,7 +420,7 @@ class AlertDeduplicator:
                      datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 self._conn.commit()
         except (sqlite3.Error, TypeError, ValueError) as e:
-            print(f"[Dedup] 억제 이벤트 보관 실패({e}) — 핑거프린트 {fp[:12]}")
+            _log.warning(f"[Dedup] 억제 이벤트 보관 실패({e}) — 핑거프린트 {fp[:12]}")
 
     def suppressed(self, limit=100, offset=0, kind=None, fingerprint_value=None,
                    parent_alert=None):

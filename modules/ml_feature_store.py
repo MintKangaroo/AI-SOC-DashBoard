@@ -26,6 +26,10 @@ import threading
 import time
 from datetime import datetime
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # 저장 컬럼 순서 = MLAnalyst.FEATURE_NAMES 순서
 FEATURE_COLUMNS = [
     "pps", "bps", "tcp_ratio", "udp_ratio", "icmp_ratio",
@@ -102,7 +106,7 @@ class MLFeatureStore:
             self._conn.commit()
             n = len(self._buffer)
         except sqlite3.Error as e:
-            print(f"[MLFeatureStore] 저장 실패({e}) — 버퍼 {len(self._buffer)}건 폐기")
+            _log.error(f"[MLFeatureStore] 저장 실패({e}) — 버퍼 {len(self._buffer)}건 폐기")
             n = 0
         self._buffer.clear()
         self._last_flush = time.time()

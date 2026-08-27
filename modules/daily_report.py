@@ -18,6 +18,10 @@ import threading
 from datetime import datetime
 from collections import Counter
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 REPORT_SYSTEM = (
     "당신은 홈서버(자동매매 봇 운영)를 지키는 SOC의 시니어 분석가입니다. "
@@ -58,7 +62,7 @@ class DailyReport:
         with self._lock:
             self.stats["ai_mode"] = "claude" if (self.ai and self.ai.available) else "demo"
         threading.Thread(target=self._schedule_loop, daemon=True).start()
-        print(f"[Report] 일일 리포트 시작 — 매일 {self.report_hour:02d}시 자동 생성, "
+        _log.info(f"[Report] 일일 리포트 시작 — 매일 {self.report_hour:02d}시 자동 생성, "
               f"AI {'Claude' if self.stats['ai_mode']=='claude' else '데모(규칙기반)'}")
 
     def stop(self):
@@ -71,7 +75,7 @@ class DailyReport:
             try:
                 self.generate(trigger="startup")
             except Exception as e:
-                print(f"[Report] 최초 생성 오류: {e}")
+                _log.error(f"[Report] 최초 생성 오류: {e}")
         while self.running:
             now = datetime.now()
             today = now.strftime("%Y-%m-%d")
@@ -79,7 +83,7 @@ class DailyReport:
                 try:
                     self.generate(trigger="scheduled")
                 except Exception as e:
-                    print(f"[Report] 예약 생성 오류: {e}")
+                    _log.error(f"[Report] 예약 생성 오류: {e}")
             for _ in range(60):
                 if not self.running:
                     return
@@ -290,7 +294,7 @@ class DailyReport:
                       "w", encoding="utf-8") as f:
                 json.dump(report, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"[Report] 저장 실패: {e}")
+            _log.error(f"[Report] 저장 실패: {e}")
 
     def _load_history(self):
         try:

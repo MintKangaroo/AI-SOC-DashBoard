@@ -37,6 +37,10 @@ from modules.virustotal import VirusTotalClient
 from modules.snort_monitor import SnortMonitor
 from modules.alert_dedup import AlertDeduplicator
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 def build_services(app, socketio):
     """모든 서비스 인스턴스를 생성·상호 배선하고 app.<name> 으로 등록한다."""
@@ -221,7 +225,7 @@ def start_services(app, socketio):
     app.web_fuzzer.start(demo=demo)      # 웹 견고성 퍼징 (본인 서버만, 온디맨드)
     app.daily_report.start(demo=demo)    # 매일 정해진 시각 브리핑 + 시작 시 1회
     app.purple.start(demo=demo)          # 온디맨드 탐지 검증 (자동 실행 없음)
-    print(f"[Notify] ntfy 푸시 "
+    _log.info(f"[Notify] ntfy 푸시 "
           f"{'활성' if app.notifier.active else '비활성(NTFY_ENABLED/NTFY_TOPIC 설정 시 폰 알림)'}")
 
     # 계층별 보존: 활성 알림→아카이브, 오래된 아카이브/감사/파일만 영구 삭제

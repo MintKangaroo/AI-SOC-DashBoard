@@ -26,6 +26,10 @@ from collections import deque, Counter
 
 from modules.access_log_parser import _PRIVATE_PREFIXES
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # 포트 → (서비스명, 배너, MITRE 유형 힌트)
 SERVICE_PROFILES = {
     22:    ("SSH",    b"SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.1\r\n"),
@@ -100,16 +104,16 @@ class Honeypot:
 
         if opened:
             self.stats["mode"] = "real"
-            print(f"[Honeypot] 유인 서비스 오픈: {self.bind} 포트 {opened}")
+            _log.info(f"[Honeypot] 유인 서비스 오픈: {self.bind} 포트 {opened}")
             if demo:   # 전역 데모 모드면 시연용 합성 히트도 주입(라벨 구분)
                 threading.Thread(target=self._demo_loop, daemon=True).start()
         elif demo:
             self.stats["mode"] = "demo"
-            print("[Honeypot] 포트 바인딩 불가 — 데모 모드")
+            _log.warning("[Honeypot] 포트 바인딩 불가 — 데모 모드")
             threading.Thread(target=self._demo_loop, daemon=True).start()
         else:
             self.stats["mode"] = "off"
-            print("[Honeypot] 포트 바인딩 불가 — 비활성")
+            _log.warning("[Honeypot] 포트 바인딩 불가 — 비활성")
 
     def stop(self):
         self.running = False
@@ -161,7 +165,7 @@ class Honeypot:
                                  daemon=True).start()
                 opened.append(port)
             except OSError as e:
-                print(f"[Honeypot] 포트 {port} 바인딩 실패: {e}")
+                _log.warning(f"[Honeypot] 포트 {port} 바인딩 실패: {e}")
         return opened
 
     def _accept_loop(self, sock, port):
@@ -285,7 +289,7 @@ class Honeypot:
                                   ["honeypot_interaction" if event["interacted"]
                                    else "honeypot_contact"])})
             except Exception as e:
-                print(f"[Honeypot] 알림 전달 오류: {e}")
+                _log.error(f"[Honeypot] 알림 전달 오류: {e}")
 
     # ------------------------------------------------------------------ #
 

@@ -31,6 +31,10 @@ except ImportError:
 import urllib.request
 import urllib.error
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 # 퍼징 페이로드 (익스플로잇 아님 — 입력 검증/견고성 점검용 마커)
 PAYLOADS = [
@@ -137,7 +141,7 @@ class WebFuzzer:
         with self._lock:
             self.stats["mode"] = "ready"
         eng = "requests" if requests else "urllib"
-        print(f"[Fuzzer] 웹 퍼저 준비 — 대상 {len(self.targets)}개 · {self.rate}req/s "
+        _log.info(f"[Fuzzer] 웹 퍼저 준비 — 대상 {len(self.targets)}개 · {self.rate}req/s "
               f"· 최대 {self.max_requests}건 · {eng} · POST {'허용' if self.allow_write else '금지(GET만)'}")
 
     def stop(self):
@@ -209,7 +213,7 @@ class WebFuzzer:
                 if self._stop_flag or sent >= self.max_requests:
                     break
         except Exception as e:
-            print(f"[Fuzzer] 퍼징 오류: {e}")
+            _log.error(f"[Fuzzer] 퍼징 오류: {e}")
         finally:
             ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             with self._lock:

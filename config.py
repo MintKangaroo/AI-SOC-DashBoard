@@ -111,6 +111,13 @@ class Config:
     REPORT_HOUR = int(os.getenv("REPORT_HOUR", 8))     # 매일 자동 생성 시각(0~23)
     REPORT_DIR = os.getenv("REPORT_DIR", "data/reports")
 
+    # ── 로깅 (modules/logging_setup.py) ──
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")          # DEBUG|INFO|WARNING|ERROR
+    LOG_DIR = os.getenv("LOG_DIR", "logs")              # 회전 로그 파일 위치
+    LOG_FILE = os.getenv("LOG_FILE", "soc.log")
+    LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
+    LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
+
     # 알림 보존·아카이브
     ALERT_RETENTION_DAYS = int(os.getenv("ALERT_RETENTION_DAYS", 90))  # N일 경과분 아카이브
     ALERT_ARCHIVE_RETENTION_DAYS = int(os.getenv("ALERT_ARCHIVE_RETENTION_DAYS", 365))

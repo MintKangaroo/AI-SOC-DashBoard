@@ -26,6 +26,10 @@ from collections import deque, Counter
 from modules.playbooks import steps_for
 from modules.soar_execution_store import SOARExecutionStore
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 class SOAREngine:
     AI_TRIAGE_BUDGET = 6          # 5분당 AI 트리아지 최대 횟수 (비용 보호)
@@ -139,17 +143,17 @@ class SOAREngine:
             return
         self.running = True
         threading.Thread(target=self._worker_loop, daemon=True).start()
-        print(f"[SOAR] 엔진 시작 — 차단 모드: {self.block_mode}, 자동 차단: {self.auto_block}")
+        _log.info(f"[SOAR] 엔진 시작 — 차단 모드: {self.block_mode}, 자동 차단: {self.auto_block}")
         # 실차단 모드인데 sudo 가 안 되면 명확히 경고 (조용한 폴백 방지)
         if self.block_mode in ("ufw", "iptables"):
             if (self.block_mode == "ufw" and
                     self._run_fw(["sudo", "-n", self.firewall_helper, "status"])):
-                print(f"[SOAR] 실차단 활성 — {self.block_mode} 방화벽 규칙을 실제 적용합니다.")
+                _log.warning(f"[SOAR] 실차단 활성 — {self.block_mode} 방화벽 규칙을 실제 적용합니다.")
             else:
-                print(f"[SOAR] ⚠ 경고: {self.block_mode} 모드이나 passwordless sudo 불가 "
+                _log.warning(f"[SOAR] ⚠ 경고: {self.block_mode} 모드이나 passwordless sudo 불가 "
                       f"→ 실제 차단은 실패하고 simulate 로 기록됩니다. "
                       f"sudoers 설정 필요.")
-        print("[SOAR] 안전장치: 사설·Tailscale(100.64/10)·서버자신"
+        _log.info("[SOAR] 안전장치: 사설·Tailscale(100.64/10)·서버자신"
               + (f"·화이트리스트{list(self._allowlist)}" if self._allowlist else "")
               + " 절대 차단 안 함")
 
@@ -331,7 +335,7 @@ class SOAREngine:
                     self._expire_blocks()
                     self._expire_approvals()
                 except Exception as e:
-                    print(f"[SOAR] TTL 만료 처리 오류: {e}")
+                    _log.error(f"[SOAR] TTL 만료 처리 오류: {e}")
             if self._queue:
                 kind, data = self._queue.popleft()
                 try:
@@ -342,7 +346,7 @@ class SOAREngine:
                     elif kind == "ti":
                         self._process_ti(data)
                 except Exception as e:
-                    print(f"[SOAR] 처리 오류({kind}): {e}")
+                    _log.error(f"[SOAR] 처리 오류({kind}): {e}")
             else:
                 time.sleep(0.3)
 
@@ -1001,7 +1005,7 @@ class SOAREngine:
                                             if expires_ts else "영구"),
                             }
         except Exception as e:
-            print(f"[SOAR] 차단 목록 로드 실패: {e}")
+            _log.error(f"[SOAR] 차단 목록 로드 실패: {e}")
 
     def _save_blocklist(self):
         try:
@@ -1011,4 +1015,4 @@ class SOAREngine:
                     f.write(f"{ip}|{info['mode']}|{info['timestamp']}|"
                             f"{info['reason']}|{info.get('expires_ts', 0)}\n")
         except Exception as e:
-            print(f"[SOAR] 차단 목록 저장 실패: {e}")
+            _log.error(f"[SOAR] 차단 목록 저장 실패: {e}")

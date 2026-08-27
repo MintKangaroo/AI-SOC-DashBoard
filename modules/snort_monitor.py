@@ -10,6 +10,10 @@ import threading
 import time
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 _FAST_ALERT = re.compile(
     r"^\s*(?P<timestamp>\d{2}/\d{2}-\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+"
@@ -76,7 +80,7 @@ class SnortMonitor:
         self.running = True
         self.stats["status"] = "waiting" if not os.path.exists(self.alert_path) else "active"
         threading.Thread(target=self._tail_loop, daemon=True).start()
-        print(f"[Snort] fast-alert 감시: {self.alert_path} ({self.stats['status']})")
+        _log.info(f"[Snort] fast-alert 감시: {self.alert_path} ({self.stats['status']})")
 
     def stop(self):
         self.running = False

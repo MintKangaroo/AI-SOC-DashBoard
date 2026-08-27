@@ -9,6 +9,10 @@ import random
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     # pywin32 일괄 가용성 확인 — 뒤 두 개는 직접 쓰지 않지만 함께 있어야
     # Windows 이벤트 로그 경로가 정상 동작한다.
@@ -214,7 +218,7 @@ class SysmonParser:
                 for rec in new_records:
                     self._process_win32_record(rec)
         except Exception as e:
-            print(f"[SysmonParser] Windows 이벤트 읽기 오류: {e} — 데모 모드로 전환")
+            _log.warning(f"[SysmonParser] Windows 이벤트 읽기 오류: {e} — 데모 모드로 전환")
             self._demo_loop()
 
     def _process_win32_record(self, rec):

@@ -13,6 +13,10 @@ from collections import defaultdict, deque
 
 from modules.alert_store import AlertStore
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 SEVERITY = {
     "CRITICAL": 4,
@@ -170,7 +174,7 @@ class ThreatDetector:
                 self.store = AlertStore(store_path)
                 self._restore_alerts()
             except Exception as e:
-                print(f"[ThreatDetector] 알림 DB 초기화 실패: {e}")
+                _log.error(f"[ThreatDetector] 알림 DB 초기화 실패: {e}")
                 self.store = None
 
     def _restore_alerts(self):
@@ -554,7 +558,7 @@ class ThreatDetector:
         try:
             return self.dedup.evaluate(alert.to_dict())
         except Exception as e:
-            print(f"[ThreatDetector] dedup 판정 실패({e}) — 알림을 통과시킴")
+            _log.warning(f"[ThreatDetector] dedup 판정 실패({e}) — 알림을 통과시킴")
             return {"action": "pass", "fingerprint": "", "count": 1,
                     "parent_id": None, "reason": f"dedup 오류: {type(e).__name__}"}
 

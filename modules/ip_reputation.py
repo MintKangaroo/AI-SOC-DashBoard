@@ -22,6 +22,10 @@ import threading
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 def _stable_hash(s):
     """프로세스 재시작에도 동일한 해시 (builtin hash()는 시드 랜덤이라 부적합)."""
@@ -96,11 +100,11 @@ class IPReputation:
         with self._lock:
             self.stats["mode"] = mode
         if mode == "abuseipdb":
-            print("[IPRep] AbuseIPDB 실조회 활성 — 공격 IP 평판을 API로 확인합니다.")
+            _log.info("[IPRep] AbuseIPDB 실조회 활성 — 공격 IP 평판을 API로 확인합니다.")
         elif mode == "demo":
-            print("[IPRep] ABUSEIPDB_API_KEY 없음 — 데모 평판 점수로 fallback.")
+            _log.warning("[IPRep] ABUSEIPDB_API_KEY 없음 — 데모 평판 점수로 fallback.")
         else:
-            print("[IPRep] AbuseIPDB 미설정 — 실전 모드에서는 평판 점수를 생성하지 않습니다.")
+            _log.warning("[IPRep] AbuseIPDB 미설정 — 실전 모드에서는 평판 점수를 생성하지 않습니다.")
 
     def stop(self):
         self.running = False
@@ -228,7 +232,7 @@ class IPReputation:
         except Exception as e:
             with self._lock:
                 self.stats["errors"] += 1
-            print(f"[IPRep] AbuseIPDB 조회 오류({ip}): {type(e).__name__}")
+            _log.error(f"[IPRep] AbuseIPDB 조회 오류({ip}): {type(e).__name__}")
             return None
 
     def _lookup_demo(self, ip):

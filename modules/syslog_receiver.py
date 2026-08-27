@@ -22,6 +22,10 @@ from collections import deque, Counter
 
 from modules.access_log_parser import classify_request, _PRIVATE_PREFIXES
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 _IP_RE = re.compile(r"(\d{1,3}(?:\.\d{1,3}){3})")
 # <PRI> 접두 (RFC3164/5424 공통). PRI = facility*8 + severity
 _PRI_RE = re.compile(r"^<(\d{1,3})>")
@@ -132,17 +136,17 @@ class SyslogReceiver:
 
         if listening:
             self.stats["mode"] = "real"
-            print(f"[Syslog] 수신 대기 시작: udp/tcp {self.bind}:{self.port}")
+            _log.info(f"[Syslog] 수신 대기 시작: udp/tcp {self.bind}:{self.port}")
             # 실수신 중이어도 전역 데모 모드면 패널 시연용 합성 이벤트 주입(라벨 구분)
             if demo:
                 threading.Thread(target=self._demo_loop, daemon=True).start()
         elif demo:
             self.stats["mode"] = "demo"
-            print(f"[Syslog] {self.bind}:{self.port} 바인딩 불가 — 데모 모드")
+            _log.warning(f"[Syslog] {self.bind}:{self.port} 바인딩 불가 — 데모 모드")
             threading.Thread(target=self._demo_loop, daemon=True).start()
         else:
             self.stats["mode"] = "off"
-            print(f"[Syslog] {self.bind}:{self.port} 바인딩 불가 — 비활성")
+            _log.warning(f"[Syslog] {self.bind}:{self.port} 바인딩 불가 — 비활성")
 
     def stop(self):
         self.running = False
@@ -194,7 +198,7 @@ class SyslogReceiver:
             threading.Thread(target=self._udp_loop, args=(u,), daemon=True).start()
             ok = True
         except OSError as e:
-            print(f"[Syslog] UDP 바인딩 실패: {e}")
+            _log.warning(f"[Syslog] UDP 바인딩 실패: {e}")
         # TCP (유실 방지)
         try:
             t = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -206,7 +210,7 @@ class SyslogReceiver:
             threading.Thread(target=self._tcp_accept_loop, args=(t,), daemon=True).start()
             ok = True
         except OSError as e:
-            print(f"[Syslog] TCP 바인딩 실패: {e}")
+            _log.warning(f"[Syslog] TCP 바인딩 실패: {e}")
         return ok
 
     def _udp_loop(self, sock):
@@ -369,7 +373,7 @@ class SyslogReceiver:
                     {"source": "syslog", "host": event["host"], "tag": event["tag"],
                      "transport": event["transport"], "category": event["category"]})
             except Exception as e:
-                print(f"[Syslog] 알림 전달 오류: {e}")
+                _log.error(f"[Syslog] 알림 전달 오류: {e}")
 
     # ------------------------------------------------------------------ #
 

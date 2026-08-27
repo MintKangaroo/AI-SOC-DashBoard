@@ -12,6 +12,10 @@ import time
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 try:
     import anthropic
     ANTHROPIC_AVAILABLE = True
@@ -78,7 +82,7 @@ class AIAnalyst:
                 )
                 self.available = True
             except Exception as e:
-                print(f"[AIAnalyst] Claude API 초기화 실패: {e}")
+                _log.error(f"[AIAnalyst] Claude API 초기화 실패: {e}")
 
     # ------------------------------------------------------------------ #
     #  호출 회복력 (타임아웃 · 재시도 · 서킷브레이커)
@@ -104,7 +108,7 @@ class AIAnalyst:
                 self._breaker_until = time.time() + self.breaker_cooldown
                 opened = True
         if opened:
-            print(f"[AIAnalyst] 연속 실패 {self._fail_streak}회 — "
+            _log.warning(f"[AIAnalyst] 연속 실패 {self._fail_streak}회 — "
                   f"{int(self.breaker_cooldown)}초간 호출 중단 (사유: {message})")
 
     @staticmethod
@@ -226,7 +230,7 @@ class AIAnalyst:
                     if result:
                         self.socketio.emit("ai_analysis", result)
                 except Exception as e:
-                    print(f"[AIAnalyst] 분석 오류: {e}")
+                    _log.error(f"[AIAnalyst] 분석 오류: {e}")
             time.sleep(0.5)
 
     def _do_analyze_alert(self, alert: dict):
@@ -292,7 +296,7 @@ class AIAnalyst:
         if self._breaker_open():
             with self._lock:
                 self.call_stats["skipped_breaker"] += 1
-            print(f"[AIAnalyst] 서킷브레이커 열림 — 리포트 생성 건너뜀 "
+            _log.warning(f"[AIAnalyst] 서킷브레이커 열림 — 리포트 생성 건너뜀 "
                   f"({self._last_error})")
             return None
         try:
@@ -305,7 +309,7 @@ class AIAnalyst:
         except Exception as e:
             reason = self._describe_error(e)
             self._record_failure(reason)
-            print(f"[AIAnalyst] 리포트 생성 오류: {reason}")
+            _log.error(f"[AIAnalyst] 리포트 생성 오류: {reason}")
             return None
         self._record_success()
         return response.content[0].text
@@ -361,7 +365,7 @@ class AIAnalyst:
         except Exception as e:
             reason = self._describe_error(e)
             self._record_failure(reason)
-            print(f"[AIAnalyst] Claude API 오류: {reason}")
+            _log.error(f"[AIAnalyst] Claude API 오류: {reason}")
             result = self._mock_analysis(analysis_type, ref_id)
             if isinstance(result, dict):
                 result["degraded"] = True

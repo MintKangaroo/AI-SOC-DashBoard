@@ -40,6 +40,10 @@ import threading
 from datetime import datetime
 from collections import deque, Counter
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 # 기본 수집 대상 (자동매매 프로젝트 대시보드 서버 로그)
 DEFAULT_SOURCES = [
     {"name": "자동매매 KR",
@@ -176,7 +180,7 @@ class AccessLogCollector:
                 data = json.load(f)
             return data if isinstance(data, dict) else {}
         except (OSError, ValueError) as e:
-            print(f"[SIEM] 수집 상태 로드 실패({e}) — 처음부터 읽음")
+            _log.warning(f"[SIEM] 수집 상태 로드 실패({e}) — 처음부터 읽음")
             return {}
 
     def _save_state(self):
@@ -197,7 +201,7 @@ class AccessLogCollector:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             os.replace(tmp, self.state_path)
         except OSError as e:
-            print(f"[SIEM] 수집 상태 저장 실패({e})")
+            _log.warning(f"[SIEM] 수집 상태 저장 실패({e})")
 
     # ------------------------------------------------------------------ #
 
@@ -208,7 +212,7 @@ class AccessLogCollector:
         if any(s["exists"] for s in self.sources):
             threading.Thread(target=self._collect_loop, daemon=True).start()
         elif demo:
-            print("[SIEM] 접근 로그 파일 없음 — 데모 이벤트 생성")
+            _log.warning("[SIEM] 접근 로그 파일 없음 — 데모 이벤트 생성")
             threading.Thread(target=self._demo_loop, daemon=True).start()
 
     def stop(self):
@@ -255,7 +259,7 @@ class AccessLogCollector:
                 try:
                     self._read_source(src, mode=mode)
                 except Exception as e:
-                    print(f"[SIEM] {src['name']} 읽기 오류: {e}")
+                    _log.error(f"[SIEM] {src['name']} 읽기 오류: {e}")
                 if mode == "backfill":
                     src["backfilled"] = True
                     found = src["suspicious"] - before
@@ -283,7 +287,7 @@ class AccessLogCollector:
         if not total:
             return
         detail = " · ".join(f"{name} {n}건" for name, n in summary)
-        print(f"[SIEM] 과거 로그 적재 완료 — 의심 이벤트 {total}건 ({detail})")
+        _log.info(f"[SIEM] 과거 로그 적재 완료 — 의심 이벤트 {total}건 ({detail})")
         try:
             self.socketio.emit("siem_backfill", {
                 "total": total,
@@ -424,7 +428,7 @@ class AccessLogCollector:
                 },
             )
         except Exception as e:
-            print(f"[SIEM] 알림 승격 실패({e}) — 이벤트는 기록됨")
+            _log.warning(f"[SIEM] 알림 승격 실패({e}) — 이벤트는 기록됨")
 
     @staticmethod
     def _is_external(ip):

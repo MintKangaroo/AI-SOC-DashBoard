@@ -24,6 +24,10 @@ import subprocess
 from datetime import datetime
 from collections import deque
 
+from modules.logging_setup import get_logger
+
+_log = get_logger(__name__)
+
 
 # ────────────────────────────────────────────────────────────────────
 #  원격 명령 안전장치 — allowlist 방식
@@ -229,7 +233,7 @@ class PatchManager:
         threading.Thread(target=self._scan_loop, daemon=True).start()
         mode = "실측(apt)" if not demo else "데모"
         ans = "ansible 있음" if self.ansible_bin else "ansible 미설치(플레이북 생성만)"
-        print(f"[Patch] 취약점 패치 관리 시작 — {mode}, {ans}, "
+        _log.info(f"[Patch] 취약점 패치 관리 시작 — {mode}, {ans}, "
               f"실제적용 {'허용' if self.apply_enabled else '금지(dry-run만)'}")
 
     def stop(self):
@@ -240,7 +244,7 @@ class PatchManager:
             try:
                 self.scan()
             except Exception as e:
-                print(f"[Patch] 스캔 오류: {e}")
+                _log.error(f"[Patch] 스캔 오류: {e}")
             for _ in range(6 * 60 * 60):
                 if not self.running:
                     return
@@ -284,7 +288,7 @@ class PatchManager:
                 })
             return inv
         except Exception as e:
-            print(f"[Patch] apt 스캔 실패: {e}")
+            _log.error(f"[Patch] apt 스캔 실패: {e}")
             return None
 
     # ------------------------------------------------------------------ #
@@ -317,7 +321,7 @@ class PatchManager:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
         except Exception as e:
-            print(f"[Patch] 플레이북 저장 실패: {e}")
+            _log.error(f"[Patch] 플레이북 저장 실패: {e}")
         return path, content
 
     def _render_playbook(self, pkgs, security_only):
