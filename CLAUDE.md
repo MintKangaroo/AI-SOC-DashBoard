@@ -185,8 +185,8 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 | `ANTHROPIC_API_KEY` | - | Claude AI API 키 |
 | `DEMO_MODE` | True | 가상 데이터 사용 여부 |
 | `CAPTURE_INTERFACE` | 자동 | 패킷 캡처 인터페이스 |
-| `DDOS_PACKET_THRESHOLD` | 1000 | DDoS 탐지 임계값(pps) |
-| `PORT_SCAN_THRESHOLD` | 20 | 포트스캔 탐지 임계값(포트/초) |
+| `DDOS_PACKET_THRESHOLD` | 2000 | DDoS 탐지 임계값(pps, 3초 지속) |
+| `PORT_SCAN_THRESHOLD` | 40 | 포트스캔 탐지 임계값(30초 내 고유 포트) |
 | `ALERT_RETENTION_DAYS` | 90 | 알림 보존 기간(경과 시 아카이브 대상) |
 | `ALERT_ARCHIVE_RETENTION_DAYS` | 365 | 아카이브 이동 후 영구삭제까지의 보존 기간 |
 | `AUDIT_RETENTION_DAYS` | 365 | 감사 로그 보존 기간 |

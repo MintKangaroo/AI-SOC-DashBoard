@@ -114,6 +114,21 @@ class ThreatDetector:
                 (config or {}).get("ALERT_CONFIDENCE_THRESHOLD", 0.5))
         except (TypeError, ValueError):
             self.min_confidence = 0.5
+        # 패킷 기반 탐지 임계값.
+        # 이전에는 코드에 2000/40 이 박혀 있고 config 의 DDOS_PACKET_THRESHOLD(1000)·
+        # PORT_SCAN_THRESHOLD(20) 는 아무 데서도 읽히지 않았다. .env 에서 조정해도
+        # 아무 일이 일어나지 않고, 문서상 기본값과 실제가 2배씩 달랐다(AUDIT F-1).
+        # 기본값은 **실제 동작하던 값**으로 맞춘다 — 문서값(1000/20)으로 되돌리면
+        # 탐지 민감도가 조용히 2배 올라간다.
+        def _cfg_int(key, default, minimum=1):
+            try:
+                return max(minimum, int((config or {}).get(key, default)))
+            except (TypeError, ValueError):
+                return default
+
+        self.ddos_pps_threshold = _cfg_int("DDOS_PACKET_THRESHOLD", 2000)
+        self.port_scan_threshold = _cfg_int("PORT_SCAN_THRESHOLD", 40)
+
         try:
             self.exfil_bytes_threshold = max(1, int(
                 (config or {}).get("DATA_EXFIL_BYTES_THRESHOLD", 500_000_000)))
@@ -227,7 +242,7 @@ class ThreatDetector:
         src_trusted = self._is_trusted(src_ip) or src_internal
 
         with self._win_lock:
-            # ── DDoS: 3초 동안 지속적으로 2000pps 초과해야 경보 ──
+            # ── DDoS: 3초 동안 지속적으로 DDOS_PACKET_THRESHOLD 초과해야 경보 ──
             avg_pps, ddos_hit = 0, False
             if not src_trusted:
                 self._ip_packet_window[src_ip].append(now)
@@ -235,12 +250,12 @@ class ThreatDetector:
                     t for t in self._ip_packet_window[src_ip] if now - t < 3.0
                 ]
                 avg_pps = len(self._ip_packet_window[src_ip]) / 3.0
-                ddos_hit = avg_pps > 2000
+                ddos_hit = avg_pps > self.ddos_pps_threshold
             if ddos_hit:
                 # 쿨다운: 윈도우 비워서 재탐지 지연
                 self._ip_packet_window[src_ip].clear()
 
-            # ── 포트 스캔: 30초 동안 고유 포트 40개 이상 + 저바이트 트래픽 ──
+            # ── 포트 스캔: 30초 내 고유 포트 PORT_SCAN_THRESHOLD 이상 + 저바이트 ──
             scan_hit = False
             unique_ports = 0
             if not src_trusted and dst_port and length < 200:
@@ -250,7 +265,7 @@ class ThreatDetector:
                     (p, t) for (p, t) in self._ip_port_window[src_ip] if now - t < 30
                 }
                 unique_ports = len({p for (p, _) in self._ip_port_window[src_ip]})
-                scan_hit = unique_ports >= 40
+                scan_hit = unique_ports >= self.port_scan_threshold
                 if scan_hit:
                     self._ip_port_window[src_ip].clear()
 

@@ -140,11 +140,17 @@ def detect_metasploit(entry):
 
 
 class SysmonParser:
+    LOG_CHANNEL_DEFAULT = "Microsoft-Windows-Sysmon/Operational"
+
     def __init__(self, socketio, config=None, mitre_tracker=None):
         self.socketio = socketio
         self.config = config
         self.mitre = mitre_tracker
         self.running = False
+        # Sysmon 이벤트 채널 — config 에 선언돼 있었으나 읽히지 않아
+        # 하드코딩된 채널만 열렸다(AUDIT F-1).
+        self.log_channel = ((config or {}).get("SYSMON_LOG_CHANNEL")
+                            or self.LOG_CHANNEL_DEFAULT)
         self.events = deque(maxlen=500)
         self._lock = threading.Lock()
 
@@ -191,7 +197,7 @@ class SysmonParser:
 
     def _read_win32_loop(self):
         try:
-            handle = win32evtlog.OpenEventLog(None, "Microsoft-Windows-Sysmon/Operational")
+            handle = win32evtlog.OpenEventLog(None, self.log_channel)
             flags = win32evtlog.EVENTLOG_BACKWARDS_READ | win32evtlog.EVENTLOG_SEQUENTIAL_READ
             last_record = 0  # 이미 처리한 레코드 번호 — 중복 재처리 방지
             while self.running:

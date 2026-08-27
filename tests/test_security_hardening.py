@@ -159,6 +159,12 @@ def client(tmp_path_factory):
     )
     os.chdir(workdir)
     try:
+        # config 는 import 시점에 .env 를 읽어 클래스 속성을 고정한다.
+        # 다른 테스트 모듈이 이미 import 했을 수 있으므로 위 os.environ 을
+        # 반영하려면 반드시 다시 로드해야 한다.
+        import importlib
+        import config as config_mod
+        importlib.reload(config_mod)
         sys.modules.pop("app", None)
         import app as app_module
         yield app_module.app.test_client()

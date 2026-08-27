@@ -11,13 +11,15 @@ class Config:
 
     # Packet capture settings
     CAPTURE_INTERFACE = os.getenv("CAPTURE_INTERFACE", None)  # None = auto-detect
-    CAPTURE_TIMEOUT = int(os.getenv("CAPTURE_TIMEOUT", 30))
     MAX_PACKETS_DISPLAY = int(os.getenv("MAX_PACKETS_DISPLAY", 200))
 
-    # DDoS detection thresholds
-    DDOS_PACKET_THRESHOLD = int(os.getenv("DDOS_PACKET_THRESHOLD", 1000))  # packets/sec per IP
-    DDOS_BYTE_THRESHOLD = int(os.getenv("DDOS_BYTE_THRESHOLD", 10_000_000))  # bytes/sec
-    PORT_SCAN_THRESHOLD = int(os.getenv("PORT_SCAN_THRESHOLD", 20))  # unique ports/sec
+    # 패킷 기반 탐지 임계값.
+    # 기본값은 **실제로 동작하던 값**이다. 이전에는 코드에 2000/40 이 박혀 있고
+    # 여기 선언된 1000/20 은 아무 데서도 읽히지 않아, .env 로 조정해도 아무 일이
+    # 일어나지 않았고 문서와 실제가 2배씩 달랐다(AUDIT F-1). 문서값으로
+    # 되돌리면 탐지 민감도가 조용히 2배 올라가므로 실제 동작값을 채택했다.
+    DDOS_PACKET_THRESHOLD = int(os.getenv("DDOS_PACKET_THRESHOLD", 2000))  # pps per IP
+    PORT_SCAN_THRESHOLD = int(os.getenv("PORT_SCAN_THRESHOLD", 40))  # 30초 내 고유 포트
     # 정탐 신뢰도 임계값 (0~1) — 미만 알림은 '오탐 의심'으로 저장만 하고 실시간 표시 억제
     ALERT_CONFIDENCE_THRESHOLD = float(os.getenv("ALERT_CONFIDENCE_THRESHOLD", 0.5))
     DATA_EXFIL_BYTES_THRESHOLD = int(os.getenv("DATA_EXFIL_BYTES_THRESHOLD", 500_000_000))
@@ -34,7 +36,6 @@ class Config:
 
     # Sysmon log path (Windows)
     SYSMON_LOG_CHANNEL = os.getenv("SYSMON_LOG_CHANNEL", "Microsoft-Windows-Sysmon/Operational")
-    WINDOWS_EVENT_LOG_MAX = int(os.getenv("WINDOWS_EVENT_LOG_MAX", 100))
 
     # Known malicious hash lists path
     MALICIOUS_HASH_DB = os.getenv("MALICIOUS_HASH_DB", "data/malicious_hashes.txt")
@@ -42,6 +43,14 @@ class Config:
     # SIEM 접근 로그 소스 — "이름=경로;이름=경로" (비우면 기본 자동매매 KR/USA 로그)
     SIEM_ACCESS_LOGS = os.getenv("SIEM_ACCESS_LOGS", "")
     SIEM_EXFIL_MIN_BYTES = int(os.getenv("SIEM_EXFIL_MIN_BYTES", 500_000_000))
+
+    # SIEM 상관관계 분석 — siem_correlation 이 읽고 있었으나 여기에도
+    # .env.example 에도 없어 설정 자체가 불가능했다(AUDIT F-1 역방향).
+    SIEM_CORR_WINDOW = float(os.getenv("SIEM_CORR_WINDOW", 600))        # 상관 윈도우(초)
+    SIEM_CORR_COOLDOWN = float(os.getenv("SIEM_CORR_COOLDOWN", 300))    # 규칙별 재발화 간격
+    SIEM_CORR_MULTIVECTOR = int(os.getenv("SIEM_CORR_MULTIVECTOR", 3))  # 다중 벡터 최소 종류
+    SIEM_CORR_BRUTE = int(os.getenv("SIEM_CORR_BRUTE", 5))              # 지속 브루트포스 최소 횟수
+    SIEM_CORR_DISTRIBUTED = int(os.getenv("SIEM_CORR_DISTRIBUTED", 6))  # 분산 공격 최소 출발지 수
     # 수집 offset 영속화 — 없으면 재시작마다 로그 전체를 재처리한다
     SIEM_STATE_PATH = os.getenv("SIEM_STATE_PATH", "data/siem_offsets.json")
     # HIGH/CRITICAL 외부 프로브를 알림으로 승격할지 (자동차단 경로는 열리지 않음)
@@ -106,6 +115,9 @@ class Config:
     ALERT_RETENTION_DAYS = int(os.getenv("ALERT_RETENTION_DAYS", 90))  # N일 경과분 아카이브
     ALERT_ARCHIVE_RETENTION_DAYS = int(os.getenv("ALERT_ARCHIVE_RETENTION_DAYS", 365))
     AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", 365))
+    # DB 경로 — wiring.py 가 읽고 있었으나 여기 없어 .env 로 바꿀 수 없었다
+    AUDIT_DB = os.getenv("AUDIT_DB", "data/audit.db")
+    WATCHLIST_DB = os.getenv("WATCHLIST_DB", "data/watchlist.db")
 
     # 알림 중복제거·억제 레이어
     DEDUP_ENABLED = os.getenv("DEDUP_ENABLED", "True")
@@ -135,6 +147,8 @@ class Config:
     # 자동화 취약점 패치 (Ansible)
     PATCH_APPLY_ENABLED = os.getenv("PATCH_APPLY_ENABLED", "False")  # 실제 적용 허용 여부
     PATCH_PLAYBOOK_DIR = os.getenv("PATCH_PLAYBOOK_DIR", "data/ansible")
+    # 원격 실행 허용 명령 (쉼표 구분). 비우면 조회 전용 기본 목록을 쓴다.
+    PATCH_COMMAND_ALLOWLIST = os.getenv("PATCH_COMMAND_ALLOWLIST", "")
     ANSIBLE_TARGETS = os.getenv("ANSIBLE_TARGETS", "")  # 일괄 명령/패치 원격 대상 "이름=user@host;..."
 
     # 취약점 스캐너 (포트/서비스/CVE) — 대상은 ANSIBLE_TARGETS 공유

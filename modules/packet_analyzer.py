@@ -26,6 +26,16 @@ class PacketAnalyzer:
     def __init__(self, socketio, config=None, threat_detector=None):
         self.socketio = socketio
         self.config = config
+
+        def _cfg(key, default, cast=int, minimum=1):
+            try:
+                return max(minimum, cast((config or {}).get(key, default)))
+            except (TypeError, ValueError):
+                return default
+
+        # 두 값은 config 에 선언돼 있었으나 아무 데서도 읽히지 않았다(AUDIT F-1).
+        self.max_packets_display = _cfg("MAX_PACKETS_DISPLAY", 200)
+        self.demo_interval = _cfg("DEMO_UPDATE_INTERVAL", 2.0, float, 0.1)
         self.threat_detector = threat_detector
         self.running = False
         self.thread = None
@@ -42,7 +52,7 @@ class PacketAnalyzer:
             "bytes_per_sec": 0,
         }
 
-        self.recent_packets = deque(maxlen=200)
+        self.recent_packets = deque(maxlen=self.max_packets_display)
         self.ip_counter = defaultdict(int)
         self.port_counter = defaultdict(int)
         self.protocol_counter = defaultdict(int)
@@ -318,4 +328,4 @@ class PacketAnalyzer:
                 }
 
             self.socketio.emit("packet_update", payload)
-            time.sleep(2)
+            time.sleep(self.demo_interval)

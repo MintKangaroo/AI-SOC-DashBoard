@@ -550,6 +550,24 @@ SocketIO도 `connect` 핸들러가 세션을 검사하고 `False`를 반환해 �
 
 **수정 방향**: `app.test_client()` 기반 API 스모크 테스트부터. 88개 엔드포인트에 대해 "200 또는 의도된 4xx를 반환하고 JSON이다"만 검사해도 0% → 60%대로 오르고, C-1/C-2 수정의 회귀 테스트를 얹을 자리가 생긴다. **작업량 L (단, 첫 30%는 M)**
 
+### D-2a. [P1·신규·**수정됨**] 테스트가 실제 운영 설정으로 앱을 기동할 수 있었다
+
+F-1 작업 중 발견했다. `tests/test_config_wiring.py` 가 모듈 레벨에서 `import config` 를 했는데, **pytest 는 수집 시점에 모든 테스트 모듈을 import 한다.** 그 시점에 `config.Config` 의 클래스 속성이 실제 `.env` 값으로 고정되고, 이후 앱을 띄우는 픽스처가 `os.environ` 을 바꿔도 반영되지 않았다.
+
+결과적으로 테스트 스위트가 **사용자의 실제 설정으로 앱을 기동**했다:
+
+```
+[SOAR] 엔진 시작 — 차단 모드: ufw, 자동 차단: True
+[SOAR] 실차단 활성 — ufw 방화벽 규칙을 실제 적용합니다.
+[Honeypot] 유인 서비스 오픈: 100.64.140.27 ...
+```
+
+**실제 차단은 일어나지 않았다** — 테스트가 쓰는 IP 가 전부 `203.0.113.0/24`(RFC 5737 문서용)이고 `_is_blockable` 이 `is_global` 검사로 걸러냈다(`data/blocklist.txt` 0바이트 확인). 안전장치가 제 역할을 했다.
+
+**수정**: (1) `test_config_wiring.py` 의 `import config` 를 함수 안으로 옮겨 수집 시점 오염을 없앴다. (2) 앱을 띄우는 두 픽스처가 `os.environ` 설정 후 `importlib.reload(config)` 를 하도록 해, 앞으로 어떤 모듈이 config 를 먼저 import 하더라도 격리가 유지된다.
+
+이것은 감사가 아니라 **작업 중 제가 만든 문제**였고, 같은 작업의 테스트가 잡아냈다.
+
 ### D-2. [P2] `test_patch_check_runs` 환경 의존 flaky
 
 **근거**: `tests/test_detection.py:1017-1027`
@@ -662,7 +680,7 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 
 ## F. 문서 / 저장소 위생
 
-### F-1. [P2] 문서화된 탐지 임계값이 코드에서 죽어 있다
+### F-1. [~~P2~~ **수정됨**] 문서화된 탐지 임계값이 코드에서 죽어 있다
 
 가장 실질적인 문서-코드 불일치다. `config.py`·`README.md`·`CLAUDE.md`가 튜닝 노브로 소개하는 변수들이 **어디에서도 읽히지 않는다**:
 
@@ -681,7 +699,26 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 
 역방향도 있다: `siem_correlation.py`가 읽는 `SIEM_CORR_WINDOW`·`SIEM_CORR_BRUTE`·`SIEM_CORR_DISTRIBUTED`·`SIEM_CORR_MULTIVECTOR`·`SIEM_CORR_COOLDOWN` 5개는 **`config.py`에도 `.env.example`에도 없다.** `config.get()`이 조용히 기본값으로 떨어지므로 설정 자체가 불가능하다.
 
-**수정 방향**: 하드코딩된 곳에 `config.get(...)`을 연결하고 기본값을 코드 현실(2000/40)에 맞춘 뒤 문서를 갱신. 사용처 없는 변수는 config에서 삭제. `SIEM_CORR_*`는 config에 추가. **작업량 S**
+**✅ 수정 완료** (`fix/dead-config`, 2026-08-27):
+
+연결한 것 — `DDOS_PACKET_THRESHOLD`, `PORT_SCAN_THRESHOLD`, `MAX_PACKETS_DISPLAY`, `DEMO_UPDATE_INTERVAL`, `SYSMON_LOG_CHANNEL`.
+
+**기본값은 문서값(1000/20)이 아니라 실제 동작하던 값(2000/40)으로 맞췄다.** 문서값으로 되돌리면 탐지 민감도가 조용히 2배 올라간다 — 운영 중인 서버에서 그건 배선을 고치는 것보다 위험한 변경이다.
+
+삭제한 것 — 자연스러운 연결 지점이 없어 죽은 채로 두느니 제거했다. 없는 용도를 억지로 만드는 것이 더 나쁘다.
+- `DDOS_BYTE_THRESHOLD`: 바이트 기준 DDoS 검사 자체가 코드에 없다.
+- `CAPTURE_TIMEOUT`: `scapy.sniff(timeout=)` 은 캡처를 *중단*시켜 지속 캡처와 의미가 맞지 않는다.
+- `WINDOWS_EVENT_LOG_MAX`: 의미가 모호하고(폴링당 레코드 수? 보관 수?) 대응하는 코드가 없다.
+
+역방향으로 추가한 것 — 모듈이 읽는데 `config.py` 에 없어 `.env` 로 설정할 수 없던 값들: `SIEM_CORR_*` 5개, `PATCH_COMMAND_ALLOWLIST`, `AUDIT_DB`, `WATCHLIST_DB`.
+
+**재발 방지** (`tests/test_config_wiring.py`) — 양방향 회귀 테스트를 넣었다.
+- 선언됐는데 안 읽히는 설정이 있으면 실패 (F-1 의 본체)
+- 모듈이 읽는데 선언 안 된 설정이 있으면 실패 (역방향)
+- 두 방향에 **서로 다른 추출 규칙**을 쓴다. 전자는 리터럴 전역 검색(헬퍼 경유 참조를 놓치지 않기 위해), 후자는 `config…get("KEY")` 접근 구문만(감사 액션명 `SOAR_BLOCK` 같은 설정 아닌 상수를 배제하기 위해).
+- 이 테스트가 실제로 `AUDIT_DB`·`WATCHLIST_DB`·`PATCH_COMMAND_ALLOWLIST` 누락을 잡아냈다.
+
+⚠️ **운영자 확인 필요**: 로컬 `.env` 에 `DDOS_PACKET_THRESHOLD=1000` / `PORT_SCAN_THRESHOLD=20` 이 들어 있다. 지금까지는 무시됐지만 이제 **실제로 적용된다** — 재시작하면 탐지 민감도가 2배가 된다. 기존 동작을 유지하려면 `.env` 를 2000/40 으로 바꿔야 한다. (`.env` 는 사용자 파일이라 임의로 수정하지 않았다)
 
 ### F-2. [P2] `.env.example`이 config.py를 커버하지 못한다
 
