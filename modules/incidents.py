@@ -41,6 +41,13 @@ class IncidentManager:
         self._lock = threading.Lock()
         self.incidents = {}     # id → incident dict
         self._next_id = 1
+        # 저장 대기 중인 인시던트 id. 매 저장마다 전량을 재직렬화하지 않기 위함.
+        # 이전 구현은 self.incidents 전체를 json.dumps + upsert 했고, 실측으로
+        # 23,299건 기준 저장 1회에 0.63초가 걸렸다. 그 시간 동안 self._lock 을
+        # 잡고 있어 promote_alert/attach_block(= SOAR 정탐 승격 경로)이 막혔다.
+        # (docs/AUDIT.md B-1)
+        self._dirty = set()
+        self._meta_dirty = True
         self._save_debounce_seconds = max(0, float(save_debounce_seconds or 0))
         self._save_timer = None
         self._load()
@@ -75,6 +82,7 @@ class IncidentManager:
                                   "text": f"인시던트 생성 — {reason}"}],
                 }
                 self.incidents[inc_id] = inc
+                self._meta_dirty = True      # _next_id 가 증가했다
 
             aid = alert.get("id")
             if aid is not None and aid not in inc["alert_ids"]:
@@ -96,6 +104,7 @@ class IncidentManager:
                 })
             inc["updated"] = _now()
             inc_id = inc["id"]
+            self._dirty.add(inc_id)
             self._schedule_save()
 
         self._emit()
@@ -115,6 +124,7 @@ class IncidentManager:
                     if inc["status"] == "OPEN":
                         inc["status"] = "INVESTIGATING"
                     inc["updated"] = _now()
+                    self._dirty.add(inc["id"])
                     changed = True
             if changed:
                 self._schedule_save()
@@ -149,6 +159,7 @@ class IncidentManager:
             if note:
                 inc["timeline"].append({"ts": _now(), "kind": "note", "text": note})
             inc["updated"] = _now()
+            self._dirty.add(inc_id)
             self._save()
         self._emit()
         return True
@@ -296,6 +307,9 @@ class IncidentManager:
                 "SELECT value FROM incident_meta WHERE key='next_id'").fetchone()
             self._next_id = max(int(meta[0]) if meta else 1,
                                 max(self.incidents.keys(), default=0) + 1)
+            # 방금 DB 에서 읽은 것이므로 저장할 변경분이 없다
+            self._dirty.clear()
+            self._meta_dirty = False
             return
 
         legacy = os.path.splitext(self.store_path)[0] + ".json"
@@ -305,30 +319,57 @@ class IncidentManager:
             self._load()
             self.store_path = original
             if self.incidents:
+                self._mark_all_dirty()
                 self._save_sqlite()
                 print(f"[Incidents] JSON → SQLite 무손실 이관: {len(self.incidents)}건")
 
+    def _mark_all_dirty(self):
+        """전량 저장이 필요할 때(최초 이관 등) 호출한다."""
+        self._dirty.update(self.incidents.keys())
+        self._meta_dirty = True
+
     def _save_sqlite(self):
+        """변경된 인시던트만 저장한다.
+
+        이전 구현은 매 저장마다 self.incidents 전체를 재직렬화하고
+        `DELETE ... WHERE id NOT IN (?,?,...)` 로 재조정했다. 두 가지 문제가 있었다.
+
+        1. 실측 23,299건 기준 저장 1회 0.63초. 디바운스가 5초라 알림이 몰리면
+           코어 하나의 ~13%를 변경 없는 데이터 재작성에 쓰면서, 그 시간 동안
+           self._lock 을 잡아 SOAR 정탐 승격 경로를 막았다. (AUDIT B-1)
+        2. `NOT IN` 의 바인드 변수가 인시던트 수만큼 늘어 SQLite 상한
+           32,766(3.32+)에 걸리면 `too many SQL variables` 로 저장이 실패하는데,
+           예외를 잡아 print 만 하므로 **영속화가 조용히 멈춘다**. (AUDIT B-2)
+
+        재조정 쿼리는 제거했다. 인시던트는 프로세스 내에서 삭제되지 않으므로
+        (self.incidents 에 del/pop/clear 가 0건) DB 에만 있고 메모리에 없는
+        행이 생길 수 없다. 삭제 기능이 생기면 그때 삭제 목록을 따로 추적한다.
+        """
+        if not self._dirty and not self._meta_dirty:
+            return
+        pending = set(self._dirty)
+        rows = [(inc_id, json.dumps(inc, ensure_ascii=False),
+                 inc.get("updated", _now()))
+                for inc_id in pending
+                if (inc := self.incidents.get(inc_id)) is not None]
         try:
-            rows = [(int(k), json.dumps(v, ensure_ascii=False), v.get("updated", _now()))
-                    for k, v in self.incidents.items()]
             with self._db:
-                self._db.executemany(
-                    """INSERT INTO incidents(id,payload,updated) VALUES(?,?,?)
-                       ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,
-                       updated=excluded.updated""", rows)
-                ids = [r[0] for r in rows]
-                if ids:
-                    marks = ",".join("?" for _ in ids)
-                    self._db.execute(f"DELETE FROM incidents WHERE id NOT IN ({marks})", ids)
-                else:
-                    self._db.execute("DELETE FROM incidents")
-                self._db.execute(
-                    """INSERT INTO incident_meta(key,value) VALUES('next_id',?)
-                       ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
-                    (str(self._next_id),))
+                if rows:
+                    self._db.executemany(
+                        """INSERT INTO incidents(id,payload,updated) VALUES(?,?,?)
+                           ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,
+                           updated=excluded.updated""", rows)
+                if self._meta_dirty:
+                    self._db.execute(
+                        """INSERT INTO incident_meta(key,value) VALUES('next_id',?)
+                           ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
+                        (str(self._next_id),))
         except (OSError, sqlite3.Error, ValueError, TypeError) as e:
+            # dirty 를 비우지 않는다 — 다음 저장에서 재시도한다.
             print(f"[Incidents] SQLite 저장 실패: {e}")
+            return
+        self._dirty -= pending
+        self._meta_dirty = False
 
     def _schedule_save(self):
         """고빈도 자동 병합은 묶어서 저장해 대형 JSON의 반복 fsync를 줄인다."""
