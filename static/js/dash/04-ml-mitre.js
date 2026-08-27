@@ -1,52 +1,12 @@
 /* dashboard/04-ml-mitre.js — ML 자체 모델·MITRE ATT&CK
    (dashboard.js 원본 순서 유지 — 순서대로 로드) */
 /* ════════════════════ ML 자체 모델 ════════════════════ */
-let rfProbaChart   = null;
-let lstmErrChart   = null;
 let ifScoreChart   = null;
-let rlThreshChart  = null;
 let mlPanelInited  = false;
 
 function initMLCharts() {
   if (mlPanelInited) return;
   mlPanelInited = true;
-
-  rfProbaChart = new Chart(document.getElementById('rf-proba-chart').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: ['정상','DDoS','포트스캔','브루트포스','데이터유출','C2'],
-      datasets: [{ data: [0,0,0,0,0,0],
-        backgroundColor: ['#3fb95044','#f8514944','#f7900044','#e3b34144','#58a6ff44','#9d79f244'],
-        borderColor:     ['#3fb950','#f85149','#f79000','#e3b341','#58a6ff','#9d79f2'],
-        borderWidth: 2 }],
-    },
-    options: {
-      animation: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { min:0, max:100, ticks:{ color:'#8b949e', font:{size:10} }, grid:{color:'#21262d'} },
-        x: { ticks:{ color:'#8b949e', font:{size:9} }, grid:{color:'#21262d'} },
-      },
-    },
-  });
-
-  lstmErrChart = new Chart(document.getElementById('lstm-error-chart').getContext('2d'), {
-    type: 'line',
-    data: { labels:[], datasets:[
-      { label:'재구성 오차', data:[], borderColor:'#f85149', backgroundColor:'#f8514922',
-        tension:0.4, fill:true, pointRadius:3, borderWidth:2 },
-      { label:'임계값', data:[], borderColor:'#e3b341', borderDash:[5,4],
-        pointRadius:0, borderWidth:1.5 },
-    ]},
-    options: {
-      animation:false,
-      plugins:{ legend:{ labels:{ color:'#8b949e', font:{size:10} } } },
-      scales: {
-        x:{ ticks:{color:'#8b949e',font:{size:9},maxTicksLimit:8}, grid:{color:'#21262d'} },
-        y:{ ticks:{color:'#8b949e',font:{size:9}}, grid:{color:'#21262d'} },
-      },
-    },
-  });
 
   ifScoreChart = new Chart(document.getElementById('if-score-chart').getContext('2d'), {
     type: 'line',
@@ -60,22 +20,6 @@ function initMLCharts() {
       scales: {
         x:{ ticks:{color:'#8b949e',font:{size:9},maxTicksLimit:8}, grid:{color:'#21262d'} },
         y:{ ticks:{color:'#8b949e',font:{size:9}}, grid:{color:'#21262d'} },
-      },
-    },
-  });
-
-  rlThreshChart = new Chart(document.getElementById('rl-threshold-chart').getContext('2d'), {
-    type: 'line',
-    data: { labels:[], datasets:[
-      { label:'임계값 배율', data:[], borderColor:'#e3b341', backgroundColor:'#e3b34122',
-        tension:0.3, fill:true, pointRadius:2, borderWidth:2 },
-    ]},
-    options: {
-      animation:false,
-      plugins:{ legend:{ display:false } },
-      scales: {
-        x:{ ticks:{color:'#8b949e',font:{size:9},maxTicksLimit:8}, grid:{color:'#21262d'} },
-        y:{ min:0.2, max:3.2, ticks:{color:'#8b949e',font:{size:9}}, grid:{color:'#21262d'} },
       },
     },
   });
@@ -105,29 +49,10 @@ function updateOverviewML(data) {
   const ifC = document.getElementById('ov-if-anom');
   if (ifC && ifAnom) ifC.textContent = parseInt(ifC.textContent || 0) + 1;
 
-  // RF
-  const rfLabel = data.random_forest?.label;
-  const rfConf  = data.random_forest?.confidence;
-  const rfEl = document.getElementById('ov-rf-last');
-  if (rfEl && rfLabel) {
-    const col = rfLabel === 'NORMAL' ? '#3fb950' : '#f85149';
-    rfEl.innerHTML = `<span style="color:${col}">${rfLabel}</span> (${rfConf}%)`;
-  }
-
-  // LSTM
-  const lstmAnom = data.lstm?.anomaly;
-  const lstmB = document.getElementById('ov-lstm-badge');
-  if (lstmB) lstmB.className = 'badge me-1 ' + (lstmAnom ? 'bg-danger' : 'bg-success');
-  const lstmC = document.getElementById('ov-lstm-anom');
-  if (lstmC && lstmAnom) lstmC.textContent = parseInt(lstmC.textContent || 0) + 1;
-
-  // RL
-  const mult = data.rl?.threshold_multiplier;
-  const rlEl = document.getElementById('ov-rl-mult');
-  if (rlEl && mult !== undefined) rlEl.textContent = mult;
+  // RF / LSTM / Q-Learning 은 experimental/ 로 격리됨 — 오버뷰 표기 없음
 
   // ML 이상탐지 KPI
-  if (ifAnom || lstmAnom) {
+  if (ifAnom) {
     const el = document.getElementById('kpi-ml-anomaly');
     if (el) el.textContent = parseInt(el.textContent || 0) + 1;
   }
@@ -150,70 +75,9 @@ function updateMLDisplay(data) {
     }
   }
 
-  // RF
-  const rfRes = data.random_forest || {};
-  if (rfRes.probabilities && rfProbaChart) {
-    const labels = ['NORMAL','DDOS','PORT_SCAN','BRUTE_FORCE','DATA_EXFIL','MALWARE_C2'];
-    rfProbaChart.data.datasets[0].data = labels.map(l => rfRes.probabilities[l] || 0);
-    rfProbaChart.update('none');
-    const verdict = document.getElementById('rf-verdict');
-    if (verdict) {
-      const cls = rfRes.label || '-';
-      const conf = rfRes.confidence || 0;
-      const col = cls === 'NORMAL' ? '#3fb950' : '#f85149';
-      verdict.innerHTML = `예측: <strong style="color:${col}">${cls}</strong> (신뢰도: ${conf}%)`;
-    }
-  }
-
-  // LSTM
-  const lstmRes = data.lstm || {};
-  if (lstmRes.reconstruction_error !== undefined && lstmErrChart) {
-    const ts = data.timestamp?.split(' ')[1] || '';
-    lstmErrChart.data.labels.push(ts);
-    lstmErrChart.data.datasets[0].data.push(lstmRes.reconstruction_error);
-    lstmErrChart.data.datasets[1].data.push(lstmRes.threshold);
-    if (lstmErrChart.data.labels.length > 30) {
-      lstmErrChart.data.labels.shift();
-      lstmErrChart.data.datasets[0].data.shift();
-      lstmErrChart.data.datasets[1].data.shift();
-    }
-    lstmErrChart.update('none');
-    const verdict = document.getElementById('lstm-verdict');
-    if (verdict) {
-      const col = lstmRes.anomaly ? '#f85149' : '#3fb950';
-      verdict.innerHTML = `오차: <strong style="color:${col}">${lstmRes.reconstruction_error?.toFixed(6)}</strong> (임계: ${lstmRes.threshold?.toFixed(6)})`;
-    }
-  }
-
-  // RL
-  const rlRes = data.rl || {};
-  if (rlRes.threshold_multiplier !== undefined) {
-    const el = document.getElementById('ml-rl-threshold');
-    if (el) el.textContent = rlRes.threshold_multiplier + 'x';
-    const ts = data.timestamp?.split(' ')[1] || '';
-    if (rlThreshChart) {
-      rlThreshChart.data.labels.push(ts);
-      rlThreshChart.data.datasets[0].data.push(rlRes.threshold_multiplier);
-      if (rlThreshChart.data.labels.length > 30) {
-        rlThreshChart.data.labels.shift();
-        rlThreshChart.data.datasets[0].data.shift();
-      }
-      rlThreshChart.update('none');
-    }
-    const actionEl = document.getElementById('rl-action-label');
-    if (actionEl) actionEl.textContent = `마지막 행동: ${rlRes.action} | ε=${rlRes.epsilon}`;
-    const epsEl = document.getElementById('rl-epsilon');
-    if (epsEl) epsEl.textContent = rlRes.epsilon;
-  }
-
   // 통계 업데이트
-  const s = data;
-  if (s.isolation_forest?.anomaly) {
+  if (data.isolation_forest?.anomaly) {
     const el = document.getElementById('ml-if-anomalies');
-    if (el) el.textContent = parseInt(el.textContent || 0) + 1;
-  }
-  if (s.lstm?.anomaly) {
-    const el = document.getElementById('ml-lstm-anomalies');
     if (el) el.textContent = parseInt(el.textContent || 0) + 1;
   }
 }
@@ -223,16 +87,15 @@ function appendMLLog(data) {
   if (!log) return;
   const sev = data.summary?.severity || 'NORMAL';
   const threats = (data.summary?.threats || []).join(', ') || '없음';
-  const rf = data.random_forest?.label || '-';
-  const conf = data.random_forest?.confidence || 0;
+  const score = data.isolation_forest?.score;
   const div = document.createElement('div');
   div.className = 'd-flex gap-3 py-1 border-bottom border-secondary align-items-center';
   div.setAttribute('style', 'color:#e6edf3');
   div.innerHTML = `
-    <span style="min-width:60px;color:#e6edf3">${data.timestamp?.split(' ')[1] || ''}</span>
+    <span style="min-width:60px;color:#e6edf3">${escapeHtml(data.timestamp?.split(' ')[1] || '')}</span>
     <span>${sevBadge(sev)}</span>
-    <span style="color:#e6edf3">RF: <strong style="color:${rf==='NORMAL'?'#3fb950':'#f85149'}">${rf}</strong>(${conf}%)</span>
-    <span style="color:#e6edf3">탐지: ${threats}</span>`;
+    <span style="color:#e6edf3">IF 점수: <strong>${score !== undefined ? score : '-'}</strong></span>
+    <span style="color:#e6edf3">탐지: ${escapeHtml(threats)}</span>`;
   log.insertBefore(div, log.firstChild);
   while (log.children.length > 30) log.removeChild(log.lastChild);
 }
@@ -240,15 +103,17 @@ function appendMLLog(data) {
 function loadMLStatus() {
   fetch('/api/ml/status').then(r => r.json()).then(d => {
     const s = d.stats || {};
-    const rl = d.rl || {};
     const el = document.getElementById('ml-status-badge');
     if (el) el.textContent = s.model_status || '-';
-    const rle = document.getElementById('ml-rl-threshold');
-    if (rle) rle.textContent = (rl.threshold_multiplier || 1.0) + 'x';
-    if (document.getElementById('ml-if-anomalies'))
-      document.getElementById('ml-if-anomalies').textContent = s.if_anomalies || 0;
-    if (document.getElementById('ml-lstm-anomalies'))
-      document.getElementById('ml-lstm-anomalies').textContent = s.lstm_anomalies || 0;
+    const ifa = document.getElementById('ml-if-anomalies');
+    if (ifa) ifa.textContent = s.if_anomalies || 0;
+    const trained = document.getElementById('ml-trained-on');
+    if (trained) trained.textContent = s.trained_on === 'real' ? '실트래픽' : '합성(미검증)';
+    const fb = document.getElementById('ml-feedback-count');
+    if (fb) {
+      const f = s.feedback || {};
+      fb.textContent = `정탐 ${f.true_positive || 0} · 오탐 ${f.false_positive || 0}`;
+    }
   });
 }
 

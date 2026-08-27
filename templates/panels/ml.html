@@ -8,15 +8,14 @@
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
         </div>
         <div class="small" style="color:#e6edf3; line-height:1.7">
-          4개의 AI 모델이 <strong class="text-cyan">실시간 트래픽</strong>을 동시에 분석합니다. 아래 순서로 읽으면 됩니다.
-          <ol class="mb-0 mt-1 ps-3">
-            <li><strong class="text-purple">Random Forest (예측)</strong> — 현재 트래픽이 어떤 공격 유형일 확률이 가장 높은지. 막대가 길수록 그 공격 가능성이 큽니다. <span style="color:#e6edf3">NORMAL이 녹색이면 정상.</span></li>
-            <li><strong class="text-danger">LSTM 재구성 오차</strong> — 빨간 선(오차)이 노란 점선(임계값)을 <u>넘으면 이상</u>. 평소는 임계값 아래에서 잔잔해야 정상.</li>
-            <li><strong class="text-cyan">Isolation Forest 점수</strong> — 값이 <u>0보다 크면 정상, 0보다 작을수록 이상</u>. 급격히 떨어지면 비정상 트래픽.</li>
-            <li><strong class="text-warning">Q-Learning 임계값 배율</strong> — 오탐이 많으면 배율을 올려(둔감) / 놓치면 내려(민감) 자동 조정. <span style="color:#e6edf3">1.0x가 기본.</span></li>
-          </ol>
-          <div class="mt-2" style="font-size:11px;color:#e6edf3">
-            ⓘ 상단 <strong>IF 이상 / LSTM 이상</strong> 카운터가 갑자기 오르면 주의, 하단 <strong>ML 분석 로그</strong>에서 정/오탐 피드백을 주면 Q-Learning이 학습합니다.
+          <strong class="text-cyan">Isolation Forest</strong> 한 종이 실시간 트래픽의 이상 점수를 냅니다.
+          점수가 <u>0보다 크면 정상, 0보다 작을수록 이상</u>이며 급격히 떨어지면 비정상 트래픽입니다.
+          <div class="mt-2 p-2 rounded" style="background:rgba(227,179,65,.08);border-left:3px solid var(--yellow);font-size:11.5px">
+            <i class="fa fa-triangle-exclamation text-warning me-1"></i>
+            <strong>이 판정은 참고용입니다.</strong> 탐지·차단 경로에 연결되어 있지 않으며,
+            현재 모델은 <strong>합성 데이터로 학습된 상태</strong>라 정상 프로파일 근사치 이상의
+            의미가 없습니다. 실트래픽 재학습 전까지 성능을 주장하지 않습니다.
+            자세한 내용은 <code>docs/ml_models.md</code>.
           </div>
         </div>
       </div>
@@ -30,15 +29,15 @@
           </div>
         </div>
         <div class="col-sm-3">
-          <div class="stat-card border-cyan">
-            <div class="stat-value text-cyan" id="ml-lstm-anomalies">0</div>
-            <div class="stat-label">LSTM 이상 탐지</div>
+          <div class="stat-card border-warning">
+            <div class="stat-value text-warning" style="font-size:18px" id="ml-trained-on">합성(미검증)</div>
+            <div class="stat-label">학습 데이터</div>
           </div>
         </div>
         <div class="col-sm-3">
-          <div class="stat-card border-warning">
-            <div class="stat-value text-warning" id="ml-rl-threshold">1.0x</div>
-            <div class="stat-label">RL 임계값 배율</div>
+          <div class="stat-card border-cyan">
+            <div class="stat-value text-cyan" style="font-size:18px" id="ml-feedback-count">정탐 0 · 오탐 0</div>
+            <div class="stat-label">누적 라벨</div>
           </div>
         </div>
         <div class="col-sm-3">
@@ -50,70 +49,66 @@
       </div>
 
       <div class="row g-3">
-        <!-- 모델 설명 -->
+        <!-- 운영 모델 -->
         <div class="col-lg-4">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-circle-info text-cyan me-2"></i>탑재 AI 모델</div>
+            <div class="card-panel-header"><i class="fa fa-circle-info text-cyan me-2"></i>운영 모델</div>
             <div class="small">
-              <div class="mb-2 p-2 rounded" style="background:rgba(57,208,216,.07);border-left:3px solid var(--cyan)">
+              <div class="p-2 rounded" style="background:rgba(57,208,216,.07);border-left:3px solid var(--cyan)">
                 <strong class="text-cyan">Isolation Forest</strong><br/>
-                <span style="color:#fff">비지도 학습 — 정상 트래픽 패턴에서 벗어난 이상 트래픽 탐지<br/>
-                오염률(contamination): 8% | 트리: 200개</span>
+                <span style="color:#fff">비지도 학습 — 정상 트래픽 프로파일과의 이격도<br/>
+                오염률(contamination): 8% | 트리: 200개<br/>
+                입력: 8개 트래픽 피처 (pps·bps·프로토콜 비율·고유 출발지/포트·평균 패킷 크기)</span>
               </div>
-              <div class="mb-2 p-2 rounded" style="background:rgba(157,121,242,.07);border-left:3px solid var(--purple)">
-                <strong class="text-purple">Random Forest</strong><br/>
-                <span style="color:#fff">지도 학습 — 6가지 공격 유형 분류<br/>
-                (정상, DDoS, 포트스캔, 브루트포스, 데이터유출, C2)<br/>
-                트리: 300개 | 최대깊이: 12</span>
-              </div>
-              <div class="mb-2 p-2 rounded" style="background:rgba(248,81,73,.07);border-left:3px solid var(--red)">
-                <strong class="text-danger">LSTM Autoencoder</strong><br/>
-                <span style="color:#fff">딥러닝 — 30초 시계열 트래픽 패턴 학습<br/>
-                재구성 오차로 이상 탐지<br/>
-                Encoder: LSTM(64→32) | Decoder: LSTM(32→64)</span>
-              </div>
-              <div class="p-2 rounded" style="background:rgba(227,179,65,.07);border-left:3px solid var(--yellow)">
-                <strong class="text-warning">Q-Learning Agent</strong><br/>
-                <span style="color:#fff">강화학습 — 탐지 임계값 자동 최적화<br/>
-                상태: 27가지 (트래픽·알림빈도·오탐율)<br/>
-                보상: 탐지성공 +5, 오탐 -3, 미탐지 -10</span>
+              <div class="mt-2 small" style="color:#8b949e;font-size:10.5px">
+                라벨 없이 실트래픽으로 재학습할 수 있는 유일한 모델이라 남겼습니다.
               </div>
             </div>
           </div>
         </div>
 
-        <!-- RF 분류 확률 -->
-        <div class="col-lg-4">
+        <!-- 격리된 실험 모델 -->
+        <div class="col-lg-8">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-chart-bar text-purple me-2"></i>Random Forest 분류 결과</div>
-            <canvas id="rf-proba-chart" height="200"></canvas>
-            <div class="mt-2 text-center small" id="rf-verdict">-</div>
-          </div>
-        </div>
-
-        <!-- LSTM 재구성 오차 -->
-        <div class="col-lg-4">
-          <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-wave-square text-danger me-2"></i>LSTM 재구성 오차</div>
-            <canvas id="lstm-error-chart" height="200"></canvas>
-            <div class="mt-2 text-center small" id="lstm-verdict">-</div>
+            <div class="card-panel-header">
+              <i class="fa fa-flask text-muted me-2"></i>격리된 실험 모델
+              <span class="badge bg-secondary ms-2">비활성</span>
+            </div>
+            <div class="small px-2 pb-2" style="color:#8b949e;font-size:11px">
+              아래 3종은 실데이터로 학습·검증된 적이 없고 출력이 어떤 판단 경로에도
+              연결되어 있지 않아 <code>experimental/</code> 로 격리했습니다.
+              격리 사유와 복귀 조건은 <code>experimental/README.md</code>.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-dark table-sm mb-0" style="font-size:11.5px">
+                <thead><tr><th>모델</th><th>격리 사유</th><th>복귀 조건</th></tr></thead>
+                <tbody style="color:#e6edf3">
+                  <tr>
+                    <td><strong class="text-purple">Random Forest</strong><br/><span class="text-muted">지도 분류 6클래스</span></td>
+                    <td>사람 판정 라벨 1건 — 학습·검증 불가.<br/>학습 분포 밖에서 자신 있게 오분류.</td>
+                    <td>클래스당 실제 라벨 30건+ (총 180건+)</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-danger">LSTM Autoencoder</strong><br/><span class="text-muted">시계열 재구성</span></td>
+                    <td>학습 시퀀스에 시간 구조 부재(i.i.d. 난수).<br/>TensorFlow 미설치로 실행 자체 안 됨.</td>
+                    <td>실트래픽 연속 구간 확보 + TF 의존성 승격</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-warning">Q-Learning</strong><br/><span class="text-muted">임계값 튜닝</span></td>
+                    <td>보상에 외부 정답 없음(닫힌 루프).<br/>Q-테이블 미영속 — 재시작마다 리셋.<br/>출력이 어떤 임계값에도 미적용.</td>
+                    <td>분석가 판정 기반 보상 + 영속화 + 임계값 연결</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
         <!-- IF 이상탐지 점수 추이 -->
-        <div class="col-lg-6">
+        <div class="col-12">
           <div class="card-panel">
             <div class="card-panel-header"><i class="fa fa-chart-line text-cyan me-2"></i>Isolation Forest 이상 점수 추이</div>
-            <canvas id="if-score-chart" height="120"></canvas>
-          </div>
-        </div>
-
-        <!-- RL 임계값 추이 -->
-        <div class="col-lg-6">
-          <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-sliders text-warning me-2"></i>Q-Learning 임계값 변화 (ε: <span id="rl-epsilon">-</span>)</div>
-            <canvas id="rl-threshold-chart" height="120"></canvas>
-            <div class="mt-2 small text-center" id="rl-action-label">-</div>
+            <canvas id="if-score-chart" height="90"></canvas>
           </div>
         </div>
 
