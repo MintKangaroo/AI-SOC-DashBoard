@@ -129,7 +129,7 @@ def test_dry_run_shows_safety_verdict(tmp_path):
 # ══════════════════════════════════════════════════════════════════
 
 @pytest.fixture(scope="module")
-def client(tmp_path_factory):
+def app_module(tmp_path_factory):
     """실제 앱을 띄워 CORS/CSRF 를 검증한다.
 
     앱은 상대 경로("data/…")로 DB 를 만들므로 **임시 디렉터리로 chdir 한 뒤**
@@ -166,8 +166,8 @@ def client(tmp_path_factory):
         import config as config_mod
         importlib.reload(config_mod)
         sys.modules.pop("app", None)
-        import app as app_module
-        yield app_module.app.test_client()
+        import app as module
+        yield module
     finally:
         sys.modules.pop("app", None)
         os.chdir(saved_cwd)
@@ -176,6 +176,11 @@ def client(tmp_path_factory):
                 os.environ.pop(k, None)
             else:
                 os.environ[k] = v
+
+
+@pytest.fixture(scope="module")
+def client(app_module):
+    return app_module.app.test_client()
 
 
 EVIL = "https://evil.example"
@@ -404,3 +409,37 @@ def test_csp_no_longer_allows_external_origins(client, directive):
         assert host not in csp, f"CSP 에 CDN 호스트가 남아 있다: {host}"
     assert "img-src 'self' data: blob: https:" not in csp, (
         "img-src 가 임의 https 를 허용하면 이미지 요청으로 데이터를 반출할 수 있다")
+
+
+# ══════════════════════════════════════════════════════════════════
+#  #27: 노출 전 위험 조합 경고
+# ══════════════════════════════════════════════════════════════════
+
+class _Cfg:
+    def __init__(self, host="127.0.0.1", debug=False):
+        self.HOST, self.DEBUG = host, debug
+
+
+def test_debug_on_dev_server_is_warned(app_module):
+    """DEBUG=True + allow_unsafe_werkzeug 는 Werkzeug 디버거 RCE 경로다."""
+    logged = []
+    warnings = app_module.warn_unsafe_exposure(
+        _Cfg(host="0.0.0.0", debug=True),
+        log=type("L", (), {"warning": lambda self, *a: logged.append(a)})())
+    assert any("DEBUG=True" in w for w in warnings)
+    assert logged, "경고가 로그로 나가지 않았다"
+
+
+def test_quiet_when_configuration_is_safe(app_module):
+    """루프백 + DEBUG=False 는 경고할 것이 없다 — 경고 피로를 만들지 않는다."""
+    assert app_module.warn_unsafe_exposure(
+        _Cfg(host="127.0.0.1", debug=False),
+        log=type("L", (), {"warning": lambda self, *a: None})()) == []
+
+
+def test_startup_warning_never_blocks_boot(app_module):
+    """관제 도구가 제 판단으로 기동을 거부하면 그게 더 큰 사고다."""
+    result = app_module.warn_unsafe_exposure(
+        _Cfg(host="0.0.0.0", debug=True),
+        log=type("L", (), {"warning": lambda self, *a: None})())
+    assert isinstance(result, list)      # 예외를 던지지 않는다

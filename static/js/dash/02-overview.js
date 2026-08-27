@@ -82,6 +82,54 @@ socket.on('packet_update', data => {
 /* ─────────── Socket: 위협 알림 ─────────── */
 const _attackerCounter = {};
 const _threatTypeCounter = {};
+
+/* TOP 공격자 집계 상한 (docs/AUDIT.md E-3)
+ *
+ * 관제 화면은 며칠씩 켜둔다. 고유 공격 IP 마다 항목이 늘고 정리되지 않으면
+ * 그건 진짜 누수다. 상한에 닿으면 **알림 수가 적은 IP부터** 버린다 —
+ * 이 맵의 용도는 TOP 8 표시이므로 상위권을 지키는 편이 맞다(단순 LRU 로
+ * 버리면 잠시 조용한 주요 공격자가 사라진다).
+ *
+ * 버린 IP 수는 따로 세어 KPI 가 줄어들지 않게 한다. 버려진 IP 가 다시
+ * 나타나면 한 번 더 세어져 KPI 가 과대계상될 수 있으나, 상한 없이 무한히
+ * 쌓이는 것보다 낫다. */
+const ATTACKER_MAP_LIMIT = 1000;
+const ATTACKER_MAP_KEEP  = 800;    // 절단 시 남길 수 (매 알림마다 자르지 않도록)
+let _attackerEvicted = 0;
+
+function trackAttacker(srcIp, threatType) {
+  if (!srcIp) return;
+  const entry = _attackerCounter[srcIp] || (_attackerCounter[srcIp] = { count: 0, type: threatType });
+  entry.count++;
+  entry.type = threatType;
+  entry.lastSeen = Date.now();
+
+  const keys = Object.keys(_attackerCounter);
+  if (keys.length > ATTACKER_MAP_LIMIT) {
+    // 알림 수 오름차순 → 같으면 오래된 것부터 버린다
+    keys.sort((a, b) => (_attackerCounter[a].count - _attackerCounter[b].count)
+                     || ((_attackerCounter[a].lastSeen || 0) - (_attackerCounter[b].lastSeen || 0)));
+    for (const ip of keys.slice(0, keys.length - ATTACKER_MAP_KEEP)) {
+      delete _attackerCounter[ip];
+      _attackerEvicted++;
+    }
+  }
+}
+
+function uniqueAttackerCount() {
+  return Object.keys(_attackerCounter).length + _attackerEvicted;
+}
+
+/* renderTopAttackers 는 전량 sort 라 매 알림마다 부르면 O(n log n) × 알림 수다.
+ * 알림 폭주 시 화면이 정렬만 하다 끝나므로 300ms 로 묶는다. */
+let _topAttackersTimer = null;
+function scheduleTopAttackersRender() {
+  if (_topAttackersTimer) return;
+  _topAttackersTimer = setTimeout(() => {
+    _topAttackersTimer = null;
+    if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
+  }, 300);
+}
 let _threatTypeChart = null;
 
 socket.on('new_alert', alert => {
@@ -98,11 +146,9 @@ socket.on('new_alert', alert => {
   if (alert.severity === 'HIGH')     incEl('kpi-high');
 
   // TOP 공격자
-  _attackerCounter[alert.src_ip] = _attackerCounter[alert.src_ip] || { count: 0, type: alert.threat_type };
-  _attackerCounter[alert.src_ip].count++;
-  _attackerCounter[alert.src_ip].type = alert.threat_type;
-  document.getElementById('kpi-unique-attackers').textContent = Object.keys(_attackerCounter).length;
-  if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
+  trackAttacker(alert.src_ip, alert.threat_type);
+  document.getElementById('kpi-unique-attackers').textContent = uniqueAttackerCount();
+  scheduleTopAttackersRender();
 
   // 위협 유형 차트
   _threatTypeCounter[alert.threat_label] = (_threatTypeCounter[alert.threat_label] || 0) + 1;

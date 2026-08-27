@@ -3,7 +3,7 @@
 import re
 
 from flask import request, jsonify, current_app
-from api._common import api_bp, audit_record, _actor
+from api._common import (api_bp, audit_record, _actor)
 
 
 # ------------------------------------------------------------------ #

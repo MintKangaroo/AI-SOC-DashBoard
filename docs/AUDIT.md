@@ -39,12 +39,12 @@
 | 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
 | 20 | ~~P2~~ **수정됨** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | ✅ |
 | 21 | ~~P2~~ **수정됨** | alert_store·audit_log·watchlist에 WAL/busy_timeout 미설정 | `alert_store.py:16` 외 | ✅ |
-| 22 | **P3** | `get_services()` 6-튜플 위치 결합 | `api/_common.py:36` | S |
+| 22 | ~~P3~~ **수정됨** | `get_services()` 6-튜플 위치 결합 | `api/_common.py:36` | ✅ |
 | 23 | **P3** | JS 전역 선언 323개 · 로드 순서 의존 | `static/js/dash/*` | L |
-| 24 | **P3** | `_attackerCounter` 무한 증가 + 알림마다 전량 정렬 | `02-overview.js:101-105` | S |
+| 24 | ~~P3~~ **수정됨** | `_attackerCounter` 무한 증가 + 알림마다 전량 정렬 | `02-overview.js:101-105` | ✅ |
 | 25 | **P3** | 미사용 import 40건 · 타입힌트 1% | pyflakes | S |
 | 26 | **P3** | 저장소명 오타 `DaschBoard` | git remote | S |
-| 27 | **P3** | `SESSION_COOKIE_SECURE` 기본 False · `allow_unsafe_werkzeug=True` | `config.py:144`, `app.py:188` | S |
+| 27 | ~~P3~~ **문서화·경고 추가** | `SESSION_COOKIE_SECURE` 기본 False · `allow_unsafe_werkzeug=True` | `config.py:144`, `app.py:188` | ✅ |
 
 ---
 
@@ -132,9 +132,17 @@ pyflakes 40건. 대표적인 것:
 
 mypy 는 도입하지 않았다 — 타입 힌트 커버리지가 1.2% 라 지금 켜면 소음만 낸다. 새 코드에만 힌트를 붙여 나가다 커버리지가 오르면 재검토한다. 이 판단을 `pyproject.toml` 주석에 남겼다.
 
-### A-6. `get_services()` 6-튜플 — [P3]
+### A-6. [~~P3~~ **수정됨**] `get_services()` 6-튜플
 
 `api/_common.py:36`이 6-튜플을 반환하고 호출부가 `_, td, *_ = get_services()`(`detection_routes.py:75`) 또는 `_, _, _, hc, _, _ = get_services()`(`detection_routes.py:246`)로 언패킹한다. 순서를 바꾸면 조용히 잘못된 서비스가 바인딩된다. `current_app.threat_detector`를 직접 쓰는 편이 안전하고 짧다. **작업량 S**
+
+**수정 (2026-08-27)** — `get_services()` 를 없애고 이름 접근자 6개로 대체했다
+(`threat_detector()`·`hash_checker()` 등). 호출부 22곳 전부 전환.
+
+전환하자마자 위치 언패킹이 가리고 있던 것이 하나 드러났다 — `dashboard_summary`
+가 쓰지도 않는 `hash_checker` 를 언패킹하고 있었다. `_, _, _, hc, _, _` 형태에서는
+이런 게 보이지 않는다. 회귀 테스트 2건(`test_api_error_handling.py`): 위치 언패킹
+잔존 검사, 접근자 이름과 `app` 속성의 실제 대응 검사(오타는 조용히 통과하므로).
 
 ---
 
@@ -599,6 +607,13 @@ SocketIO도 `connect` 핸들러가 세션을 검사하고 `False`를 반환해 �
 
 한 가지: `app.py:188`의 `allow_unsafe_werkzeug=True`. 개발 서버를 운영에 쓰겠다는 명시적 선언이다. 개인 포트폴리오/Tailscale 한정이면 수용 가능하나, `DEBUG=True`가 실수로 켜지면 Werkzeug 디버거(임의 코드 실행)가 노출된다. `.env`에서 `DEBUG`가 꺼져 있는지 배포 체크리스트에 넣을 것. **P3**
 
+**수정 (2026-08-27)** — README 에 '노출 전 체크리스트' 추가 + `warn_unsafe_exposure()`
+가 기동 시 위험 조합을 경고한다(`DEBUG=True`, 비루프백 바인딩 + `AUTH_ENABLED=False`).
+**기동을 막지는 않는다** — 의도적으로 그렇게 띄우는 경우가 있고, 관제 도구가 제
+판단으로 기동을 거부하면 그게 더 큰 사고다. 안전한 설정에서는 아무 말도 하지
+않는다(경고 피로 방지). `SESSION_COOKIE_SECURE` 는 `.env.example` 에 설명과 함께
+문서화했다(F-2).
+
 ### C-9. 안전장치 회귀 테스트 현황
 
 | 안전장치 | 테스트 |
@@ -766,7 +781,7 @@ CDN 호스트 부재. 다시 CDN 을 끼워 넣으면 CI 에서 실패한다.
 
 **수정 방향**: `<script type="module">` + `import`로 전환. 다만 이건 18개 파일 전부를 건드리는 대공사이고 얻는 것이 안전성뿐이다. **지금은 하지 말 것.** 현실적 대안은 각 파일을 IIFE로 감싸고 `window.SOC = {}` 네임스페이스에 공개 함수만 노출하는 것 — 점진적이고 파일당 독립 적용 가능하다. **작업량 L (모듈화) / M (IIFE 점진)**
 
-### E-3. [P3] `_attackerCounter` 무한 증가 + 알림마다 전량 정렬
+### E-3. [~~P3~~ **수정됨**] `_attackerCounter` 무한 증가 + 알림마다 전량 정렬
 
 **근거**: `static/js/dash/02-overview.js:101-105`
 
@@ -781,7 +796,22 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 
 `_threatTypeCounter`(`:108`)도 같지만 위협 유형은 유계라 무해하다.
 
-**수정 방향**: `_attackerCounter`에 상한(예: 500 IP, LRU 절단)을 두고, `renderTopAttackers`를 라이브 스트림처럼 300ms 스로틀. **작업량 S**
+**수정 (2026-08-27)** — 상한 1,000개(초과 시 800개로 절단) + 렌더 300ms 스로틀.
+
+- **단순 LRU 로 자르지 않았다.** 이 맵의 용도는 TOP 8 표시라, 오래됐다는 이유로
+  버리면 잠시 조용한 주요 공격자가 사라진다. **알림 수가 적은 IP부터** 버리고
+  동률일 때만 오래된 것을 버린다.
+- 버린 IP 수를 따로 세어 `kpi-unique-attackers` 가 줄어들지 않게 했다. 버려진
+  IP 가 다시 나타나면 한 번 더 세어져 과대계상될 수 있으나, 무한히 쌓이는 것보다
+  낫다(절단 대상은 알림 1~2건짜리 잡음 IP 다).
+- `_attackerCounter` 직접 대입을 전부 `trackAttacker()` 경유로 바꿨다 —
+  `08-response-init.js` 의 초기 적재 경로도 포함. 직접 대입이 하나라도 남으면
+  상한이 무력화된다.
+
+회귀 테스트 5건(`tests/test_frontend_counters.py`). JS 테스트 인프라가 없어서
+**실제 배포되는 `02-overview.js` 에서 집계 구간을 잘라 node 로 실행한다** —
+코드를 복사해두고 검증하는 게 아니다. 변이 주입으로 상한 무력화·순수 LRU 전환·
+스로틀 제거 모두 실패 확인. node 가 없으면 동작 검사는 skip 하고 정적 검사만 돈다.
 
 ### E-4. DOM 성능 — 이미 상당히 방어되어 있다 ✅
 
@@ -939,7 +969,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 - ~~**B-7** alert_store WAL + 읽기 전용 커넥션 분리~~ — ✅ 수정 완료
 - ~~**B-9** `print()` → `logging` 일괄 전환~~ — ✅ 수정 완료
 - ~~**E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)~~ — ✅ 수정 완료
-- **E-3** `_attackerCounter` 상한 + 렌더 스로틀
+- ~~**E-3** `_attackerCounter` 상한 + 렌더 스로틀~~ — ✅ 수정 완료
 - **A-5** `ruff` 도입 + A-4 미사용 import 40건 정리
 - ~~**F-2/F-3** `.env.example` 동기화, README 수치 정정~~ — ✅ 수정 완료
 - **F-4** 저장소 리네임 (안전 확인됨, 언제든)

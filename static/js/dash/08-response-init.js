@@ -619,14 +619,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (a.severity === 'HIGH') high++;
         if (a.status === 'CLOSED') closed++;
         if (a.status === 'OPEN')   open++;
-        _attackerCounter[a.src_ip] = _attackerCounter[a.src_ip] || { count:0, type:a.threat_type };
-        _attackerCounter[a.src_ip].count++;
+        trackAttacker(a.src_ip, a.threat_type);
         _threatTypeCounter[a.threat_label] = (_threatTypeCounter[a.threat_label] || 0) + 1;
       });
       document.getElementById('kpi-critical').textContent = crit;
       document.getElementById('kpi-high').textContent = high;
       document.getElementById('kpi-blocked').textContent = closed;
-      document.getElementById('kpi-unique-attackers').textContent = Object.keys(_attackerCounter).length;
+      document.getElementById('kpi-unique-attackers').textContent = uniqueAttackerCount();
       setOpenAlerts(open);  // 미처리 알림만 사이드바 배지에 반영
       renderTopAttackers();
       renderThreatTypeChart();

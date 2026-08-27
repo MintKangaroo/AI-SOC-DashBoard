@@ -1,7 +1,7 @@
 """진단·운영: 패치 · 취약점스캔 · 퍼징 · 알림 · Sigma · 리포트 · 퍼플팀
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp
+from api._common import (api_bp)
 
 
 # ------------------------------------------------------------------ #

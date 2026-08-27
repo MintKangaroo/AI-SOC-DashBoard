@@ -375,11 +375,40 @@ def create_app():
 
 app, socketio = create_app()
 
+def warn_unsafe_exposure(cfg, log=None):
+    """공개 노출 시 위험한 설정 조합을 기동 시점에 알린다 (docs/AUDIT.md C-9 / #27).
+
+    `allow_unsafe_werkzeug=True` 로 개발 서버를 그대로 쓰기 때문에, `DEBUG=True`
+    면 Werkzeug 디버거가 노출되어 **임의 코드 실행**이 가능하다. 신뢰 네트워크
+    (Tailscale) 안이면 수용 가능한 선택이지만, 루프백이 아닌 주소에 바인딩하면서
+    DEBUG 가 켜져 있는 건 거의 항상 실수다.
+
+    막지는 않는다 — 의도적으로 그렇게 띄우는 경우가 있고, 관제 도구가 제 판단으로
+    기동을 거부하면 그게 더 큰 사고다. 대신 눈에 띄게 남긴다.
+    """
+    log = log or _log
+    warnings = []
+    public = str(cfg.HOST) not in ("127.0.0.1", "localhost", "::1")
+    if cfg.DEBUG:
+        warnings.append(
+            "DEBUG=True + 개발 서버(allow_unsafe_werkzeug) — Werkzeug 디버거가 "
+            "노출되면 임의 코드 실행이 가능합니다. 노출 환경에서는 DEBUG=False.")
+    if public and not app.config.get("AUTH_ENABLED", True):
+        warnings.append(
+            f"AUTH_ENABLED=False 인데 {cfg.HOST} 에 바인딩합니다 — 인증 없이 공개됩니다.")
+    for w in warnings:
+        log.warning("[SOC] ⚠ %s", w)
+    if warnings:
+        log.warning("[SOC] 노출 전 체크리스트: README '노출 전 체크리스트' 참조")
+    return warnings
+
+
 if __name__ == "__main__":
     cfg = config.Config()
     _log.info("[SOC] 보안관제 대시보드 v1.0 시작")
     _log.info(f"[SOC] http://{cfg.HOST}:{cfg.PORT}")
     _log.info(f"[SOC] 데모 모드: {cfg.DEMO_MODE}")
+    warn_unsafe_exposure(cfg)
     socketio.run(
         app,
         host=cfg.HOST,

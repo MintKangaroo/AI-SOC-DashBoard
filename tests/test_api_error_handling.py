@@ -237,3 +237,41 @@ def test_alerts_history_default_scope_covers_archive(client, app_module):
                      query_string={"ip": "203.0.113.7"}).get_data(as_text=True)
     assert "archived" in csv.splitlines()[0]
     assert "203.0.113.7" in csv
+
+
+# ─────────── 서비스 접근자 (docs/AUDIT.md A-6) ───────────
+
+def test_services_are_accessed_by_name_not_position():
+    """위치 언패킹은 순서를 바꾸면 조용히 잘못된 서비스를 바인딩한다.
+
+    예전에는 `_, _, _, hc, _, _ = get_services()` 처럼 셌다. 튜플 순서를 한 칸만
+    바꿔도 잡히지 않고, 읽는 쪽에서는 몇 번째가 무엇인지 알 수 없었다.
+    실제로 이 전환 과정에서 `dashboard_summary` 가 쓰지도 않는 `hash_checker`
+    를 언패킹하고 있던 것이 드러났다 — 위치 언패킹이 가리고 있던 것이다.
+    """
+    import pathlib
+    import re
+
+    repo = pathlib.Path(__file__).resolve().parent.parent
+    offenders = []
+    for path in (repo / "api").glob("*.py"):
+        for i, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+            if line.lstrip().startswith("#"):
+                continue          # 주석 속 '예전에는 이랬다' 예시는 대상이 아니다
+            if re.search(r"=\s*get_services\(\)", line):
+                offenders.append(f"{path.name}:{i}")
+    assert offenders == [], (
+        f"위치 언패킹이 남아 있다: {offenders}\n"
+        f"— api._common 의 이름 접근자(threat_detector() 등)를 쓸 것.")
+
+
+def test_named_accessors_return_the_matching_app_service(app_module):
+    """접근자 이름과 app 속성이 실제로 대응하는지 — 오타는 조용히 통과한다."""
+    from api import _common
+
+    app = app_module.app
+    with app.test_request_context():
+        for name in ("packet_analyzer", "threat_detector", "sysmon_parser",
+                     "hash_checker", "ai_analyst", "ml_analyst"):
+            accessor = getattr(_common, name)
+            assert accessor() is getattr(app, name), f"{name} 불일치"

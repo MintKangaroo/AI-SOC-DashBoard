@@ -32,16 +32,39 @@ def _hash_scan_allowed(path):
     return False
 
 
-def get_services():
-    app = current_app._get_current_object()
-    return (
-        app.packet_analyzer,
-        app.threat_detector,
-        app.sysmon_parser,
-        app.hash_checker,
-        app.ai_analyst,
-        app.ml_analyst,
-    )
+# 서비스 접근자 (docs/AUDIT.md A-6)
+#
+# 예전에는 `get_services()` 가 6-튜플을 돌려주고 호출부가 위치로 언패킹했다
+# (`_, _, _, hc, _, _ = get_services()`). 튜플 순서를 한 칸만 바꿔도 조용히
+# 잘못된 서비스가 바인딩되고, 읽는 쪽에서는 몇 번째가 무엇인지 셀 수가 없다.
+# 이름으로 꺼내면 순서 자체가 사라진다.
+
+def _service(name):
+    return getattr(current_app._get_current_object(), name)
+
+
+def packet_analyzer():
+    return _service("packet_analyzer")
+
+
+def threat_detector():
+    return _service("threat_detector")
+
+
+def sysmon_parser():
+    return _service("sysmon_parser")
+
+
+def hash_checker():
+    return _service("hash_checker")
+
+
+def ai_analyst():
+    return _service("ai_analyst")
+
+
+def ml_analyst():
+    return _service("ml_analyst")
 
 
 def _mitre():

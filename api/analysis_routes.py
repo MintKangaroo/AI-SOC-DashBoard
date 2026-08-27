@@ -1,7 +1,7 @@
 """위협 분석: AI · ML · MITRE · 위협 인텔리전스
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, audit_record, _actor
+from api._common import (ai_analyst, api_bp, audit_record, ml_analyst, packet_analyzer, threat_detector, _actor, _mitre)
 
 
 # ------------------------------------------------------------------ #
@@ -10,13 +10,13 @@ from api._common import api_bp, get_services, _mitre, audit_record, _actor
 
 @api_bp.route("/ai/status", methods=["GET"])
 def ai_status():
-    _, _, _, _, ai, _ = get_services()
+    ai = ai_analyst()
     return jsonify(ai.get_status())
 
 
 @api_bp.route("/ai/chat", methods=["POST"])
 def ai_chat():
-    _, _, _, _, ai, _ = get_services()
+    ai = ai_analyst()
     data    = request.get_json()
     message = data.get("message", "").strip()
     context = data.get("context", {})
@@ -28,7 +28,8 @@ def ai_chat():
 
 @api_bp.route("/ai/analyze/alert/<int:alert_id>", methods=["POST"])
 def analyze_alert(alert_id):
-    _, td, _, _, ai, _ = get_services()
+    td = threat_detector()
+    ai = ai_analyst()
     alerts = td.get_alerts(limit=500)
     target = next((a for a in alerts if a["id"] == alert_id), None)
     if not target:
@@ -39,7 +40,8 @@ def analyze_alert(alert_id):
 
 @api_bp.route("/ai/analyze/traffic", methods=["POST"])
 def analyze_traffic():
-    pa, _, _, _, ai, _ = get_services()
+    pa = packet_analyzer()
+    ai = ai_analyst()
     summary = {
         "stats": pa.get_stats(),
         "top_talkers": pa.get_top_talkers(),
@@ -52,7 +54,7 @@ def analyze_traffic():
 
 @api_bp.route("/ai/history", methods=["GET"])
 def ai_history():
-    _, _, _, _, ai, _ = get_services()
+    ai = ai_analyst()
     return jsonify({"history": ai.get_history()})
 
 
@@ -62,7 +64,7 @@ def ai_history():
 
 @api_bp.route("/ml/status", methods=["GET"])
 def ml_status():
-    _, _, _, _, _, ml = get_services()
+    ml = ml_analyst()
     return jsonify({
         "stats":  ml.get_stats(),
         "rl":     ml.get_rl_status(),
@@ -71,14 +73,15 @@ def ml_status():
 
 @api_bp.route("/ml/analyze", methods=["POST"])
 def ml_analyze():
-    pa, _, _, _, _, ml = get_services()
+    pa = packet_analyzer()
+    ml = ml_analyst()
     result = ml.analyze_now(pa.get_stats())
     return jsonify(result)
 
 
 @api_bp.route("/ml/log", methods=["GET"])
 def ml_log():
-    _, _, _, _, _, ml = get_services()
+    ml = ml_analyst()
     limit = int(request.args.get("limit", 20))
     return jsonify({"log": ml.get_log(limit)})
 
@@ -92,7 +95,7 @@ def ml_decision():
 
 @api_bp.route("/ml/feedback", methods=["POST"])
 def ml_feedback():
-    _, _, _, _, _, ml = get_services()
+    ml = ml_analyst()
     data = request.get_json()
     is_fp = data.get("is_false_positive", False)
     ml.mark_alert(is_fp=is_fp)

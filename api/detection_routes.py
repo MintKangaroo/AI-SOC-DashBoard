@@ -1,7 +1,7 @@
 """탐지·수집: 패킷 · 위협알림(이력/CSV) · Sysmon · 해시
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _hash_scan_allowed, audit_record
+from api._common import (api_bp, audit_record, hash_checker, packet_analyzer, sysmon_parser, threat_detector, _hash_scan_allowed)
 
 
 # ------------------------------------------------------------------ #
@@ -10,14 +10,14 @@ from api._common import api_bp, get_services, _hash_scan_allowed, audit_record
 
 @api_bp.route("/packets", methods=["GET"])
 def get_packets():
-    pa, *_ = get_services()
+    pa = packet_analyzer()
     limit = int(request.args.get("limit", 50))
     return jsonify({"packets": pa.get_recent_packets(limit), "stats": pa.get_stats()})
 
 
 @api_bp.route("/packets/stats", methods=["GET"])
 def packet_stats():
-    pa, *_ = get_services()
+    pa = packet_analyzer()
     return jsonify({
         "stats": pa.get_stats(),
         "top_talkers": pa.get_top_talkers(),
@@ -32,7 +32,7 @@ def packet_stats():
 
 @api_bp.route("/alerts", methods=["GET"])
 def get_alerts():
-    _, td, *_ = get_services()
+    td = threat_detector()
     limit    = int(request.args.get("limit", 100))
     severity = request.args.get("severity")
     status   = request.args.get("status")
@@ -45,7 +45,7 @@ def get_alerts():
 @api_bp.route("/alerts/groups", methods=["GET"])
 def alert_groups():
     """반복 알림을 출발지 IP·위협유형으로 묶어 조사 우선순위로 제공한다."""
-    _, td, *_ = get_services()
+    td = threat_detector()
     hours = min(24 * 30, max(1, request.args.get("hours", 24, type=int)))
     limit = min(100, max(1, request.args.get("limit", 20, type=int)))
     min_count = min(100, max(2, request.args.get("min_count", 2, type=int)))
@@ -75,7 +75,7 @@ def alerts_history():
 
     scope: all(활성+아카이브, 기본) / live(활성만) / archive(아카이브만).
     """
-    _, td, *_ = get_services()
+    td = threat_detector()
     a = request.args
     page  = max(1, a.get("page", 1, type=int))
     limit = min(200, max(1, a.get("limit", 50, type=int)))
@@ -107,7 +107,7 @@ def alerts_history_export():
     """현재 검색 조건의 알림 이력을 CSV로 내보내기 (최대 10000건)."""
     import csv, io
     from flask import Response
-    _, td, *_ = get_services()
+    td = threat_detector()
     a = request.args
     scope = a.get("scope") or "all"
     if scope not in ("all", "live", "archive"):
@@ -184,7 +184,7 @@ def alerts_archive():
 
 @api_bp.route("/alerts/<int:alert_id>/status", methods=["PUT"])
 def update_alert_status(alert_id):
-    _, td, *_ = get_services()
+    td = threat_detector()
     data = request.get_json()
     status = data.get("status")
     if status not in ("OPEN", "ACK", "CLOSED"):
@@ -202,7 +202,7 @@ def update_alert_status(alert_id):
 @api_bp.route("/alerts/<int:alert_id>/verdict", methods=["PUT"])
 def update_alert_verdict(alert_id):
     """분석가의 근거 기반 정·오탐 확정. 처리 상태와 별도로 저장한다."""
-    _, td, *_ = get_services()
+    td = threat_detector()
     data = request.get_json(silent=True) or {}
     verdict = data.get("verdict")
     allowed = ("UNREVIEWED", "INVESTIGATING", "TRUE_POSITIVE", "FALSE_POSITIVE")
@@ -227,7 +227,7 @@ def update_alert_verdict(alert_id):
 
 @api_bp.route("/sysmon/events", methods=["GET"])
 def sysmon_events():
-    _, _, sp, *_ = get_services()
+    sp = sysmon_parser()
     limit    = int(request.args.get("limit", 100))
     event_id = request.args.get("event_id", type=int)
     severity = request.args.get("severity")
@@ -243,7 +243,7 @@ def sysmon_events():
 
 @api_bp.route("/hash/check", methods=["POST"])
 def check_hash():
-    _, _, _, hc, _, _ = get_services()
+    hc = hash_checker()
     data = request.get_json()
     hash_val = data.get("hash", "").strip()
     algo     = data.get("algorithm", "sha256")
@@ -254,7 +254,7 @@ def check_hash():
 
 @api_bp.route("/hash/file", methods=["POST"])
 def hash_file():
-    _, _, _, hc, _, _ = get_services()
+    hc = hash_checker()
     data = request.get_json()
     path = data.get("path", "")
     if not path:
@@ -266,5 +266,5 @@ def hash_file():
 
 @api_bp.route("/hash/history", methods=["GET"])
 def hash_history():
-    _, _, _, hc, _, _ = get_services()
+    hc = hash_checker()
     return jsonify({"history": hc.get_scan_history()})

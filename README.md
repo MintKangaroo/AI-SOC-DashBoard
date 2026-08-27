@@ -199,6 +199,21 @@ PORT=5055 ./venv/bin/python app.py
 | 폰 푸시 알림 | ntfy 앱 설치 + `.env NTFY_ENABLED=True NTFY_TOPIC=...` |
 | 외부 접속 | Tailscale(`HOST=0.0.0.0`) |
 
+### 노출 전 체크리스트
+
+이 대시보드는 **Tailscale 등 신뢰 네트워크 안**에서 쓰는 것을 전제로 만들었습니다.
+공개망에 붙이기 전에 확인하세요.
+
+- [ ] **`DEBUG=False`** — 개발 서버(`allow_unsafe_werkzeug=True`)로 돌기 때문에,
+      `DEBUG=True` 면 Werkzeug 디버거가 노출되어 **임의 코드 실행**이 가능합니다.
+      기동 시 이 조합이면 경고를 찍습니다.
+- [ ] **`AUTH_ENABLED=True`** · `DASH_PASSWORD`(또는 `DASH_PASSWORD_HASH`) 설정
+- [ ] **`SECRET_KEY`** 를 랜덤 고정값으로 — 비워두면 재시작마다 세션이 끊깁니다
+- [ ] HTTPS 로 서비스한다면 **`SESSION_COOKIE_SECURE=True`**
+      (Tailscale HTTP 접속이면 `False` 여야 로그인이 유지됩니다)
+- [ ] `HONEYPOT_BIND=0.0.0.0` 으로 유인 포트를 실제 노출할지 결정
+- [ ] `SOAR_BLOCK_MODE` 가 의도한 값인지 (`simulate` / `ufw` / `iptables`)
+
 ---
 
 ## 프로젝트 구조

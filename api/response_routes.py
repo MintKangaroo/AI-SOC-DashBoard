@@ -1,7 +1,7 @@
 """대응: SOAR · 인시던트 · 대시보드 요약
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, audit_record, _actor
+from api._common import (ai_analyst, api_bp, audit_record, ml_analyst, packet_analyzer, sysmon_parser, threat_detector, _actor, _mitre)
 
 
 # ------------------------------------------------------------------ #
@@ -154,7 +154,11 @@ def incident_update(inc_id):
 
 @api_bp.route("/dashboard/summary", methods=["GET"])
 def dashboard_summary():
-    pa, td, sp, hc, ai, ml = get_services()
+    pa = packet_analyzer()
+    td = threat_detector()
+    sp = sysmon_parser()
+    ai = ai_analyst()
+    ml = ml_analyst()
     mitre = _mitre()
     matrix = mitre.get_matrix()
     return jsonify({
