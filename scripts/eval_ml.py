@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 
-from modules.ml_feature_store import FEATURE_COLUMNS, MLFeatureStore
+from modules.ml_feature_store import MLFeatureStore
 
 # ── 평가 가능 최소 요건 ──
 MIN_FEATURES_FOR_RETRAIN = 3000   # IF 실트래픽 재학습 (3초 주기 ≈ 2.5시간)
