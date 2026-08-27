@@ -31,9 +31,14 @@ class AuditLog:
         directory = os.path.dirname(db_path)
         if directory:
             os.makedirs(directory, exist_ok=True)
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
         self._lock = threading.Lock()
         with self._lock:
+            # 감사 기록은 조치 경로(알림 ACK·차단·인시던트 변경)에서 동기로 쓰인다.
+            # WAL 이라야 /api/audit 의 긴 조회가 그 쓰기를 막지 않는다.
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=NORMAL")
+            self._conn.execute("PRAGMA busy_timeout=10000")
             self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS audit (
                     id      INTEGER PRIMARY KEY AUTOINCREMENT,

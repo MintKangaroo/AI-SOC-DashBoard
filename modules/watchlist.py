@@ -22,9 +22,13 @@ class Watchlist:
         directory = os.path.dirname(db_path)
         if directory:
             os.makedirs(directory, exist_ok=True)
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
         self._lock = threading.Lock()
         with self._lock:
+            # 히트 카운터가 탐지 경로(_add_alert 대조훅)에서 갱신된다.
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=NORMAL")
+            self._conn.execute("PRAGMA busy_timeout=10000")
             self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS watchlist (
                     id        INTEGER PRIMARY KEY AUTOINCREMENT,

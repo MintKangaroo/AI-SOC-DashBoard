@@ -38,7 +38,7 @@
 | 18 | **P2** | 린터·CI·Dockerfile 전부 부재 | 파일 없음 | M |
 | 19 | **P2** | `test_patch_check_runs` 환경 의존 flaky | `tests/test_detection.py:1017` | S |
 | 20 | **P2** | README 수치가 실제와 불일치 (모듈/LOC/테스트 수) | `README.md:14,164,206` | S |
-| 21 | **P2** | alert_store·audit_log·watchlist에 WAL/busy_timeout 미설정 | `alert_store.py:16` 외 | S |
+| 21 | ~~P2~~ **수정됨** | alert_store·audit_log·watchlist에 WAL/busy_timeout 미설정 | `alert_store.py:16` 외 | ✅ |
 | 22 | **P3** | `get_services()` 6-튜플 위치 결합 | `api/_common.py:36` | S |
 | 23 | **P3** | JS 전역 선언 323개 · 로드 순서 의존 | `static/js/dash/*` | L |
 | 24 | **P3** | `_attackerCounter` 무한 증가 + 알림마다 전량 정렬 | `02-overview.js:101-105` | S |
@@ -347,13 +347,34 @@ threading.Thread(target=self._handle_conn, args=(conn, addr[0], port, service),
 |--------|-----|-------------|--------------|
 | `incidents.py:282` | ✅ | NORMAL | ❌ |
 | `soar_execution_store.py:17` | ✅ | NORMAL | ❌ |
-| `alert_store.py:16` | ❌ | 기본 | ❌ |
-| `audit_log.py:34` | ❌ | 기본 | ❌ |
-| `watchlist.py:25` | ❌ | 기본 | ❌ |
+| ~~`alert_store.py:16`~~ | ✅ **수정됨** | NORMAL | 10s |
+| ~~`audit_log.py:34`~~ | ✅ **수정됨** | NORMAL | 10s |
+| ~~`watchlist.py:25`~~ | ✅ **수정됨** | NORMAL | 10s |
 
 WAL이 없는 3개는 **외부 프로세스**(`scripts/production_cutover.py`, 백업 스크립트, sqlite3 CLI)가 동시에 붙는 순간 잠금 충돌이 난다. 실제로 이 감사 중 sqlite3로 읽을 때 문제는 없었지만, 쓰기가 겹치면 다르다.
 
 또 하나: `alert_store`의 전역 락은 `aggregate(days=14)`(`:231-283`) 같은 6개 집계 쿼리 묶음이 도는 동안 `save()`를 전부 막는다. 현재 `alerts` 테이블이 99행이라 무해하지만, 라이브 알림이 90일치 쌓이면 `/api/metrics/soc` 호출 한 번이 탐지 경로를 막는다. **읽기 전용 별도 커넥션**을 쓰면 해결된다. **작업량 S**
+
+**수정 내역 (2026-08-27)**
+
+세 저장소 모두 `journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=10000`,
+그리고 `alert_store` 는 조회 전용 커넥션(`query_only=1`)을 분리했다.
+
+- **읽기/쓰기 분리가 핵심이다.** WAL 만 켜고 단일 커넥션 + 전역 락을 두면
+  인프로세스에서는 아무 이득이 없다 — 파이썬 락이 어차피 전부 직렬화한다.
+  #13 으로 아카이브 11만 건이 조회 대상이 되면서 `aggregate` 가 1.1초간 락을
+  잡게 되어 실측 가능한 문제가 됐다. 실측(집계 연속 부하 중 `save()` 지연):
+  **평균 6,288ms · 최대 34,057ms → 평균 0.17ms · 최대 1.35ms.**
+  (연속 부하는 최악값이다. 실제로는 `/api/metrics/soc` 호출 1회당 약 1.1초.)
+- **ATTACH 된 아카이브 DB 때문에 WAL 은 그냥 켤 수 없었다.** SQLite 는 WAL 에서
+  여러 DB 에 걸친 커밋의 원자성을 보장하지 않는다(DB 단위로만 원자적). 기존
+  `archive_older_than()`·`production_cutover()` 는 복사와 삭제를 한 트랜잭션에
+  뒀으므로, 그대로 WAL 을 켰다면 크래시 시 **삭제만 반영되어 알림이 유실될 수
+  있었다.** 이동을 2단계 커밋으로 쪼개 최악의 경우를 '중복'으로 바꾸고,
+  기동 시 `_recover_interrupted_archive()` 가 잔재를 정리한다. 이동 중에는
+  읽기 락도 잡아 중간 상태가 조회에 노출되지 않게 했다.
+- 회귀 테스트는 `tests/test_db_concurrency.py` (11건). 커밋 순서·유실 방지·
+  락 분리를 각각 변이 주입으로 검증했다.
 
 ### B-8. 실패 전파 — 격리는 잘 되어 있다
 
@@ -849,7 +870,7 @@ GitHub About/topics 비어 있음은 코드 밖 작업이라 감사 범위 밖�
 
 - **A-3** API 에러 핸들러 + 응답 스키마 통일 (프론트 동시 수정 필요)
 - **B-5** 허니팟/syslog 연결 세마포어 (`HONEYPOT_BIND=0.0.0.0` 전환 **전에는 반드시**)
-- **B-7** alert_store WAL + 읽기 전용 커넥션 분리
+- ~~**B-7** alert_store WAL + 읽기 전용 커넥션 분리~~ — ✅ 수정 완료
 - **B-9** `print()` → `logging` 일괄 전환
 - **E-1** CDN 자체 호스팅 (C-4의 CSP를 `'self'`로 조일 때 함께)
 - **E-3** `_attackerCounter` 상한 + 렌더 스로틀

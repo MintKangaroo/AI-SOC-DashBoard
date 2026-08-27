@@ -24,12 +24,19 @@ class AlertStore:
         directory = os.path.dirname(db_path)
         if directory:
             os.makedirs(directory, exist_ok=True)
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
         stem, ext = os.path.splitext(db_path)
         self.archive_path = f"{stem}_archive{ext or '.db'}"
         self._lock = threading.Lock()
         with self._lock:
             self._conn.execute("ATTACH DATABASE ? AS archive", (self.archive_path,))
+            # 탐지 경로가 알림을 쓰는 동안 이력 검색·집계가 읽는다. 통합 조회는
+            # 11만 행을 훑을 수 있으므로 읽기가 쓰기를 막지 않아야 한다.
+            # 두 DB 모두 켠다 — WAL 은 DB 단위 설정이다.
+            self._conn.execute("PRAGMA main.journal_mode=WAL")
+            self._conn.execute("PRAGMA archive.journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=NORMAL")
+            self._conn.execute("PRAGMA busy_timeout=10000")
             self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS alerts (
                     id          INTEGER PRIMARY KEY,
@@ -55,8 +62,26 @@ class AlertStore:
             if moved_inline:
                 self._conn.execute("VACUUM")
             self._ensure_archive_indexes()
-            self._ensure_union_view()
+            self._ensure_union_view(self._conn)
+            self.recovered_duplicates = self._recover_interrupted_archive()
             self._conn.commit()
+        self._read_conn, self._read_lock = self._open_reader(db_path)
+
+    def _open_reader(self, db_path):
+        """조회 전용 커넥션.
+
+        쓰기 락(`self._lock`)과 분리하는 것이 WAL 을 켜는 실질적 이유다. 하나의
+        커넥션 + 전역 락 구조에서는 `aggregate()` 의 집계 6개(11만 행 기준 1.1초)가
+        도는 동안 `save()` 가 통째로 막힌다 — 탐지 경로가 지표 조회에 인질로
+        잡히는 셈이다. WAL 은 쓰기 중에도 읽기 스냅샷을 허용하므로, 읽기를 별도
+        커넥션으로 빼면 둘이 서로를 기다리지 않는다.
+        """
+        conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
+        conn.execute("ATTACH DATABASE ? AS archive", (self.archive_path,))
+        conn.execute("PRAGMA busy_timeout=10000")
+        self._ensure_union_view(conn)         # TEMP VIEW 생성도 쓰기로 취급된다
+        conn.execute("PRAGMA query_only=1")   # 이후 이 커넥션으로는 쓰기 불가
+        return conn, threading.Lock()
 
     def _ensure_archive_indexes(self):
         """아카이브도 조회 대상이 되었으므로 활성과 같은 인덱스를 갖춘다."""
@@ -66,20 +91,48 @@ class AlertStore:
                 f"CREATE INDEX IF NOT EXISTS archive.idx_arch_{name} "
                 f"ON alerts_archive({col})")
 
-    def _ensure_union_view(self):
-        """활성 + 아카이브를 한 소스로 보는 임시 뷰.
+    def _ensure_union_view(self, conn):
+        """활성 + 아카이브를 한 소스로 보는 임시 뷰 (커넥션마다 필요).
 
         아카이브 알림 11만 건이 검색·집계·상관관계에서 통째로 빠져 있던 문제를
         여기서 한 번에 해소한다. `archived` 컬럼으로 출처를 구분해, 수정 불가한
         (아카이브) 행을 UI 가 식별할 수 있게 한다.
+
+        중복 걱정 없이 단순 UNION ALL 이다. 이동이 중단돼 같은 id 가 양쪽에 남는
+        상태는 `_recover_interrupted_archive()` 가 기동 시 정리하고, 실행 중에는
+        `_copy_to_archive()` 가 읽기 락까지 잡아 중간 상태를 조회에 노출하지
+        않는다. 뷰에서 걸러내면(NOT EXISTS) 11만 행마다 PK 탐색이 붙어 집계가
+        1.1초 → 4.0초로 느려진다 — 실측 후 이 방식으로 되돌렸다.
         """
-        self._conn.execute("DROP VIEW IF EXISTS temp.alerts_all")
-        self._conn.execute(f"""
+        conn.execute("DROP VIEW IF EXISTS temp.alerts_all")
+        conn.execute(f"""
             CREATE TEMP VIEW alerts_all AS
                 SELECT {_COLS}, 0 AS archived FROM main.alerts
                 UNION ALL
                 SELECT {_COLS}, 1 AS archived FROM archive.alerts_archive
         """)
+
+    def _recover_interrupted_archive(self):
+        """중단된 아카이브 이동을 마저 끝낸다.
+
+        `_copy_to_archive()` 는 복사를 먼저 커밋하므로, 그 직후 크래시하면 같은
+        알림이 활성과 아카이브 양쪽에 남는다(유실 대신 택한 방향). 이동 의도는
+        이미 확정됐으므로 활성 쪽 사본을 지워 이동을 완료한다. id 재사용 오인을
+        막기 위해 timestamp 까지 같은 행만 대상으로 한다. 정리 건수를 반환한다.
+        """
+        dupes = self._conn.execute(
+            """SELECT COUNT(*) FROM main.alerts m
+                WHERE EXISTS (SELECT 1 FROM archive.alerts_archive a
+                               WHERE a.id = m.id AND a.timestamp IS m.timestamp)"""
+        ).fetchone()[0]
+        if dupes:
+            self._conn.execute(
+                """DELETE FROM main.alerts
+                    WHERE id IN (SELECT m.id FROM main.alerts m
+                                   JOIN archive.alerts_archive a
+                                     ON a.id = m.id AND a.timestamp IS m.timestamp)""")
+            self._conn.commit()
+        return dupes
 
     @staticmethod
     def _source(scope):
@@ -122,7 +175,9 @@ class AlertStore:
         after = self._conn.execute("SELECT COUNT(*) FROM archive.alerts_archive").fetchone()[0]
         if after < before:
             raise RuntimeError("아카이브 분리 검증 실패")
+        self._conn.commit()   # 사본 확정 후에만 원본을 버린다 (_copy_to_archive 와 같은 이유)
         self._conn.execute("DROP TABLE main.alerts_archive")
+        self._conn.commit()
         return before
 
     def save(self, alert):
@@ -242,11 +297,11 @@ class AlertStore:
         clause = ("WHERE " + " AND ".join(where)) if where else ""
 
         archived_expr = "archived" if scope == "all" else str(int(scope == "archive"))
-        with self._lock:
-            total = self._conn.execute(
+        with self._read_lock:
+            total = self._read_conn.execute(
                 f"SELECT COUNT(*) FROM {src} {clause}", params
             ).fetchone()[0]
-            rows = self._conn.execute(
+            rows = self._read_conn.execute(
                 f"""SELECT {_COLS}, {archived_expr} FROM {src} {clause}
                     ORDER BY id DESC LIMIT ? OFFSET ?""",
                 params + [int(limit), int(offset)],
@@ -260,8 +315,8 @@ class AlertStore:
         """
         src = self._source(scope)
         since = f"-{int(days)} days"
-        with self._lock:
-            c = self._conn
+        with self._read_lock:
+            c = self._read_conn
             # 일별 볼륨 (심각도 분리)
             by_day = c.execute(
                 f"""SELECT strftime('%Y-%m-%d', timestamp) d,
@@ -317,8 +372,8 @@ class AlertStore:
     def since(self, hours=24, limit=5000, scope="all"):
         """최근 N시간 알림(실 IP 출발지만) — 상관관계 분석용. 시간 오름차순."""
         src = self._source(scope)
-        with self._lock:
-            rows = self._conn.execute(
+        with self._read_lock:
+            rows = self._read_conn.execute(
                 f"""SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
                    FROM {src}
                    WHERE timestamp >= datetime('now', ?, 'localtime')
@@ -334,8 +389,8 @@ class AlertStore:
         hours = max(1, min(24 * 30, int(hours)))
         min_count = max(2, int(min_count))
         limit = max(1, min(100, int(limit)))
-        with self._lock:
-            rows = self._conn.execute(
+        with self._read_lock:
+            rows = self._read_conn.execute(
                 f"""SELECT src_ip, threat_type, COUNT(*) AS cnt,
                           MIN(timestamp), MAX(timestamp),
                           SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END),
@@ -360,8 +415,8 @@ class AlertStore:
     def snort_sid_stats(self, limit=30, scope="all"):
         """분석가 확정 판정을 기준으로 SID별 정·오탐 품질을 집계한다."""
         src = self._source(scope)
-        with self._lock:
-            rows = self._conn.execute(
+        with self._read_lock:
+            rows = self._read_conn.execute(
                 f"""SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
                           COUNT(*) total,
                           SUM(CASE WHEN verdict='TRUE_POSITIVE' THEN 1 ELSE 0 END) tp,
@@ -444,19 +499,41 @@ class AlertStore:
                 f"SELECT COUNT(*) FROM alerts WHERE timestamp < {cutoff_expr}",
                 (arg,)).fetchone()[0]
             if moved:
-                self._conn.execute(
-                    f"""INSERT OR REPLACE INTO archive.alerts_archive
-                        (id, threat_type, severity, src_ip, dst_ip, description,
-                         details, timestamp, status, note, assignee, archived_at,
-                         origin, verdict, verdict_actor, verdict_reason, verdict_at)
-                        SELECT id, threat_type, severity, src_ip, dst_ip, description,
-                               details, timestamp, status, note, assignee, ?,
-                               origin, verdict, verdict_actor, verdict_reason, verdict_at
-                        FROM alerts WHERE timestamp < {cutoff_expr}""", (now, arg))
-                self._conn.execute(
-                    f"DELETE FROM alerts WHERE timestamp < {cutoff_expr}", (arg,))
-                self._conn.commit()
+                self._copy_to_archive(
+                    f"WHERE timestamp < {cutoff_expr}", (now, arg), (arg,))
         return moved
+
+    def _copy_to_archive(self, where, insert_params, delete_params):
+        """활성 → 아카이브 이동. **복사를 먼저 커밋하고 그 다음 삭제를 커밋한다.**
+
+        WAL 에서 SQLite 는 ATTACH 된 DB 를 아우르는 커밋의 원자성을 보장하지 않는다
+        (각 DB 별로만 원자적). 한 트랜잭션에 복사와 삭제를 같이 두면, 크래시 시
+        삭제만 반영되어 **알림이 유실될 수 있다.** 두 단계로 나누면 최악의 경우가
+        '양쪽에 남는 중복'이 되고, 중복은 `alerts_all` 뷰가 가리며 재실행으로
+        정리된다. 중복이 나오는 편이 유실보다 안전하다.
+
+        두 커밋 사이의 중복 상태를 조회자가 보지 않도록 읽기 락도 함께 잡는다.
+        읽기/쓰기 분리의 목적은 '잦은 조회가 잦은 저장을 막지 않는 것'이고,
+        아카이브 이동은 보존 루프에서 6시간에 한 번 도는 드문 연산이라
+        그동안 조회를 세우는 비용이 낮다. 호출자가 이미 `self._lock` 을 잡고
+        있으므로 순서는 항상 쓰기락 → 읽기락 — 역순 경로가 없어 교착되지 않는다.
+        """
+        with self._read_lock:
+            self._copy_to_archive_locked(where, insert_params, delete_params)
+
+    def _copy_to_archive_locked(self, where, insert_params, delete_params):
+        self._conn.execute(
+            f"""INSERT OR REPLACE INTO archive.alerts_archive
+                (id, threat_type, severity, src_ip, dst_ip, description,
+                 details, timestamp, status, note, assignee, archived_at,
+                 origin, verdict, verdict_actor, verdict_reason, verdict_at)
+                SELECT id, threat_type, severity, src_ip, dst_ip, description,
+                       details, timestamp, status, note, assignee, ?,
+                       origin, verdict, verdict_actor, verdict_reason, verdict_at
+                FROM alerts {where}""", insert_params)
+        self._conn.commit()          # ← 1단계: 사본이 확실히 남은 뒤에만
+        self._conn.execute(f"DELETE FROM alerts {where}", delete_params)
+        self._conn.commit()          # ← 2단계
 
     def production_cutover(self, cutoff):
         """컷오버 이전 활성 알림을 legacy로 표시해 무손실 아카이브한다."""
@@ -470,17 +547,7 @@ class AlertStore:
                 return 0
             self._conn.execute(
                 "UPDATE alerts SET origin='legacy' WHERE timestamp < ?", (cutoff,))
-            self._conn.execute(
-                """INSERT OR REPLACE INTO archive.alerts_archive
-                   (id, threat_type, severity, src_ip, dst_ip, description, details,
-                    timestamp, status, note, assignee, archived_at, origin, verdict,
-                    verdict_actor, verdict_reason, verdict_at)
-                   SELECT id, threat_type, severity, src_ip, dst_ip, description, details,
-                          timestamp, status, note, assignee, ?, origin, verdict,
-                          verdict_actor, verdict_reason, verdict_at
-                   FROM alerts WHERE timestamp < ?""", (now, cutoff))
-            self._conn.execute("DELETE FROM alerts WHERE timestamp < ?", (cutoff,))
-            self._conn.commit()
+            self._copy_to_archive("WHERE timestamp < ?", (now, cutoff), (cutoff,))
         return count
 
     def purge_older_than(self, days):
@@ -508,5 +575,7 @@ class AlertStore:
         return row[0] or 0
 
     def close(self):
+        with self._read_lock:
+            self._read_conn.close()
         with self._lock:
             self._conn.close()

@@ -177,6 +177,15 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
       SOAR 실행 이력 종료분 90일 경과분 삭제.
       ※ 진행 중 인시던트와 waiting_approval 실행은 절대 삭제 대상이 아니다.
 
+동시성: alerts/audit/watchlist DB 는 WAL + busy_timeout 10s. alert_store 는
+      **조회 전용 커넥션(query_only)을 쓰기 커넥션과 분리**한다 — 집계가 쓰기 락을
+      잡으면 탐지 경로의 save() 가 통째로 막힌다(실측 최대 34초). 단 아카이브 이동
+      (`_copy_to_archive`)은 읽기 락도 함께 잡는다.
+      ※ WAL 에서 SQLite 는 ATTACH 된 DB 간 커밋의 원자성을 보장하지 않는다. 그래서
+        활성→아카이브 이동은 **복사를 커밋한 뒤 삭제를 커밋하는 2단계**다. 크래시 시
+        최악이 '양쪽 중복'이 되고(유실 아님), 기동 시 `_recover_interrupted_archive()`
+        가 정리한다. 이 순서를 한 트랜잭션으로 되돌리면 알림이 유실될 수 있다.
+
 조회범위: alert_store 의 search/aggregate/since/grouped_recent/snort_sid_stats 는
       `scope` 를 받는다 — 기본 `all`(임시뷰 `alerts_all` = 활성 UNION 아카이브),
       `live`(활성만), `archive`(아카이브만). 결과 행의 `archived` 플래그로 출처를
