@@ -11,7 +11,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **34개 모듈 / 약 11,000 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **41개 모듈 / 약 13,200 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 모든 모듈은 **데모 fallback**을 갖춰 실제 센서(Npcap·Sysmon·nmap·ansible 등) 없이도 전체 기능이 동작합니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -29,7 +29,7 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **신뢰도 스코어링** | `threat_detector._confidence()` — IP 평판·내부망 여부·행위 가중 | 임계값 미만은 '오탐 의심'으로 억제 |
 | **취약점 교차검증** | `vuln_scanner` — nmap/vulners CVE를 실제 apt 패치상태와 대조 | 백포트 패치된 CVE를 오탐으로 판별 |
 | **AI 트리아지** | `soar` — 정탐→에스컬레이션/자동차단, 오탐→자동 종결 | 분석가 피로도 감소 |
-| **ML 피드백 루프** | `ml_analyst` Q-Learning — FP 버튼 → 보상 → 임계값 자동 튜닝 | 운영하며 스스로 정밀도 향상 |
+| **ML 이상탐지** | `ml_analyst` Isolation Forest — 트래픽 이상 점수(참고용) | 피처는 `ml_features.db` 에 영속화되어 재학습·평가 가능 |
 | **퍼플팀 회귀검증** | `purple_team` — 7종 모의공격을 실제 탐지엔진에 주입 | 룰 변경 후 탐지 커버리지 검증 |
 | **킬체인 상관관계** | `correlation` — 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
 | **허니팟** | `honeypot` — 유인 서비스 접촉은 오탐이 거의 없는 고신뢰 침해지표 | 진짜 공격자를 확실하게 식별 |
@@ -113,7 +113,9 @@ flowchart LR
 - **위협 인텔** — 악성 IP/URL 피드 관리 (`threat_intel`)
 - **IOC 워치리스트** — 주시할 IP/도메인/해시 등록 → 이후 알림 등장 시 히트 집계·실시간 통보(능동 헌팅) (`watchlist`)
 - **킬체인 상관관계** — 같은 출발지 알림을 시간 윈도우로 묶어 MITRE 전술 순서 공격 스토리로 구성 (`correlation`)
-- **자체 ML** — Isolation Forest · Random Forest · LSTM Autoencoder · Q-Learning (`ml_analyst`)
+- **자체 ML** — Isolation Forest 이상탐지 (`ml_analyst`). 판정은 참고용이며 탐지·차단 경로에 연결되어 있지 않습니다.
+  Random Forest · LSTM Autoencoder · Q-Learning 은 실데이터로 검증된 적이 없어 [`experimental/`](experimental/README.md) 로 격리했습니다.
+  성능 수치는 `scripts/eval_ml.py` 출력으로만 주장하며, 현재는 데이터 부족으로 **측정 불가**입니다 ([docs/ml_models.md](docs/ml_models.md)).
 - **Claude AI** — 비동기 큐 기반 알림 분석·대응 권고·챗봇 (`ai_analyst`)
 - **의사결정 지원** — 위협 그룹핑 + 정오탐 학습 prior (`decision_support`)
 
@@ -158,10 +160,10 @@ flowchart LR
 
 - **백엔드** — Flask 3 · Flask-SocketIO(threading) · Blueprint REST API
 - **탐지·분석** — PyShark · Scapy · nmap/vulners · Sigma · psutil · scikit-learn · (선택)TensorFlow
-- **AI** — Anthropic Claude API(비동기 큐) · 자체 IF/RF/LSTM/Q-Learning
+- **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **153개** (탐지·SOAR·인증·스캐너·퍼저·안전장치)
+- **테스트** — pytest **210개** (탐지·SOAR·인증·스캐너·퍼저·안전장치)
 
 ---
 
@@ -203,7 +205,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 34개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 41개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -216,7 +218,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (29개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~14, 순서대로 로드)
-├── tests/                    # pytest 153개
+├── tests/                    # pytest 210개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

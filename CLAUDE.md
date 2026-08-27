@@ -34,7 +34,9 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/hash_checker.py` | 해시 계산 + 악성 DB 비교 |
 | `modules/sysmon_parser.py` | Windows Sysmon 이벤트 파싱 |
 | `modules/ai_analyst.py` | Claude API 연동, 비동기 분석 큐, 챗봇 |
-| `modules/ml_analyst.py` | 자체 AI 모델(IF/RF/LSTM/Q-Learning) 분석·학습·피드백 |
+| `modules/ml_analyst.py` | 자체 이상탐지(Isolation Forest) — 참고용 판정, 탐지 경로 미연결 |
+| `modules/ml_feature_store.py` | 트래픽 피처 영속화(ml_features.db) — 재학습·평가의 전제 |
+| `experimental/` | 격리된 미검증 모델(RF·LSTM·Q-Learning) — 제품 코드가 import 하지 않음 |
 | `modules/mitre_attack.py` | MITRE ATT&CK 14 Tactic × Technique 매핑 및 카운트 |
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
@@ -78,9 +80,16 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 
 ```
 packet_analyzer.get_stats() → ml_analyst.feed_traffic() (3초 주기)
-  → analyze_now(): IF + RF + LSTM + Q-Learning 병렬 실행
-  → SocketIO emit("ml_analysis") → ML 패널 차트 갱신
-  → 사용자 피드백 (FP 버튼) → Q-Learning 보상 → 임계값 자동 튜닝
+  ├→ ml_feature_store.record()  → data/ml_features.db (append-only, real/demo 구분)
+  └→ _run_models(): Isolation Forest
+     → SocketIO emit("ml_analysis") → ML 패널 차트 갱신
+
+※ ML 판정은 참고용이다(summary.advisory_only=true). threat_detector·soar 의
+   탐지·차단 결정에 연결되어 있지 않다.
+※ RF·LSTM·Q-Learning 은 실데이터 미학습·출력 미사용으로 experimental/ 에 격리.
+   격리 사유와 복귀 조건은 experimental/README.md 참조.
+※ 성능 수치는 scripts/eval_ml.py 가 출력한 값으로만 주장한다. 현재는 실트래픽
+   피처와 사람 라벨이 부족해 '측정 불가'이며, 부족분은 docs/ml_models.md 에 기록.
 ```
 
 ## MITRE ATT&CK 매핑 흐름

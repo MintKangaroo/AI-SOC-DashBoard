@@ -31,7 +31,8 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 | `threat_intel` | ThreatIntel | 악성 IP/URL 피드 관리·매칭 | `_parse_ip_list()` |
 | `watchlist` | Watchlist | IOC(IP/도메인/해시) 워치리스트, 알림 대조 히트 집계(능동 헌팅) | `match_alert()` · `watchlist_hit` |
 | `correlation` | — | 같은 출발지 알림을 시간 윈도우로 묶어 MITRE 전술 순서 캠페인 구성 | `build_campaigns()` · `compute()` |
-| `ml_analyst` | MLAnalyst | IF·RF·LSTM·Q-Learning 병렬 분석·학습·피드백 | `ml_analysis`, FP 피드백→임계값 튜닝 |
+| `ml_analyst` | MLAnalyst | Isolation Forest 이상탐지(참고용, 탐지 경로 미연결) | `ml_analysis` |
+| `ml_feature_store` | MLFeatureStore | 트래픽 피처 영속화 — 재학습·평가의 전제 | — |
 | `ai_analyst` | AIAnalyst | Claude 비동기 분석 큐·대응 권고·챗봇·리포트 텍스트 | `ai_analysis` · `generate_text()` |
 | `decision_support` | DecisionSupport | 위협 그룹핑 + 정오탐 학습 prior | `get_recommendations()` |
 

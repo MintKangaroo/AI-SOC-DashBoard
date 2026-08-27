@@ -76,8 +76,9 @@ sequenceDiagram
 **자체 ML 분석**
 ```
 packet_analyzer.get_stats() → ml_analyst.feed_traffic()(3초)
-  → IF + RF + LSTM + Q-Learning 병렬 → emit("ml_analysis")
-  → 사용자 FP 피드백 → Q-Learning 보상 → 임계값 자동 튜닝
+  ├→ ml_feature_store.record() → data/ml_features.db (real/demo 구분)
+  └→ Isolation Forest → emit("ml_analysis")   ※ 참고용, 탐지 경로 미연결
+RF·LSTM·Q-Learning 은 experimental/ 로 격리됨
 ```
 
 **MITRE ATT&CK 매핑**
