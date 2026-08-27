@@ -1017,6 +1017,11 @@ def test_patch_apply_blocked_without_flag():
 
 
 def test_patch_check_runs():
+    """데모 모드는 실제 ansible 을 호출하지 않으므로 결과가 결정적이어야 한다.
+
+    이전 버전은 ansible 설치 여부에 따라 실제 ansible-playbook --check 를
+    최대 600초 실행했고, 테스트는 2초만 기다려 환경에 따라 flaky 했다.
+    """
     pm = PatchManager(FakeSocketIO(), config={})
     pm.start(demo=True)
     job = pm.run_job(mode="check", security_only=True)
@@ -1025,7 +1030,29 @@ def test_patch_check_runs():
         if job["status"] != "running":
             break
         _t.sleep(0.05)
-    assert job["status"] in ("simulated", "success", "failed")
+    assert job["status"] == "simulated", f"데모인데 실행 경로를 탐: {job}"
+    assert "데모 모드" in job["result"]
+
+
+def test_patch_demo_never_invokes_ansible(monkeypatch):
+    """데모 모드에서 운영 서버로 나가는 subprocess 가 없어야 한다."""
+    import modules.patch_manager as pmod
+
+    called = []
+    monkeypatch.setattr(pmod.subprocess, "run",
+                        lambda *a, **k: called.append(a) or (_ for _ in ()).throw(
+                            AssertionError("데모에서 subprocess 호출됨")))
+    pm = PatchManager(FakeSocketIO(), config={})
+    pm.ansible_bin = "/usr/bin/ansible-playbook"   # 설치된 것처럼 위장
+    pm.start(demo=True)
+    job = pm.run_job(mode="check", security_only=True)
+    import time as _t
+    for _ in range(40):
+        if job["status"] != "running":
+            break
+        _t.sleep(0.05)
+    assert job["status"] == "simulated"
+    assert called == []
 
 
 # ─────────── 푸시 알림 (ntfy) ───────────

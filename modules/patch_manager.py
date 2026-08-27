@@ -54,6 +54,7 @@ class PatchManager:
         self.socketio = socketio
         self.config = config or {}
         self.running = False
+        self._demo = True
         self._lock = threading.Lock()
 
         self.apply_enabled = str(self.config.get("PATCH_APPLY_ENABLED", "False")) == "True"
@@ -316,7 +317,10 @@ class PatchManager:
     def _execute_job(self, job, path, mode, sel):
         inv_path = None
         try:
-            if self.ansible_bin:
+            # 데모 모드는 실제 ansible 을 호출하지 않는다. --check 가 읽기 전용이라도
+            # 데모에서 운영 서버로 나가는 subprocess 는 프로젝트의 데모 fallback
+            # 규칙(CLAUDE.md)에 어긋나고, 테스트를 실행 환경에 의존하게 만든다.
+            if self.ansible_bin and not self._demo:
                 inv_path = self._write_inventory(sel)
                 cmd = [self.ansible_bin, "-i", inv_path, path]
                 if mode == "check":
@@ -328,9 +332,10 @@ class PatchManager:
                                  f"ansible-playbook {'(dry-run)' if mode=='check' else '적용'} "
                                  f"· 대상 {len(sel)}대 · 종료코드 {r.returncode}", log[-4000:])
             else:
-                # ansible 미설치 → 시뮬레이션 로그
+                reason = ("데모 모드 — 실제 ansible 호출 안 함"
+                          if self._demo else "ansible 미설치")
                 self._finish_job(job, "simulated",
-                                 f"ansible 미설치 — 시뮬레이션(대상 {len(sel)}대). 아래 플레이북을 "
+                                 f"{reason} — 시뮬레이션(대상 {len(sel)}대). 아래 플레이북을 "
                                  "검토 후 점검 시간대에 수동 실행하세요.",
                                  self._simulated_log(mode, sel))
         except subprocess.TimeoutExpired:
