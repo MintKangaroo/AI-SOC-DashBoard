@@ -106,58 +106,45 @@ def test_every_config_key_read_by_source_is_declared():
 
 # ─────────── 탐지 임계값이 실제로 반영되는가 ───────────
 
-def test_ddos_threshold_is_applied_from_config():
+class _SilentSocketIO:
+    def emit(self, *a, **k):
+        pass
+
+
+def _detector(tmp_path, **cfg):
+    """ThreatDetector 는 store_path 의 stem 으로 아카이브 *파일*을 만든다.
+    ':memory:' 를 주면 작업 디렉터리에 ':memory:_archive.db' 가 남으므로
+    반드시 tmp_path 를 쓴다."""
     from modules.threat_detector import ThreatDetector
+    return ThreatDetector(_SilentSocketIO(), config=cfg,
+                          store_path=str(tmp_path / "alerts.db"))
 
-    class S:
-        def emit(self, *a, **k):
-            pass
 
-    td = ThreatDetector(S(), config={"DDOS_PACKET_THRESHOLD": 777},
-                        store_path=":memory:")
+def test_ddos_threshold_is_applied_from_config(tmp_path):
+    td = _detector(tmp_path, DDOS_PACKET_THRESHOLD=777)
     assert td.ddos_pps_threshold == 777, "설정한 임계값이 반영되지 않음"
 
 
-def test_port_scan_threshold_is_applied_from_config():
-    from modules.threat_detector import ThreatDetector
-
-    class S:
-        def emit(self, *a, **k):
-            pass
-
-    td = ThreatDetector(S(), config={"PORT_SCAN_THRESHOLD": 5},
-                        store_path=":memory:")
+def test_port_scan_threshold_is_applied_from_config(tmp_path):
+    td = _detector(tmp_path, PORT_SCAN_THRESHOLD=5)
     assert td.port_scan_threshold == 5
 
 
-def test_threshold_defaults_match_previous_behaviour():
+def test_threshold_defaults_match_previous_behaviour(tmp_path):
     """설정이 없을 때의 기본값은 **실제 동작하던 값**(2000/40)이어야 한다.
 
     문서값(1000/20)으로 되돌리면 탐지 민감도가 조용히 2배가 된다.
     `Config.DDOS_PACKET_THRESHOLD` 는 로컬 `.env` 가 덮어쓸 수 있으므로
     (실제로 그 환경에 1000 이 들어 있다) 모듈 기본값만 검사한다.
     """
-    from modules.threat_detector import ThreatDetector
-
-    class S:
-        def emit(self, *a, **k):
-            pass
-
-    td = ThreatDetector(S(), config={}, store_path=":memory:")
+    td = _detector(tmp_path)
     assert td.ddos_pps_threshold == 2000
     assert td.port_scan_threshold == 40
 
 
 @pytest.mark.parametrize("bad", ["이상한값", None, -1, 0])
-def test_threshold_config_is_sanitised(bad):
-    from modules.threat_detector import ThreatDetector
-
-    class S:
-        def emit(self, *a, **k):
-            pass
-
-    td = ThreatDetector(S(), config={"DDOS_PACKET_THRESHOLD": bad},
-                        store_path=":memory:")
+def test_threshold_config_is_sanitised(tmp_path, bad):
+    td = _detector(tmp_path, DDOS_PACKET_THRESHOLD=bad)
     assert td.ddos_pps_threshold >= 1
 
 

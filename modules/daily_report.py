@@ -241,21 +241,21 @@ class DailyReport:
     def _fallback_briefing(hl):
         risk = "높음" if hl["critical"] else ("주의" if hl["high"] or hl["true_positives"] else "안정")
         lines = [
-            f"■ 오늘의 요약 (자동 생성 · 규칙 기반)",
+            "■ 오늘의 요약 (자동 생성 · 규칙 기반)",
             f"보안 상태: {risk}. 총 {hl['alerts_total']}건의 알림 중 CRITICAL {hl['critical']}건, "
             f"HIGH {hl['high']}건이 발생했습니다.",
             "",
-            f"■ 자동 대응 성과",
+            "■ 자동 대응 성과",
             f"AI 트리아지가 정탐 {hl['true_positives']}건을 확정하고 오탐 {hl['false_positives']}건을 "
             f"자동 종결했습니다(오탐율 {hl['fp_rate']}%). 자동 차단 {hl['auto_blocked']}건, "
             f"안전장치로 오차단 방지 {hl['blocks_prevented']}건.",
             "",
-            f"■ 주요 위협",
+            "■ 주요 위협",
             f"가장 많은 위협 유형은 '{hl['top_threat']}', 최다 공격 출발지는 {hl['top_source']} 입니다. "
             f"EDR {hl['edr_detections']}건 · Sigma {hl['sigma_matches']}건 · 악성연결 "
             f"{hl['malicious_conns']}건 · SSH 브루트포스 {hl['brute_alerts']}건 탐지.",
             "",
-            f"■ 권고 (내일까지)",
+            "■ 권고 (내일까지)",
             "1) 정탐으로 확정된 인시던트의 후속 조치(차단 유지/근본원인) 확인",
             "2) 오탐율이 높으면 탐지 임계값·화이트리스트 조정",
             "3) 차단된 IP의 평판(AbuseIPDB)·재접속 여부 모니터링",

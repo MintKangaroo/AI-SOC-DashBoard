@@ -14,7 +14,6 @@
 각 시나리오는 실제 탐지 로직을 호출하므로, 룰/임계값을 바꾸면 그 결과가
 곧바로 커버리지에 반영된다(탐지 회귀 테스트 역할).
 """
-import time
 import threading
 from datetime import datetime
 from collections import deque

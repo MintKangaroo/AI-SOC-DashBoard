@@ -22,7 +22,7 @@ import socket
 import random
 import threading
 from datetime import datetime
-from collections import deque, Counter, defaultdict
+from collections import deque, Counter
 
 from modules.access_log_parser import _PRIVATE_PREFIXES
 

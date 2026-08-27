@@ -112,13 +112,25 @@ pyflakes 40건. 대표적인 것:
 - `modules/ml_analyst.py:27` `tensorflow as tf` — requirements에서 주석 처리된 선택 의존성인데 import 후 미사용.
 - f-string 자리표시자 누락 8건 (`app.py:54,57,146,150,179`, `soar.py:152`, `daily_report.py:244-258`) — 동작에는 영향 없으나 린터가 잡을 노이즈.
 
+**✅ 수정 완료** (`ci/github-actions`): 미사용 import 와 불필요한 f-string 접두사 20건을 정리했다(`ruff --fix` 19건 + 수동 1건). 이제 `ruff check .` 가 깨끗하며 CI 가 매 push 마다 검사한다.
+
+의도적인 것은 남겼다:
+- `api/routes.py` — 임포트 부수효과로 라우트를 등록한다. 지우면 엔드포인트 94개가 사라진다. `pyproject.toml` 의 `per-file-ignores` 로 명시했다.
+- `sysmon_parser` 의 `win32evtlogutil`/`win32con` — pywin32 일괄 가용성 확인용. `# noqa: F401` 과 사유 주석을 달았다.
+
+부수 발견: `sysmon_parser._detect_metasploit` 의 지역변수 `path` 가 미사용이었는데, 규칙 6의 주석은 "의심 **경로**에서 실행되는 인코딩된 PowerShell"이라고 되어 있었다. **경로 검사가 구현된 적이 없다.** 없는 탐지를 새로 만들지 않고 변수를 제거하며 주석을 실제 동작에 맞췄다. `image_path` 기반 판정(Temp/AppData 실행 등)은 미구현 항목으로 남는다.
+
 복붙 중복 로직은 **프론트에 집중**되어 있다. 각 패널 JS가 동일한 "fetch → 실패 시 무시 → tbody.innerHTML 교체" 패턴을 18번 반복한다(`13-watchlist.js:75`, `18-snort.js:77`, `16-honeypot.js:99` 등이 구조적으로 동일). 백엔드 쪽 중복은 심각하지 않다.
 
 ### A-5. 타입 힌트 / 린터 — [P3]
 
 `def` 649개 중 반환 애노테이션 8개(**1.2%**), 인자 애노테이션 12개. `ruff`/`mypy`/`flake8`/`pyproject.toml`/`setup.cfg` 전부 부재.
 
-**수정 방향**: mypy는 지금 도입해도 소음만 낸다 — 비추천. **`ruff`만 도입**하되 `E,F,I` 규칙으로 시작(미사용 import·f-string·import 정렬만 잡힘, 40건이 한 번에 정리된다). 타입 힌트는 새로 쓰는 코드에만 적용하는 점진 전략을 권한다. **작업량 S**
+**✅ 부분 수정** (`ci/github-actions`, 2026-08-27): `ruff` 를 도입하고 `pyproject.toml` 에 설정했다.
+
+규칙은 **`F`(pyflakes)만** 켰다. `E,W,I` 를 한 번에 켜면 기존 코드 전반에 수백 건이 뜨고, 일괄 수정하면 리뷰 불가능한 대형 diff 가 된다. 점진적으로 넓힌다.
+
+mypy 는 도입하지 않았다 — 타입 힌트 커버리지가 1.2% 라 지금 켜면 소음만 낸다. 새 코드에만 힌트를 붙여 나가다 커버리지가 오르면 재검토한다. 이 판단을 `pyproject.toml` 주석에 남겼다.
 
 ### A-6. `get_services()` 6-튜플 — [P3]
 
@@ -608,7 +620,7 @@ F-1 작업 중 발견했다. `tests/test_config_wiring.py` 가 모듈 레벨에�
 
 **수정 방향**: `PatchManager`에 ansible 바이너리를 주입 가능하게 하고 테스트는 `ansible_bin=None`으로 시뮬레이션 경로를 강제. 또는 `demo=True`일 때 실제 subprocess를 타지 않도록. 후자가 "데모 fallback" 규칙에도 부합한다. **작업량 S**
 
-### D-3. [P2] CI 부재 — 워크플로 제안
+### D-3. [~~P2~~ **수정됨**] CI 부재
 
 `.github/` 디렉터리 자체가 없다. 제안:
 
@@ -630,7 +642,16 @@ jobs:
       - run: pip-audit -r requirements.txt
 ```
 
-주의: CI 러너에는 ansible/nmap이 없으므로 D-2의 flake가 오히려 CI에서는 안 난다. 반대로 로컬에서만 깨진다 — D-2를 먼저 고쳐야 하는 이유다. **작업량 M**
+**✅ 수정 완료** (`ci/github-actions`, 2026-08-27): `.github/workflows/ci.yml` 신설.
+
+- **잡 2개** — `test`(ruff + pytest + 커버리지 하한), `audit`(pip-audit).
+- `audit` 은 `continue-on-error: true` 다. 신규 CVE 공개로 빨간불이 되어도 테스트 잡을 막지 않되, 보안 도구인 만큼 결과는 보이게 유지한다.
+- 커버리지 하한 **70%** (실측 74%). 내려가지 않게만 막고 목표는 점진적으로 올린다.
+- 차단 경로를 `SOAR_BLOCK_MODE=simulate` 로 고정해 CI 가 어떤 경우에도 방화벽을 건드리지 않게 했다.
+
+**검증 방식**: 워크플로를 눈으로 읽는 대신, `git archive` 로 **추적 파일만 뽑아 `.env` 없는 fresh clone 상태를 만들고** CI 가 실행할 명령을 그대로 돌렸다. 결과: ruff 통과, pytest 436건 통과, 커버리지 74%.
+
+D-2(flaky)는 이미 해소돼 있어 CI 도입을 막지 않았다.
 
 ### D-4. [~~양호~~ **정정 · 수정됨**] 의존성 고정값이 실제와 달랐다
 

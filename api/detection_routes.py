@@ -1,7 +1,7 @@
 """탐지·수집: 패킷 · 위협알림(이력/CSV) · Sysmon · 해시
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, _hash_scan_allowed, audit_record
+from api._common import api_bp, get_services, _hash_scan_allowed, audit_record
 
 
 # ------------------------------------------------------------------ #

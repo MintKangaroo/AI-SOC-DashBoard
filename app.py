@@ -56,10 +56,10 @@ def create_app():
         gen = secrets.token_urlsafe(9)
         auth.password_hash = AuthManager(auth.username, password=gen).password_hash
         print("=" * 56)
-        print(f"[SOC] 대시보드 로그인 비밀번호 미설정 — 임시 발급")
+        print("[SOC] 대시보드 로그인 비밀번호 미설정 — 임시 발급")
         print(f"[SOC]   사용자명: {auth.username}")
         print(f"[SOC]   비밀번호: {gen}")
-        print(f"[SOC]   (.env의 DASH_PASSWORD 로 고정 설정 권장)")
+        print("[SOC]   (.env의 DASH_PASSWORD 로 고정 설정 권장)")
         print("=" * 56)
     elif not auth_on:
         print("[SOC] 경고: AUTH_ENABLED=False — 인증 없이 노출됩니다.")
@@ -335,11 +335,11 @@ def create_app():
         # 미인증 소켓 연결 거부 (세션 쿠키로 검증)
         if auth_on and not session.get("user"):
             return False
-        print(f"[SOC] 클라이언트 연결됨")
+        print("[SOC] 클라이언트 연결됨")
 
     @socketio.on("disconnect")
     def on_disconnect():
-        print(f"[SOC] 클라이언트 연결 해제")
+        print("[SOC] 클라이언트 연결 해제")
 
     @socketio.on("chat_message")
     def on_chat(data):
@@ -368,7 +368,7 @@ app, socketio = create_app()
 
 if __name__ == "__main__":
     cfg = config.Config()
-    print(f"[SOC] 보안관제 대시보드 v1.0 시작")
+    print("[SOC] 보안관제 대시보드 v1.0 시작")
     print(f"[SOC] http://{cfg.HOST}:{cfg.PORT}")
     print(f"[SOC] 데모 모드: {cfg.DEMO_MODE}")
     socketio.run(

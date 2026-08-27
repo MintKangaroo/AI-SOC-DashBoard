@@ -149,7 +149,7 @@ class SOAREngine:
                 print(f"[SOAR] ⚠ 경고: {self.block_mode} 모드이나 passwordless sudo 불가 "
                       f"→ 실제 차단은 실패하고 simulate 로 기록됩니다. "
                       f"sudoers 설정 필요.")
-        print(f"[SOAR] 안전장치: 사설·Tailscale(100.64/10)·서버자신"
+        print("[SOAR] 안전장치: 사설·Tailscale(100.64/10)·서버자신"
               + (f"·화이트리스트{list(self._allowlist)}" if self._allowlist else "")
               + " 절대 차단 안 함")
 

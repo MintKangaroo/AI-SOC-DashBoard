@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 동시에 같은 브랜치가 여러 번 밀려도 마지막 것만 돌린다
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: 린트 · 테스트
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # requirements.txt 의 고정 버전이 검증된 조합이다(docs/AUDIT.md D-4)
+          python-version: "3.10"
+          cache: pip
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest coverage
+
+      - name: 린트 (ruff)
+        run: ruff check .
+
+      - name: 테스트
+        # CI 에는 .env 가 없다 — fresh clone 과 같은 상태에서 통과해야 한다.
+        # 차단 경로는 simulate 로 고정해 어떤 경우에도 방화벽을 건드리지 않는다.
+        env:
+          SOAR_BLOCK_MODE: simulate
+          SOAR_AUTO_BLOCK: "False"
+          PATCH_APPLY_ENABLED: "False"
+          HONEYPOT_ENABLED: "False"
+          SYSLOG_ENABLED: "False"
+          NTFY_ENABLED: "False"
+        run: |
+          coverage run --source=modules,api,experimental --omit='*/tests/*' -m pytest
+          coverage report
+
+      - name: 커버리지 하한
+        # 실측 74%. 내려가지 않게만 막고 목표는 점진적으로 올린다.
+        run: coverage report --fail-under=70
+
+  audit:
+    name: 의존성 취약점
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 신규 CVE 공개로 빨간불이 되어도 테스트 잡을 막지 않는다.
+    # 보안 도구인 만큼 결과는 봐야 하므로 잡 자체는 유지한다.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install pip-audit
+      - name: pip-audit
+        run: pip-audit -r requirements.txt --desc

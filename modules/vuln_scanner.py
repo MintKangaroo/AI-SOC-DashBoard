@@ -17,8 +17,6 @@ CVE 심각도는 데모/휴리스틱 값 — 실제 관제는 nmap+vulners 또�
 import os
 import re
 import sys
-import time
-import json
 import socket
 import shutil
 import tempfile

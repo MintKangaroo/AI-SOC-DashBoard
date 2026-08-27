@@ -5,7 +5,6 @@
 import threading
 import time
 import random
-import hashlib
 from datetime import datetime
 from collections import defaultdict, deque
 
@@ -16,7 +15,7 @@ except ImportError:
     PYSHARK_AVAILABLE = False
 
 try:
-    from scapy.all import sniff, IP, TCP, UDP, ICMP, ARP, Raw
+    from scapy.all import sniff, IP, TCP, UDP, ICMP, ARP
     SCAPY_AVAILABLE = True
 except ImportError:
     SCAPY_AVAILABLE = False

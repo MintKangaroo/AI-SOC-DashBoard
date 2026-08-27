@@ -1,6 +1,6 @@
 import os
 
-from flask import Blueprint, request, jsonify, current_app, session
+from flask import Blueprint, current_app, session
 
 api_bp = Blueprint("api", __name__)
 

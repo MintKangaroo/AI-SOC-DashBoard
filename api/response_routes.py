@@ -1,7 +1,7 @@
 """대응: SOAR · 인시던트 · 대시보드 요약
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, _hash_scan_allowed, audit_record, _actor
+from api._common import api_bp, get_services, _mitre, audit_record, _actor
 
 
 # ------------------------------------------------------------------ #

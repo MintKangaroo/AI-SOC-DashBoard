@@ -1,0 +1,26 @@
+# 린터 설정 — CI(.github/workflows/ci.yml)와 로컬이 같은 규칙을 쓴다.
+#
+# 감사(docs/AUDIT.md A-5)에서 mypy 는 도입하지 않기로 했다. 타입 힌트
+# 커버리지가 1.2% 라 지금 켜면 소음만 생산한다. 새로 쓰는 코드에만 힌트를
+# 붙여 나가다가 커버리지가 오르면 그때 검토한다.
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["venv", ".venv", "data", "logs", "static", "portfolio"]
+
+[tool.ruff.lint]
+# F = pyflakes(미사용 import·변수·f-string), E/W = pycodestyle, I = import 정렬
+# 지금은 F 만 강제한다. E/W/I 를 한 번에 켜면 기존 코드 전반에 수백 건이 뜨고,
+# 그것을 일괄 수정하면 리뷰 불가능한 대형 diff 가 된다. 점진적으로 넓힌다.
+select = ["F"]
+
+[tool.ruff.lint.per-file-ignores]
+# 라우트 집계자 — 임포트 부수효과로 api_bp 에 라우트를 등록한다.
+# 지우면 엔드포인트 94개가 사라진다.
+"api/routes.py" = ["F401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# 소켓을 여는 테스트가 있어 병렬 실행은 기본으로 켜지 않는다.
+addopts = "-q"

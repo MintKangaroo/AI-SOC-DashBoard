@@ -4,7 +4,6 @@
 """
 import hashlib
 import os
-import json
 from collections import deque
 from datetime import datetime
 from pathlib import Path

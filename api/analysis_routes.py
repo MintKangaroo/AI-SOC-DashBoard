@@ -1,7 +1,7 @@
 """위협 분석: AI · ML · MITRE · 위협 인텔리전스
    (api_bp 공유 — api/routes.py 가 임포트해 라우트를 등록한다)"""
 from flask import request, jsonify, current_app
-from api._common import api_bp, get_services, _mitre, _hash_scan_allowed, audit_record, _actor
+from api._common import api_bp, get_services, _mitre, audit_record, _actor
 
 
 # ------------------------------------------------------------------ #

@@ -10,9 +10,11 @@ from datetime import datetime
 from collections import deque
 
 try:
+    # pywin32 일괄 가용성 확인 — 뒤 두 개는 직접 쓰지 않지만 함께 있어야
+    # Windows 이벤트 로그 경로가 정상 동작한다.
     import win32evtlog
-    import win32evtlogutil
-    import win32con
+    import win32evtlogutil  # noqa: F401
+    import win32con  # noqa: F401
     WIN32_AVAILABLE = True
 except ImportError:
     WIN32_AVAILABLE = False
@@ -103,7 +105,6 @@ def detect_metasploit(entry):
     """
     msg = (entry.get("message") or "").lower()
     proc = (entry.get("process") or "").lower()
-    path = (entry.get("image_path") or "").lower()
     eid  = entry.get("event_id")
 
     # 1) 커맨드라인/메시지 시그니처
@@ -132,7 +133,9 @@ def detect_metasploit(entry):
         if "0x1010" in msg or "0x1410" in msg or "0x143a" in msg:
             return True, "LSASS 고권한 접근 — 자격증명 덤프 의심", "T1003.001"
 
-    # 6) 의심 경로에서 실행되는 인코딩된 PowerShell
+    # 6) 인코딩된 PowerShell 실행 (Metasploit web_delivery 패턴)
+    #    주의: 원래 주석은 "의심 경로에서"였으나 경로 검사는 구현된 적이 없다.
+    #    image_path 기반 판정(Temp/AppData 실행 등)은 미구현 — docs/AUDIT.md 참조.
     if "powershell" in proc and ("-enc" in msg or "-encodedcommand" in msg):
         return True, "PowerShell 인코딩 실행 (Metasploit web_delivery 패턴)", "T1059.001"
 

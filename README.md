@@ -4,6 +4,7 @@
 > 침해 시도를 실시간 관제하고, AI로 **정탐(True Positive)과 오탐(False Positive)을 구분**하며,
 > 탐지부터 자동대응(SOAR)·취약점 관리까지 SOC 업무 흐름을 하나의 대시보드로 구현했습니다.
 
+[![CI](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-SocketIO-000000?logo=flask&logoColor=white)
 ![Claude AI](https://img.shields.io/badge/AI-Claude-D97757)
@@ -165,7 +166,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **210개** (탐지·SOAR·인증·스캐너·퍼저·안전장치)
+- **테스트** — pytest **436개** (CI 에서 매 push 자동 실행, 커버리지 74%) (탐지·SOAR·인증·스캐너·퍼저·안전장치)
 
 ---
 
@@ -220,7 +221,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (29개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~14, 순서대로 로드)
-├── tests/                    # pytest 210개
+├── tests/                    # pytest 436개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```
