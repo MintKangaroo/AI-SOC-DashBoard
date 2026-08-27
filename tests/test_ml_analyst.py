@@ -281,3 +281,54 @@ def test_model_dir_has_no_orphan_qtable():
 def test_feature_columns_match_analyst_feature_names():
     """저장 스키마와 모델 입력 순서가 어긋나면 재학습 데이터가 조용히 망가진다."""
     assert FEATURE_COLUMNS == FEATURE_NAMES
+
+
+# ─────────── 5. 평가 스크립트 ───────────
+
+def _load_eval_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "eval_ml", REPO / "scripts" / "eval_ml.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_eval_script_reports_insufficiency_instead_of_fake_numbers():
+    """데이터가 부족하면 그럴듯한 지표 대신 부족 사유를 내야 한다."""
+    ev = _load_eval_module()
+    survey = {"verdict": {"real_features": 0, "human_labels": 0,
+                          "can_retrain_if": False, "can_evaluate": False,
+                          "features_needed": 3000, "labels_needed": 100}}
+    result = ev.real_evaluation(survey)
+    assert result["status"] == "insufficient_features"
+    assert "부족" in result["detail"]
+
+    survey["verdict"].update(real_features=5000, can_retrain_if=True)
+    result = ev.real_evaluation(survey)
+    assert result["status"] == "insufficient_labels"
+
+
+def test_eval_script_survey_runs_without_data():
+    """DB 가 없거나 비어 있어도 조사는 예외 없이 끝나야 한다."""
+    ev = _load_eval_module()
+    data = ev.survey()
+    assert "verdict" in data and "features" in data
+    assert isinstance(data["verdict"]["human_labels"], int)
+
+
+def test_rule_baseline_covers_every_class():
+    """베이스라인이 특정 클래스를 아예 못 내면 비교가 성립하지 않는다."""
+    ev = _load_eval_module()
+    from experimental.synthetic_data import generate_training_data
+    X, y = generate_training_data()
+    predicted = {ev.rule_baseline(x) for x in X}
+    assert predicted == set(range(6)), f"미출력 클래스 있음: {set(range(6)) - predicted}"
+
+
+def test_synthetic_control_carries_caveat():
+    """합성 수치가 caveat 없이 유출되면 성능 주장으로 오독된다."""
+    ev = _load_eval_module()
+    s = ev.synthetic_control()
+    assert s["caveat"] and "모델 품질이 아니라" in s["caveat"]
+    assert s["rule_f1_macro"] > 0.99   # 규칙만으로도 거의 만점
