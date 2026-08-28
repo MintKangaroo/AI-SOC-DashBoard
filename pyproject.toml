@@ -24,3 +24,6 @@ select = ["F"]
 testpaths = ["tests"]
 # 소켓을 여는 테스트가 있어 병렬 실행은 기본으로 켜지 않는다.
 addopts = "-q"
+# 저장소 루트를 sys.path 에 넣는다. 없으면 `python -m pytest` 로는 되고 `pytest`
+# 로는 `No module named 'modules'` 로 죽는다 — 실제로 CI 에서 그렇게 깨졌다.
+pythonpath = ["."]

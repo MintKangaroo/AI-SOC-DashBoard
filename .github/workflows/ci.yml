@@ -39,7 +39,7 @@ jobs:
         # 탐지 룰은 코드다. 룰이 잡아야 할 것을 잡고 잡지 말아야 할 것을 안 잡는지
         # 매 push 마다 확인한다. 실패 원인이 전체 테스트에 묻히지 않도록 먼저 따로
         # 돌린다 — 룰이 깨졌는지 앱이 깨졌는지 로그에서 바로 갈린다.
-        run: pytest tests/test_sigma_rules.py -q
+        run: python -m pytest tests/test_sigma_rules.py -q
 
       - name: 테스트
         # CI 에는 .env 가 없다 — fresh clone 과 같은 상태에서 통과해야 한다.
