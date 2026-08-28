@@ -35,6 +35,12 @@ jobs:
       - name: 린트 (ruff)
         run: ruff check .
 
+      - name: 탐지 룰 검증 (detection-as-code)
+        # 탐지 룰은 코드다. 룰이 잡아야 할 것을 잡고 잡지 말아야 할 것을 안 잡는지
+        # 매 push 마다 확인한다. 실패 원인이 전체 테스트에 묻히지 않도록 먼저 따로
+        # 돌린다 — 룰이 깨졌는지 앱이 깨졌는지 로그에서 바로 갈린다.
+        run: pytest tests/test_sigma_rules.py -q
+
       - name: 테스트
         # CI 에는 .env 가 없다 — fresh clone 과 같은 상태에서 통과해야 한다.
         # 차단 경로는 simulate 로 고정해 어떤 경우에도 방화벽을 건드리지 않는다.
@@ -50,7 +56,7 @@ jobs:
           coverage report
 
       - name: 커버리지 하한
-        # 실측 74%. 내려가지 않게만 막고 목표는 점진적으로 올린다.
+        # 실측 75%. 내려가지 않게만 막고 목표는 점진적으로 올린다.
         run: coverage report --fail-under=70
 
   audit:

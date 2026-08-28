@@ -22,3 +22,26 @@ detection:
       - '/sh'
       - '/dash'
   condition: selection_parent and selection_shell
+tests:
+  positive:
+    - name: apache2 가 bash 를 스폰
+      event:
+        Image: /bin/bash
+        CommandLine: bash -c id
+        ParentImage: /usr/sbin/apache2
+    - name: php-fpm 이 sh 를 스폰
+      event:
+        Image: /bin/sh
+        CommandLine: sh -c 'whoami'
+        ParentImage: /usr/sbin/php-fpm
+  negative:
+    - name: sshd 가 셸을 스폰 (정상 로그인)
+      event:
+        Image: /bin/bash
+        CommandLine: -bash
+        ParentImage: /usr/sbin/sshd
+    - name: nginx 가 셸이 아닌 프로세스를 스폰
+      event:
+        Image: /usr/bin/python3
+        CommandLine: python3 /srv/app/worker.py
+        ParentImage: /usr/sbin/nginx

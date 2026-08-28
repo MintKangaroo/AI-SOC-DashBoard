@@ -111,6 +111,8 @@ flowchart LR
 - **해시 검사** — MD5/SHA256 악성 DB 대조, EICAR 검증 (`hash_checker`)
 - **MITRE ATT&CK** — 위협·Sysmon 이벤트를 14 Tactic × Technique 매트릭스에 실시간 매핑 (`mitre_attack`)
 
+- **detection-as-code** — 각 Sigma 룰이 `tests:` 블록에 정탐/오탐 샘플을 함께 담고, CI 가 매 push 마다 *잡아야 할 것을 잡고 잡지 말아야 할 것을 안 잡는지* 검증합니다 (실제로 이 검증이 크립토마이너 룰의 오탐 하나를 잡아냈습니다)
+
 ### ③ 위협 인텔 · 분석
 - **IP 평판** — AbuseIPDB 조회(캐시·데모 fallback), 정탐 근거 강화 (`ip_reputation`)
 - **위협 인텔** — 악성 IP/URL 피드 관리 (`threat_intel`)
@@ -166,7 +168,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **470+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **550+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -236,7 +238,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (33개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~18, 순서대로 로드)
-├── tests/                    # pytest 470+개
+├── tests/                    # pytest 550+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

