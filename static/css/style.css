@@ -1500,3 +1500,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .cov-gap-row .tac  { min-width:92px; color:#8b949e; }
 .cov-gap-row .tid  { min-width:64px; font-family:monospace; color:#f85149; }
 .cov-gap-row .tko  { color:#e6edf3; }
+
+/* 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) */
+.bd-gate { display:inline-block; padding:1px 6px; margin:1px 2px 1px 0; border-radius:3px;
+           font-size:10px; border:1px solid transparent; }
+.bd-gate.pass { background:rgba(63,185,80,.15);  border-color:#3fb950; color:#b7e4c1; }
+.bd-gate.fail { background:rgba(248,81,73,.15);  border-color:#f85149; color:#ffb3ad; }
+.bd-replay { border:1px solid var(--border); border-radius:6px; padding:8px; margin-top:6px; }
+.bd-replay .flip { color:#d29922; font-weight:700; }

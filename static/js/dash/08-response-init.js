@@ -2,7 +2,129 @@
    (dashboard.js 원본 순서 유지 — 순서대로 로드) */
 (function () {
   /* ════════════════════ SOAR 자동 대응 ════════════════════ */
+  /* ── 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) ── */
+
+  function loadBlockDecisions() {
+    const sel = document.getElementById('bd-filter');
+    // HTML 이 아니라 URL 로 들어가는 값이다 — escapeHtml 이 아니라 인코딩이 맞다
+    const q = sel && sel.value !== 'all'
+      ? '?' + new URLSearchParams({ blocked: sel.value }).toString() : '';
+    fetch('/api/soar/decisions' + q)
+      .then(r => r.json())
+      .then(renderBlockDecisions)
+      .catch(() => {});
+  }
+
+  function renderBlockDecisions(d) {
+    const summary = document.getElementById('bd-summary');
+    const tbody = document.getElementById('bd-tbody');
+    if (summary) {
+      if (!d.enabled) {
+        summary.textContent = '결정 로그가 비활성입니다.';
+      } else {
+        const s = d.stats || {};
+        const top = (s.top_blockers || [])[0];
+        summary.innerHTML =
+          `총 <b>${s.total || 0}</b>건 · 차단 <b class="text-danger">${s.blocked || 0}</b> · `
+          + `차단 안 함 <b>${s.skipped || 0}</b>`
+          + (top ? ` · 가장 자주 막은 조건: <b class="text-warning">${escapeHtml(top.label)}</b> (${top.count}건)` : '');
+      }
+    }
+    if (!tbody) return;
+    const rows = d.decisions || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center p-3">결정 기록 없음</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const badge = r.blocked
+        ? '<span class="badge bg-danger">차단됨</span>'
+        : `<span class="badge bg-secondary">${escapeHtml(r.outcome_label || '차단 안 함')}</span>`;
+      const blockers = (r.blocked_by || []).length
+        ? (r.gates || []).filter(g => !g.passed)
+            .map(g => `<span class="bd-gate fail">${escapeHtml(g.label)}</span>`).join('')
+        : '<span class="text-muted">—</span>';
+      const conf = r.signals && r.signals.confidence != null ? r.signals.confidence + '%' : '-';
+      return `<tr>
+        <td class="font-monospace">${escapeHtml(r.ts)}</td>
+        <td class="font-monospace">${escapeHtml(r.src_ip || '-')}</td>
+        <td>${badge}</td>
+        <td>${blockers}</td>
+        <td class="font-monospace">${escapeHtml(conf)}</td>
+        <td><button class="btn btn-xs btn-outline-cyan"
+                    onclick="showBlockDecision(${Number(r.id)})">근거</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* 결정 하나를 펼쳐 게이트별 통과 여부와 신호를 보여주고, 임계값을 바꿨다면
+     결과가 달라졌을지 재생한다. 재생은 조회 전용이다 — 실제 차단을 하지 않는다. */
+  function showBlockDecision(id) {
+    fetch(`/api/soar/decisions/${id}`)
+      .then(r => r.json())
+      .then(rec => {
+        const box = document.getElementById('bd-detail');
+        if (!box || rec.error) return;
+        const gates = (rec.gates || []).map(g =>
+          `<span class="bd-gate ${g.passed ? 'pass' : 'fail'}">`
+          + `${g.passed ? '✓' : '✗'} ${escapeHtml(g.label)}`
+          + (g.id === 'confidence' ? ` (${escapeHtml(g.actual)}/${escapeHtml(g.required)})` : '')
+          + '</span>').join('');
+        const sig = rec.signals || {};
+        box.innerHTML = `
+          <div class="bd-replay">
+            <div class="mb-1"><b>결정 #${Number(rec.id)}</b>
+              <span class="font-monospace ms-2">${escapeHtml(rec.src_ip || '-')}</span>
+              <span class="badge ${rec.blocked ? 'bg-danger' : 'bg-secondary'} ms-2">${escapeHtml(rec.outcome_label || '')}</span>
+            </div>
+            <div class="mb-1">${gates}</div>
+            <div class="small text-muted mb-1">
+              판정: ${escapeHtml(sig.verdict_by || '-')} ·
+              평판: ${escapeHtml((sig.ip_reputation || {}).score ?? '-')} ·
+              근거: ${escapeHtml((sig.evidence || []).join(', ') || '없음')}
+              ${sig.ai_summary ? `<br/>AI: ${escapeHtml(sig.ai_summary)}` : ''}
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <span class="small">임계값을 바꿨다면?</span>
+              <input id="bd-replay-conf" type="number" min="0" max="100" value="${Number(rec.thresholds?.min_block_confidence ?? 95)}"
+                     class="form-control form-control-sm bg-dark text-white border-secondary" style="width:90px">
+              <label class="form-check form-switch small mb-0">
+                <input id="bd-replay-corr" class="form-check-input" type="checkbox"
+                       ${rec.thresholds?.require_corroboration ? 'checked' : ''}> 독립 근거 요구
+              </label>
+              <button class="btn btn-xs btn-cyan" onclick="replayBlockDecision(${Number(rec.id)})">재생</button>
+            </div>
+            <div id="bd-replay-out" class="small mt-2"></div>
+          </div>`;
+      })
+      .catch(() => {});
+  }
+
+  function replayBlockDecision(id) {
+    const conf = document.getElementById('bd-replay-conf');
+    const corr = document.getElementById('bd-replay-corr');
+    const p = new URLSearchParams({
+      min_confidence: conf ? conf.value : '',
+      require_corroboration: corr && corr.checked ? 'true' : 'false',
+    });
+    fetch(`/api/soar/decisions/${id}/replay?` + p.toString())
+      .then(r => r.json())
+      .then(res => {
+        const out = document.getElementById('bd-replay-out');
+        if (!out || res.error) return;
+        const before = res.original.blocked ? '차단' : '차단 안 함';
+        const after = res.replayed.blocked ? '차단' : '차단 안 함';
+        const left = (res.replayed.blocked_by || []).length
+          ? ` · 남은 미충족: ${res.replayed.blocked_by.map(escapeHtml).join(', ')}` : '';
+        out.innerHTML = res.changed
+          ? `<span class="flip">결과가 바뀐다: ${escapeHtml(before)} → ${escapeHtml(after)}</span>${left}`
+          : `결과 동일 (${escapeHtml(after)})${left}`;
+      })
+      .catch(() => {});
+  }
+
   function loadSoar() {
+    loadBlockDecisions();
     fetch('/api/soar/status')
       .then(r => r.json())
       .then(renderSoar)
@@ -653,8 +775,9 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    approveAllSoar, loadDecisionSupport, loadIncidents, loadSoar, retrySoarExecution,
-    reviewSoarApproval, saveIncident, schedulePriorityReload, selectIncident,
-    showVerdictDetail, soarManualBlock, soarTogglePb, soarUnblock, testVirusTotal,
+    approveAllSoar, loadBlockDecisions, loadDecisionSupport, loadIncidents, loadSoar,
+    replayBlockDecision, retrySoarExecution, reviewSoarApproval, saveIncident,
+    schedulePriorityReload, selectIncident, showBlockDecision, showVerdictDetail,
+    soarManualBlock, soarTogglePb, soarUnblock, testVirusTotal,
   });
 })();

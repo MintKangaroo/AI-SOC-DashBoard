@@ -39,6 +39,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `experimental/` | 격리된 미검증 모델(RF·LSTM·Q-Learning) — 제품 코드가 import 하지 않음 |
 | `modules/mitre_attack.py` | MITRE ATT&CK 14 Tactic × Technique 매핑 및 카운트 |
 | `modules/coverage.py` | 탐지 커버리지 자가 진단 — 룰·퍼플팀검증·히트 3축 조인, 공백=다음에 쓸 룰 |
+| `modules/block_decision.py` | 차단 결정 재현 로그 — 게이트 판정(`evaluate_gates`)이 곧 실제 차단 결정. 차단 안 한 건도 기록, 임계값 replay |
 | `data/sigma/*.yml` | Sigma 탐지 룰. **각 룰은 `tests:` 블록에 positive/negative 샘플을 함께 담는다** — CI 가 강제 |
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |

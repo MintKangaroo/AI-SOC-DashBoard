@@ -26,6 +26,7 @@ from collections import deque, Counter
 from modules.playbooks import steps_for
 from modules.soar_execution_store import SOARExecutionStore
 
+from modules.block_decision import evaluate_gates
 from modules.logging_setup import get_logger
 
 _log = get_logger(__name__)
@@ -56,6 +57,8 @@ class SOAREngine:
             "SOAR_FIREWALL_HELPER", "/usr/local/sbin/soc-ufw"))
         self.auto_block = str(self.config.get("SOAR_AUTO_BLOCK", "True")) == "True"
         self.approval_required = bool(self.config.get("SOAR_APPROVAL_REQUIRED", False))
+        # 차단 결정 재현 로그 (wiring 에서 주입, 없으면 기록만 건너뛴다)
+        self.block_decisions = None
         self.min_block_confidence = int(self.config.get("SOAR_MIN_BLOCK_CONFIDENCE", 95))
         corroboration = self.config.get("SOAR_REQUIRE_CORROBORATION", False)
         self.require_corroboration = (corroboration is True or
@@ -545,21 +548,78 @@ class SOAREngine:
                 pass
 
         # PB-AUTO-BLOCK: 정탐 + CRITICAL + 외부 IP + 고신뢰
+        #
+        # 게이트 판정을 evaluate_gates() 하나로 모으고 **그 결과로 차단한다.**
+        # 로그를 위해 판정을 다시 계산하면 로그와 행동이 갈라질 수 있고, 그런
+        # 로그는 없느니만 못하다 (docs/AUDIT.md 3단계 제안 C).
         block_evidence = self._block_evidence(alert)
-        enough_evidence = (not self.require_corroboration or len(block_evidence) >= 2)
-        if (self._pb_enabled("PB-AUTO-BLOCK") and self.auto_block
-                and alert.get("severity") == "CRITICAL"
-                and confidence >= self.min_block_confidence and enough_evidence
-                and not (alert.get("details") or {}).get("demo")
-                and self._is_external(src_ip)):
+        should_block, gates = evaluate_gates(
+            playbook_enabled=self._pb_enabled("PB-AUTO-BLOCK"),
+            auto_block=self.auto_block,
+            severity=alert.get("severity"),
+            is_true_positive=bool(is_tp),
+            confidence=confidence,
+            min_confidence=self.min_block_confidence,
+            evidence=block_evidence,
+            require_corroboration=self.require_corroboration,
+            is_demo=bool((alert.get("details") or {}).get("demo")),
+            is_external=self._is_external(src_ip),
+        )
+        reason = (f"{who} 정탐 CRITICAL (알림 #{alert_id}, {confidence}%, "
+                  f"근거: {', '.join(block_evidence)})")
+        outcome = {"status": "gates_not_met"}
+        if should_block:
             self._pb_run("PB-AUTO-BLOCK")
-            self._block_ip(src_ip,
-                           f"{who} 정탐 CRITICAL (알림 #{alert_id}, {confidence}%, "
-                           f"근거: {', '.join(block_evidence)})",
-                           playbook="PB-AUTO-BLOCK")
+            self._block_ip(src_ip, reason, playbook="PB-AUTO-BLOCK", outcome=outcome)
+        # 게이트를 통과해도 안전장치·승인 큐가 차단을 막을 수 있다. 실제 결과를
+        # 받아 적어야 로그가 '차단됨'이라 말하고 실제로는 아닌 일이 없다.
+        self._record_block_decision(alert, gates, block_evidence, confidence,
+                                    who, summary, reason, should_block,
+                                    outcome["status"])
         if execution_id:
             self._execution_step(execution_id, "notify", "completed")
             self._execution_finish(execution_id, "completed")
+
+    def _record_block_decision(self, alert, gates, evidence, confidence,
+                               who, summary, reason, gates_passed, outcome):
+        """결정 시점의 입력 신호를 통째로 고정한다 (차단하지 않은 건도 남긴다).
+
+        실무에서 더 자주 묻는 질문은 "왜 안 막았나"다. 차단된 건만 남기면
+        그 질문에 답할 수 없다. 기록 실패가 차단 파이프라인을 멈추면 안 되므로
+        저장소 쪽에서 예외를 삼킨다.
+        """
+        if not self.block_decisions:
+            return
+        details = alert.get("details") or {}
+        reputation = details.get("ip_reputation") or {}
+        virustotal = details.get("virustotal") or {}
+        signals = {
+            "confidence": float(confidence),
+            "severity": alert.get("severity"),
+            "threat_type": alert.get("threat_type"),
+            "evidence": sorted(evidence or []),
+            "demo": bool(details.get("demo")),
+            "verdict_by": who,
+            # 제안 #6(AI 근거 추적) — 프롬프트 전문은 담지 않는다. 알림 사본이 된다.
+            "ai_summary": (summary or "")[:500],
+            "ai_model": getattr(self.ai, "model", None),
+            "ip_reputation": {"score": reputation.get("score"),
+                              "source": reputation.get("source")},
+            "virustotal": {"malicious": virustotal.get("malicious")},
+            "snort_sid": details.get("signature_id"),
+            "rule_id": details.get("rule_id") or details.get("sid"),
+        }
+        thresholds = {
+            "min_block_confidence": self.min_block_confidence,
+            "require_corroboration": self.require_corroboration,
+            "auto_block": self.auto_block,
+            "block_mode": self.block_mode,
+        }
+        self.block_decisions.record(
+            alert_id=alert.get("id"), src_ip=alert.get("src_ip"),
+            blocked=(outcome == "blocked"), gates=gates, signals=signals,
+            thresholds=thresholds, decided_by=who, reason=reason,
+            gates_passed=gates_passed, outcome=outcome)
 
     @staticmethod
     def _block_evidence(alert):
@@ -680,9 +740,21 @@ class SOAREngine:
     #  차단 실행
     # ------------------------------------------------------------------ #
 
-    def _block_ip(self, ip, reason, playbook, ttl_hours=None, bypass_approval=False):
+    def _block_ip(self, ip, reason, playbook, ttl_hours=None, bypass_approval=False,
+                  outcome=None):
+        """IP 차단. `outcome` 에 dict 를 주면 결과 경로를 채워 돌려준다.
+
+        반환값(True/False)만으로는 '실제로 막았다'와 '승인 대기 큐에 넣었다'가
+        구분되지 않는다. 차단 결정 로그가 "차단됨"이라 적었는데 실제로는 승인
+        대기였다면 그건 로그와 행동의 괴리다 — `outcome` 은 그것을 막는다.
+        """
+        def _done(status, value):
+            if outcome is not None:
+                outcome["status"] = status
+            return value
+
         if not ip:
-            return False
+            return _done("no_ip", False)
 
         # 안전장치: 사설/Tailscale/자기자신/화이트리스트는 절대 차단 금지
         blockable, why = self._is_blockable(ip)
@@ -691,14 +763,15 @@ class SOAREngine:
                 self.stats["blocks_prevented"] += 1
             self._log_action(playbook, "block_prevented", ip, "safe",
                              f"안전장치 발동 — {why} (차단 안 함) · 원래 사유: {reason}")
-            return False
+            return _done("prevented_by_safety", False)
 
         with self._lock:
             if ip in self.blocked_ips:
-                return False   # 이미 차단됨
+                return _done("already_blocked", False)
 
         if self.approval_required and not bypass_approval:
-            return self._queue_block_approval(ip, reason, playbook, ttl_hours)
+            return _done("queued_for_approval",
+                         self._queue_block_approval(ip, reason, playbook, ttl_hours))
 
         mode, result = self.block_mode, "simulated"
         if self.block_mode == "ufw":
@@ -734,7 +807,7 @@ class SOAREngine:
                 self.incidents.attach_block(ip, reason)
             except Exception:
                 pass
-        return True
+        return _done("blocked", True)
 
     def _queue_block_approval(self, ip, reason, playbook, ttl_hours):
         with self._lock:

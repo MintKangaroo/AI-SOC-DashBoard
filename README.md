@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **44개 모듈 / 약 13,700 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **45개 모듈 / 약 14,000 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -130,6 +130,8 @@ flowchart LR
 - **푸시 알림** — ntfy로 정탐·차단만 폰 통보(오탐 스팸 차단) (`notifier`)
 - **일일 AI 리포트** — 전 모듈 지표 집계 → Claude 브리핑 (`daily_report`)
 
+- **차단 결정 재현** — 자동 차단은 되돌리기 어려운 조치입니다. 결정 시점의 모든 입력 신호(신뢰도·AI 판정·평판·독립 근거)를 고정해 *왜 막았나*와 **왜 안 막았나**를 모두 남기고, 임계값을 바꿨다면 결과가 달라졌을지 재생합니다
+
 ### ⑤ 취약점 관리 · 검증
 - **취약점 스캔** — nmap 포트·서비스·CVE(vulners), **apt 교차검증으로 정탐/오탐 판정**, 원격은 ansible 조회 (`vuln_scanner`)
 - **웹 퍼징** — 엔드포인트 견고성 점검(5xx·행·입력반사), 사설 대상만·GET 전용·rate-limit (`web_fuzzer`)
@@ -168,7 +170,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **550+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **580+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -225,7 +227,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 44개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 45개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -238,7 +240,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (33개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~18, 순서대로 로드)
-├── tests/                    # pytest 550+개
+├── tests/                    # pytest 580+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

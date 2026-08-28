@@ -148,6 +148,73 @@ def incident_update(inc_id):
     return jsonify({"success": ok})
 
 
+
+# ------------------------------------------------------------------ #
+#  차단 결정 재현 (docs/AUDIT.md 3단계 제안 C)
+# ------------------------------------------------------------------ #
+
+def _decisions():
+    return getattr(current_app._get_current_object(), "block_decisions", None)
+
+
+@api_bp.route("/soar/decisions", methods=["GET"])
+def block_decisions():
+    """최근 차단 결정 — **차단하지 않은 결정도 포함**한다.
+
+    실무에서 더 자주 묻는 질문은 '왜 안 막았나'다.
+    """
+    log = _decisions()
+    if log is None:
+        return jsonify({"decisions": [], "stats": {}, "enabled": False})
+    a = request.args
+    blocked = a.get("blocked")
+    blocked = None if blocked in (None, "", "all") else blocked.lower() in ("1", "true")
+    limit = min(200, max(1, a.get("limit", 50, type=int)))
+    return jsonify({
+        "enabled": True,
+        "decisions": log.recent(limit=limit, blocked=blocked,
+                                src_ip=(a.get("ip") or "").strip() or None),
+        "stats": log.stats(),
+    })
+
+
+@api_bp.route("/soar/decisions/<int:decision_id>", methods=["GET"])
+def block_decision_detail(decision_id):
+    log = _decisions()
+    record = log.get(decision_id) if log else None
+    if not record:
+        return jsonify({"error": "결정 기록을 찾을 수 없습니다"}), 404
+    return jsonify(record)
+
+
+@api_bp.route("/soar/decisions/<int:decision_id>/replay", methods=["GET"])
+def block_decision_replay(decision_id):
+    """임계값을 바꿨다면 결과가 달라졌을지 같은 신호로 다시 계산한다.
+
+    **GET 이다 — 조회 전용이라서다.** 실제 차단·해제를 하지 않으므로 상태변경
+    엔드포인트의 CSRF 게이트를 붙일 이유가 없다.
+    """
+    log = _decisions()
+    if log is None:
+        return jsonify({"error": "결정 로그가 비활성입니다"}), 404
+    a = request.args
+
+    def _flag(name):
+        raw = a.get(name)
+        return None if raw in (None, "") else raw.lower() in ("1", "true", "yes")
+
+    try:
+        result = log.replay(
+            decision_id,
+            min_confidence=(a.get("min_confidence", type=float)),
+            require_corroboration=_flag("require_corroboration"),
+            auto_block=_flag("auto_block"))
+    except (TypeError, ValueError) as e:
+        return jsonify({"error": f"잘못된 재생 파라미터: {e}"}), 400
+    if result is None:
+        return jsonify({"error": "결정 기록을 찾을 수 없습니다"}), 404
+    return jsonify(result)
+
 # ------------------------------------------------------------------ #
 #  통합 대시보드 요약
 # ------------------------------------------------------------------ #

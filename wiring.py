@@ -12,6 +12,7 @@ from modules.ai_analyst import AIAnalyst
 from modules.ml_analyst import MLAnalyst
 from modules.geoip import AttackMapTracker
 from modules.mitre_attack import MitreTracker
+from modules.block_decision import BlockDecisionLog
 from modules.threat_intel import ThreatIntel
 from modules.ip_reputation import IPReputation
 from modules.edr import EDRSensor
@@ -180,6 +181,12 @@ def build_services(app, socketio):
     app.syslog_receiver = syslog_receiver
     app.honeypot        = honeypot
     app.siem_correlator = siem_correlator
+    # 차단 결정 재현 로그 — 자동 차단은 되돌리기 어려운 조치라 근거가 남아야 한다
+    block_decisions = BlockDecisionLog(
+        db_path=app.config.get("BLOCK_DECISION_DB", "data/block_decisions.db"),
+        retention_days=app.config.get("BLOCK_DECISION_RETENTION_DAYS", 365))
+    soar.block_decisions = block_decisions
+    app.block_decisions = block_decisions
     app.soar            = soar
     app.decision_support = decision
     app.incidents        = incidents

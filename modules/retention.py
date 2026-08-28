@@ -99,6 +99,14 @@ def run_cleanup(app, manual=False):
             deleted_dedup = dedup.purge_older_than(policy["dedup_days"])
         except Exception as e:
             _log.error(f"[Retention] 억제 이벤트 정리 실패: {e}")
+    # 차단 결정 기록 — 자동 차단의 근거다. 감사 로그와 같은 기간(기본 365일)을 쓴다.
+    deleted_decisions = 0
+    decisions = getattr(app, "block_decisions", None)
+    if decisions is not None:
+        try:
+            deleted_decisions = decisions.purge_older_than()
+        except Exception as e:
+            _log.error(f"[Retention] 차단 결정 기록 정리 실패: {e}")
     # 인시던트: 자동 종료 → 그 다음 정리. 순서가 중요하다 — 방금 종료된 건은
     # updated 가 갱신되므로 이번 정리 대상이 되지 않는다(보존기간이 새로 시작).
     resolved_incidents = 0
@@ -140,12 +148,13 @@ def run_cleanup(app, manual=False):
               "incidents_auto_resolved": resolved_incidents,
               "incidents_deleted": deleted_incidents,
               "soar_executions_deleted": deleted_execs,
+              "block_decisions_deleted": deleted_decisions,
               "policy": policy}
     with _lock:
         _history.appendleft(result)
     if any((moved, deleted_archive, deleted_audit, deleted_files,
             deleted_features, deleted_dedup, deleted_incidents, deleted_execs,
-            resolved_incidents)):
+            resolved_incidents, deleted_decisions)):
         _log.info(f"[Retention] 알림 {moved}건 아카이브 · 아카이브 {deleted_archive}건 · "
               f"감사 {deleted_audit}건 · 파일 {deleted_files}건 · "
               f"ML피처 {deleted_features}건 · 억제이벤트 {deleted_dedup}건 · "

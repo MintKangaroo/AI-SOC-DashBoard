@@ -138,6 +138,9 @@ class Config:
 
     # 인시던트 보존 — RESOLVED 만 대상. 진행 중 케이스는 대상 아님
     INCIDENT_RETENTION_DAYS = int(os.getenv("INCIDENT_RETENTION_DAYS", 365))
+    # 차단 결정 재현 로그 (docs/AUDIT.md 3단계 제안 C)
+    BLOCK_DECISION_DB = os.getenv("BLOCK_DECISION_DB", "data/block_decisions.db")
+    BLOCK_DECISION_RETENTION_DAYS = int(os.getenv("BLOCK_DECISION_RETENTION_DAYS", 365))
     # 마지막 활동 후 이 기간 조용하면 자동 종료(RESOLVED). 0 이면 비활성.
     # 인시던트를 닫는 자동 경로가 없어 생성만 되고 닫히지 않던 문제 해소(AUDIT B-3a)
     INCIDENT_AUTO_RESOLVE_DAYS = int(os.getenv("INCIDENT_AUTO_RESOLVE_DAYS", 30))
