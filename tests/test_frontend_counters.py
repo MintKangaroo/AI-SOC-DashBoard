@@ -53,9 +53,12 @@ def test_top_attackers_render_is_throttled():
     """매 알림마다 전량 sort 하면 폭주 시 화면이 정렬만 한다."""
     src = OVERVIEW.read_text(encoding="utf-8")
     assert "function scheduleTopAttackersRender()" in src
-    # new_alert 핸들러에서 직접 부르지 않는다
+    # new_alert 핸들러에서 직접 부르지 않는다.
+    # 파일이 IIFE 로 감싸여 들여쓰기가 바뀔 수 있으므로 닫는 줄을 정규식으로 찾는다.
     handler = src[src.index("socket.on('new_alert'"):]
-    handler = handler[:handler.index("\n});")]
+    end = re.search(r"^\s*\}\);\s*$", handler, re.M)
+    assert end, "new_alert 핸들러의 끝을 찾지 못했다"
+    handler = handler[:end.start()]
     assert "renderTopAttackers()" not in handler, (
         "new_alert 에서 renderTopAttackers 를 직접 부른다 — "
         "scheduleTopAttackersRender() 를 쓸 것")

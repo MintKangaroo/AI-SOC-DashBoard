@@ -56,7 +56,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
 | `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 33개) |
-| `static/js/dash/01~18-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드) |
+| `static/js/dash/01~18-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 외부 시스템 연동 확장 방법
@@ -68,6 +68,9 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 3. 알맞은 `api/{도메인}_routes.py` 에 `/api/integrations/{name}` 엔드포인트 추가 (`from api._common import api_bp, get_services`)
 4. `templates/panels/{name}.html` 패널 추가 + `dashboard.html` 에 `{% include %}` 및 사이드바 링크
 5. `static/js/dash/` 에 패널 JS 추가(스크립트 태그 등록) + `showPanel()` 훅에 `load{Name}()` 연결
+   — 파일 전체를 `(function () { ... })();` 로 감싸고, 밖에서 부를 이름만 파일 끝
+     `Object.assign(window, { load{Name} })` 에 넣는다. **인라인 `onclick` 이 부르는 함수도
+     반드시 여기 넣어야 한다** (안 넣으면 클릭이 조용히 죽는다 — 테스트가 잡는다)
 6. 모듈 헬스에 표시하려면 `modules/system_health.py` 의 `SPECS` 에 한 줄 추가
 
 ## AI 분석 흐름
