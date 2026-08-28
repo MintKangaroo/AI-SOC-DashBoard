@@ -48,15 +48,66 @@
         </div>
       </div>
 
+      <!-- 탐지 커버리지 자가 진단 -->
+      <div class="card-panel mb-3" style="border-left:3px solid var(--purple);">
+        <div class="card-panel-header">
+          <i class="fa fa-clipboard-check text-purple me-2"></i>탐지 커버리지 자가 진단
+          <span class="small text-muted ms-2">— 히트 0 이 &lsquo;공격이 없었다&rsquo;인지 &lsquo;룰이 없어 못 본다&rsquo;인지 구분한다</span>
+          <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreCoverage()">
+            <i class="fa fa-sync me-1"></i>다시 진단
+          </button>
+        </div>
+        <div class="row g-2 text-center mb-2">
+          <div class="col-6 col-md-3">
+            <div class="stat-value" id="cov-rule-pct" style="font-size:20px">-</div>
+            <div class="stat-label">룰 보유 기법</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-value text-purple" id="cov-validated-pct" style="font-size:20px">-</div>
+            <div class="stat-label">퍼플팀 검증</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-value text-danger" id="cov-gaps" style="font-size:20px">-</div>
+            <div class="stat-label">커버리지 공백</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="stat-value text-warning" id="cov-seen" style="font-size:20px">-</div>
+            <div class="stat-label">실제 히트 기법</div>
+          </div>
+        </div>
+        <div id="cov-untracked" class="small mb-2"></div>
+        <div class="small" style="color:#8b949e">
+          <span class="cov-legend cov-validated"></span> 룰 + 퍼플팀 검증 &nbsp;
+          <span class="cov-legend cov-rule"></span> 룰만 있음(미검증) &nbsp;
+          <span class="cov-legend cov-gap"></span> 공백 — 룰 자체가 없다
+        </div>
+      </div>
+
       <!-- ATT&CK 매트릭스 테이블 -->
       <div class="card-panel p-2 mb-3">
         <div class="card-panel-header">
-          <i class="fa fa-table text-danger me-2"></i>ATT&amp;CK 매트릭스 (탐지된 Technique는 빨간색 강조 · 셀 클릭 시 상세)
+          <i class="fa fa-table text-danger me-2"></i>ATT&amp;CK 매트릭스
+          <div class="btn-group btn-group-sm ms-3" role="group">
+            <button type="button" id="mitre-view-hits" class="btn btn-xs btn-cyan"
+                    onclick="setMitreView('hits')">탐지 히트</button>
+            <button type="button" id="mitre-view-coverage" class="btn btn-xs btn-outline-cyan"
+                    onclick="setMitreView('coverage')">커버리지</button>
+          </div>
+          <span class="small text-muted ms-2" id="mitre-view-hint">탐지된 Technique는 빨간색 강조 · 셀 클릭 시 상세</span>
           <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreMatrix()">
             <i class="fa fa-sync me-1"></i>새로고침
           </button>
         </div>
         <div class="mitre-matrix-wrapper" id="mitre-matrix-container"></div>
+      </div>
+
+      <!-- 커버리지 공백 = 다음에 써야 할 룰 목록 -->
+      <div class="card-panel mb-3">
+        <div class="card-panel-header">
+          <i class="fa fa-list-check text-danger me-2"></i>커버리지 공백 — 다음에 써야 할 룰
+          <span class="badge bg-dark ms-2" id="cov-gap-badge">-</span>
+        </div>
+        <div id="cov-gap-list" class="small" style="max-height:260px;overflow-y:auto">진단 중...</div>
       </div>
 
       <!-- 상세 로그 (확장된 테이블) -->

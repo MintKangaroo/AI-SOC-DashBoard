@@ -55,6 +55,9 @@ TECHNIQUES = {
         {"id": "T1547", "name": "Boot or Logon Autostart",        "ko": "부팅/로그온 자동실행"},
         {"id": "T1546", "name": "Event Triggered Execution",      "ko": "이벤트 트리거 실행"},
         {"id": "T1136", "name": "Create Account",                 "ko": "계정 생성"},
+        # Sigma 룰(웹셸)·퍼플팀 시나리오가 이미 T1505.003 을 가리키는데 매트릭스에
+        # 칸이 없어 탐지돼도 표시되지 않았다 — 커버리지 자가 진단이 찾아냈다.
+        {"id": "T1505", "name": "Server Software Component",      "ko": "서버 소프트웨어 컴포넌트(웹셸)"},
     ],
     "TA0004": [
         {"id": "T1068", "name": "Exploitation for Priv Esc",      "ko": "권한상승 익스플로잇"},
@@ -97,6 +100,8 @@ TECHNIQUES = {
         {"id": "T1498", "name": "Network Denial of Service",      "ko": "네트워크 DoS"},
         {"id": "T1499", "name": "Endpoint Denial of Service",     "ko": "엔드포인트 DoS"},
         {"id": "T1486", "name": "Data Encrypted for Impact",      "ko": "랜섬웨어 암호화"},
+        # 위와 같은 사유 — 크립토마이너 Sigma 룰·퍼플팀 시나리오의 대상 기법
+        {"id": "T1496", "name": "Resource Hijacking",             "ko": "자원 탈취(크립토마이닝)"},
     ],
 }
 

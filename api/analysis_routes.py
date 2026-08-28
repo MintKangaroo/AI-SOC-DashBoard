@@ -123,6 +123,23 @@ def mitre_top():
     return jsonify({"top": _mitre().get_top_techniques(top)})
 
 
+@api_bp.route("/mitre/coverage", methods=["GET"])
+def mitre_coverage():
+    """탐지 커버리지 자가 진단 — 무엇을 탐지하지 *못하는가*.
+
+    히트 0 인 기법이 '공격이 없었다'인지 '룰이 없어 못 본다'인지 구분해 준다.
+    """
+    from flask import current_app
+
+    from modules.coverage import build_coverage
+    app = current_app._get_current_object()
+    return jsonify(build_coverage(
+        mitre_tracker=getattr(app, "mitre_tracker", None),
+        sigma=getattr(app, "sigma", None),
+        purple=getattr(app, "purple", None),
+    ))
+
+
 @api_bp.route("/mitre/technique/<technique_id>", methods=["GET"])
 def mitre_technique_detail(technique_id):
     """특정 Technique의 상세(발생 이력, 관련 알림, 방어권고)를 반환."""

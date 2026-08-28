@@ -1484,3 +1484,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .spl-fv:hover { border-color: #58a6ff; }
 .spl-fk { color: #58a6ff; }
 .spl-fvv { color: #e6edf3; }
+
+/* 탐지 커버리지 자가 진단 (docs/AUDIT.md 3단계 제안 A) */
+.cov-legend { display:inline-block; width:16px; height:10px; vertical-align:middle;
+              border-radius:2px; margin-right:3px; border:1px solid rgba(255,255,255,.15); }
+.cov-legend.cov-validated { background:rgba(63,185,80,.55); }
+.cov-legend.cov-rule      { background:rgba(210,153,34,.45); }
+.cov-legend.cov-gap       { background:rgba(248,81,73,.30); }
+/* 매트릭스 셀에 커버리지 상태를 덧입힌다 (히트 색과 배타적으로 적용) */
+.mitre-technique.cov-validated { background:rgba(63,185,80,.18)  !important; border-color:#3fb950 !important; }
+.mitre-technique.cov-rule      { background:rgba(210,153,34,.16) !important; border-color:#d29922 !important; }
+.mitre-technique.cov-gap       { background:rgba(248,81,73,.10)  !important; border-color:rgba(248,81,73,.45) !important;
+                                 border-style:dashed !important; opacity:.75; }
+.cov-gap-row { display:flex; gap:8px; padding:3px 6px; border-bottom:1px solid var(--border); }
+.cov-gap-row .tac  { min-width:92px; color:#8b949e; }
+.cov-gap-row .tid  { min-width:64px; font-family:monospace; color:#f85149; }
+.cov-gap-row .tko  { color:#e6edf3; }

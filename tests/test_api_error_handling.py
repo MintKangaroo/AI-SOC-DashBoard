@@ -275,3 +275,18 @@ def test_named_accessors_return_the_matching_app_service(app_module):
                      "hash_checker", "ai_analyst", "ml_analyst"):
             accessor = getattr(_common, name)
             assert accessor() is getattr(app, name), f"{name} 불일치"
+
+
+def test_mitre_coverage_endpoint_reports_gaps(client):
+    """커버리지 진단이 API 로 나온다 — 세 축이 모두 실려야 한다."""
+    d = client.get("/api/mitre/coverage").get_json()
+    assert d["summary"]["techniques"] > 0
+    assert set(d["summary"]) >= {"with_rule", "validated", "gaps", "seen",
+                                 "rule_pct", "validated_pct"}
+    # 공백 목록과 매트릭스 셀 상태가 일치해야 한다
+    gap_ids = {g["technique_id"] for g in d["gaps"]}
+    cells = {t["id"] for tac in d["tactics"] for t in tac["techniques"]
+             if t["state"] == "gap"}
+    assert gap_ids == cells
+    # 실제 구성에서는 매트릭스 밖 기법이 없어야 한다
+    assert d["untracked"] == []

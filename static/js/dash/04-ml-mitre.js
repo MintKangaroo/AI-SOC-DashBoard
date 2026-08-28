@@ -145,6 +145,7 @@
         renderMitreMatrix(d);
         updateMitreStats(d);
       });
+    loadMitreCoverage();
     loadMitreTop();
     loadMitreRecent();
     loadMitreLog();
@@ -216,7 +217,78 @@
     if (kf) kf.addEventListener('input', renderMitreLog);
   });
 
+  /* ── 탐지 커버리지 자가 진단 (docs/AUDIT.md 3단계 제안 A) ── */
+  let _mitreView = 'hits';          // 'hits' | 'coverage'
+  let _covByTechnique = {};         // technique id -> 진단 결과
+  let _lastMatrix = null;           // 뷰 전환 시 재요청 없이 다시 그리기 위해 보관
+
+  function setMitreView(view) {
+    _mitreView = view === 'coverage' ? 'coverage' : 'hits';
+    const hitsBtn = document.getElementById('mitre-view-hits');
+    const covBtn = document.getElementById('mitre-view-coverage');
+    const on = 'btn-cyan', off = 'btn-outline-cyan';
+    if (hitsBtn) hitsBtn.className = `btn btn-xs ${_mitreView === 'hits' ? on : off}`;
+    if (covBtn) covBtn.className = `btn btn-xs ${_mitreView === 'coverage' ? on : off}`;
+    const hint = document.getElementById('mitre-view-hint');
+    if (hint) {
+      hint.textContent = _mitreView === 'coverage'
+        ? '초록=룰+검증 · 노랑=룰만 · 빨강 점선=공백(룰 없음)'
+        : '탐지된 Technique는 빨간색 강조 · 셀 클릭 시 상세';
+    }
+    if (_lastMatrix) renderMitreMatrix(_lastMatrix);
+  }
+
+  function loadMitreCoverage() {
+    return fetch('/api/mitre/coverage')
+      .then(r => r.json())
+      .then(d => { renderMitreCoverage(d); return d; })
+      .catch(() => {});
+  }
+
+  function renderMitreCoverage(d) {
+    const s = d.summary || {};
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('cov-rule-pct', `${s.rule_pct ?? 0}%`);
+    set('cov-validated-pct', `${s.validated_pct ?? 0}%`);
+    set('cov-gaps', s.gaps ?? 0);
+    set('cov-seen', s.seen ?? 0);
+
+    _covByTechnique = {};
+    (d.tactics || []).forEach(tac => (tac.techniques || []).forEach(t => {
+      _covByTechnique[t.id] = t;
+    }));
+
+    /* 룰·시나리오는 있는데 매트릭스에 칸이 없는 기법 — 탐지돼도 표시될 곳이 없다.
+       이 목록이 비어 있어야 정상이다. */
+    const un = document.getElementById('cov-untracked');
+    if (un) {
+      const rows = d.untracked || [];
+      un.innerHTML = rows.length
+        ? `<div class="text-warning"><i class="fa fa-triangle-exclamation me-1"></i>`
+          + `매트릭스에 칸이 없는 기법 ${rows.length}개 — 탐지돼도 표시되지 않는다: `
+          + rows.map(r => escapeHtml(r.technique_id)).join(', ') + '</div>'
+        : '';
+    }
+
+    const list = document.getElementById('cov-gap-list');
+    const badge = document.getElementById('cov-gap-badge');
+    const gaps = d.gaps || [];
+    if (badge) badge.textContent = `${gaps.length}개`;
+    if (list) {
+      list.innerHTML = gaps.length
+        ? gaps.map(g => `<div class="cov-gap-row">
+            <span class="tac">${escapeHtml(g.tactic_ko)}</span>
+            <span class="tid">${escapeHtml(g.technique_id)}</span>
+            <span class="tko">${escapeHtml(g.ko)}</span>
+            ${g.hits ? `<span class="ms-auto badge bg-warning text-dark">히트 ${g.hits}건인데 룰 없음</span>` : ''}
+          </div>`).join('')
+        : '<div class="text-success p-2">공백 없음 — 매트릭스의 모든 기법에 룰이 있다.</div>';
+    }
+    if (_mitreView === 'coverage' && _lastMatrix) renderMitreMatrix(_lastMatrix);
+  }
+
   function renderMitreMatrix(data) {
+    _lastMatrix = data;
     const container = document.getElementById('mitre-matrix-container');
     if (!container) return;
 
@@ -238,8 +310,22 @@
         else if (count < 10)                hitClass = 'hit-med';
         else if (count >= 10)               hitClass = 'hit-high';
 
+        /* 커버리지 뷰에서는 히트 색 대신 '룰이 있는가/검증됐는가'로 칠한다.
+           히트 0 인 칸이 공격이 없었던 건지 못 보는 건지 여기서 갈린다. */
+        let title = `${tech.name} — 탐지 ${count}건 · 클릭 시 상세`;
+        if (_mitreView === 'coverage') {
+          const cov = _covByTechnique[tech.id];
+          hitClass = cov ? 'cov-' + cov.state : 'cov-gap';
+          title = cov
+            ? `${tech.name} — ${cov.state_label}`
+              + (cov.rules.length ? ` · 룰 ${cov.rules.map(r => r.source).join('/')}` : '')
+              + (cov.validated ? ' · 퍼플팀 검증' : '')
+              + ` · 탐지 ${count}건`
+            : `${tech.name} — 진단 정보 없음`;
+        }
+
         html += `<div class="mitre-technique clickable ${hitClass}"
-                      title="${escapeHtml(tech.name)} — 탐지 ${count}건 · 클릭 시 상세"
+                      title="${escapeHtml(title)}"
                       onclick="showTechniqueDetail('${escapeHtml(tech.id)}')"
                       data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
           <div class="tech-id">${escapeHtml(tech.id)}</div>
@@ -363,7 +449,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    MITRE_LOG_MAX, initMLCharts, loadMitreMatrix, mitreLogBuffer, renderMitreLog,
-    sendFeedback, showTechniqueDetail, triggerMLAnalysis,
+    MITRE_LOG_MAX, initMLCharts, loadMitreCoverage, loadMitreMatrix, mitreLogBuffer,
+    renderMitreLog, sendFeedback, setMitreView, showTechniqueDetail, triggerMLAnalysis,
   });
 })();

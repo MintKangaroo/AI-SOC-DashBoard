@@ -38,6 +38,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/ml_feature_store.py` | 트래픽 피처 영속화(ml_features.db) — 재학습·평가의 전제 |
 | `experimental/` | 격리된 미검증 모델(RF·LSTM·Q-Learning) — 제품 코드가 import 하지 않음 |
 | `modules/mitre_attack.py` | MITRE ATT&CK 14 Tactic × Technique 매핑 및 카운트 |
+| `modules/coverage.py` | 탐지 커버리지 자가 진단 — 룰·퍼플팀검증·히트 3축 조인, 공백=다음에 쓸 룰 |
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
 | `modules/honeypot.py` | 유인 서비스 리스너(SSH/Telnet/Redis 등) — 접촉=고신뢰 침해지표 |

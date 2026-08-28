@@ -169,6 +169,7 @@ _ESCAPE_EXEMPT = {
     ("03-detection.js", "alert.severity"):   "item.className 대입 — HTML 파싱 아님",
     ("05-svg-intel.js", "entry.tactic_id"):  "querySelector 선택자 — HTML sink 아님",
     ("05-svg-intel.js", "entry.technique_id"): "querySelector 선택자 — HTML sink 아님",
+    ("04-ml-mitre.js", "tech.name"):         "title 변수 조립 — sink 에서 escapeHtml(title)",
     ("06-sources.js", "e.ip"):               "raw 문자열 조립 — sink 에서 escapeHtml(raw)",
     ("06-sources.js", "e.status"):           "raw 문자열 조립 — sink 에서 escapeHtml(raw)",
     ("06-sources.js", "det.process"):        "box() 헬퍼가 내부에서 escapeHtml",
