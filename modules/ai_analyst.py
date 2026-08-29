@@ -13,6 +13,7 @@ from datetime import datetime
 from collections import deque
 
 from modules.logging_setup import get_logger
+from modules.telemetry import telemetry
 
 _log = get_logger(__name__)
 
@@ -234,6 +235,11 @@ class AIAnalyst:
             time.sleep(0.5)
 
     def _do_analyze_alert(self, alert: dict):
+        # AUDIT B-4 가 숨었던 지점 — 외부 호출 지연을 잰다
+        with telemetry.timed("ai.analyze"):
+            return self._do_analyze_alert_inner(alert)
+
+    def _do_analyze_alert_inner(self, alert: dict):
         prompt = f"""다음 보안 알림을 분석하세요:
 
 알림 유형: {alert.get('threat_type')} ({alert.get('threat_label')})

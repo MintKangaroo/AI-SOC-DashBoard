@@ -14,6 +14,7 @@ from collections import defaultdict, deque
 from modules.alert_store import AlertStore
 
 from modules.logging_setup import get_logger
+from modules.telemetry import telemetry
 
 _log = get_logger(__name__)
 
@@ -603,6 +604,11 @@ class ThreatDetector:
         })
 
     def _add_alert(self, alert):
+        # 탐지 → 저장 → emit 전 구간. 여기가 느려지면 알림이 밀린다.
+        with telemetry.timed("detector.add_alert"):
+            return self._add_alert_inner(alert)
+
+    def _add_alert_inner(self, alert):
         alert.confidence = self._confidence(alert)
         alert.details["confidence"] = alert.confidence
         low_conf = alert.confidence < self.min_confidence

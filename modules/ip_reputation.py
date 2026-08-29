@@ -23,6 +23,7 @@ from datetime import datetime
 from collections import deque
 
 from modules.logging_setup import get_logger
+from modules.telemetry import telemetry
 
 _log = get_logger(__name__)
 
@@ -202,6 +203,11 @@ class IPReputation:
                 "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
     def _lookup_abuseipdb(self, ip):
+        # 외부 API 지연 — 느려지면 탐지 파이프라인이 함께 느려진다
+        with telemetry.timed("ip_reputation.lookup"):
+            return self._lookup_abuseipdb_inner(ip)
+
+    def _lookup_abuseipdb_inner(self, ip):
         try:
             resp = requests.get(
                 "https://api.abuseipdb.com/api/v2/check",

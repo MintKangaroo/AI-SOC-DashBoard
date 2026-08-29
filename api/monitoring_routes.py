@@ -299,3 +299,19 @@ def dedup_toggle_rule(rule_id):
     audit_record("DEDUP_RULE_TOGGLE", target=str(rule_id),
                  detail=f"{_actor()} → {'활성' if enabled else '비활성'}")
     return jsonify({"ok": True, "enabled": enabled})
+
+
+# ------------------------------------------------------------------ #
+#  자기 관측성 (docs/AUDIT.md 3단계 제안 B)
+# ------------------------------------------------------------------ #
+
+@api_bp.route("/telemetry", methods=["GET"])
+def telemetry_snapshot():
+    """지점별 지연·에러·큐 깊이.
+
+    `/api/health` 가 '모듈이 살아 있는가'를 답한다면 여기는 **'얼마나 느리고
+    얼마나 실패하는가'** 를 답한다. 이 감사에서 나온 문제 대부분은 이 값들이
+    보였다면 스스로 드러났을 것들이다.
+    """
+    from modules.telemetry import telemetry
+    return jsonify(telemetry.snapshot())

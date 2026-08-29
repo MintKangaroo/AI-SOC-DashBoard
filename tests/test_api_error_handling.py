@@ -290,3 +290,17 @@ def test_mitre_coverage_endpoint_reports_gaps(client):
     assert gap_ids == cells
     # 실제 구성에서는 매트릭스 밖 기법이 없어야 한다
     assert d["untracked"] == []
+
+
+def test_telemetry_endpoint_reports_latency_and_probes(client):
+    """/api/health 가 '살아 있는가'라면 /api/telemetry 는 '얼마나 느린가'다."""
+    d = client.get("/api/telemetry").get_json()
+    assert set(d) >= {"points", "probes", "summary"}
+    assert set(d["summary"]) >= {"points", "slow", "failing", "probe_warnings"}
+    # 앱이 뜨면서 알림이 흘렀으므로 계측 지점이 최소 하나는 있어야 한다
+    names = {p["name"] for p in d["points"]}
+    assert names, "계측 지점이 하나도 없다 — 배선이 끊겼다"
+    # 프로브는 모듈을 고치지 않고 등록되므로 항상 존재해야 한다
+    assert {p["name"] for p in d["probes"]} >= {"ai.queue_depth", "incidents.dirty"}
+    for probe in d["probes"]:
+        assert probe.get("error") is None, f"프로브 실패: {probe}"

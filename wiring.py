@@ -13,6 +13,7 @@ from modules.ml_analyst import MLAnalyst
 from modules.geoip import AttackMapTracker
 from modules.mitre_attack import MitreTracker
 from modules.block_decision import BlockDecisionLog
+from modules.telemetry import telemetry
 from modules.threat_intel import ThreatIntel
 from modules.ip_reputation import IPReputation
 from modules.edr import EDRSensor
@@ -41,6 +42,41 @@ from modules.alert_dedup import AlertDeduplicator
 from modules.logging_setup import get_logger
 
 _log = get_logger(__name__)
+
+
+def _register_telemetry_probes(app):
+    """큐 깊이·적체처럼 '지금 값'이 중요한 지표를 등록한다.
+
+    `system_health` 와 같은 원칙 — 모듈을 수정하지 않고 방어적으로 조회한다.
+    프로브가 예외를 던져도 텔레메트리가 잡아 경고로 표시한다.
+    """
+    def _len(getter):
+        def probe():
+            target = getter()
+            return len(target) if target is not None else 0
+        return probe
+
+    telemetry.register_probe(
+        "ai.queue_depth", _len(lambda: getattr(getattr(app, "ai_analyst", None), "_queue", None)),
+        label="AI 분석 대기 큐", unit="건", warn_above=10)
+    telemetry.register_probe(
+        "soar.pending_approvals",
+        lambda: len([e for e in (getattr(getattr(app, "soar", None), "executions", None) or [])
+                     if isinstance(e, dict) and e.get("status") == "waiting_approval"]),
+        label="SOAR 승인 대기", unit="건", warn_above=20)
+    telemetry.register_probe(
+        "detector.alerts_in_memory",
+        _len(lambda: getattr(getattr(app, "threat_detector", None), "alerts", None)),
+        label="메모리 보관 알림", unit="건")
+    telemetry.register_probe(
+        "incidents.dirty",
+        _len(lambda: getattr(getattr(app, "incidents", None), "_dirty", None)),
+        label="저장 대기 인시던트", unit="건", warn_above=500)
+    telemetry.register_probe(
+        "dedup.suppressed",
+        lambda: int((getattr(getattr(app, "alert_dedup", None), "stats", None) or {})
+                    .get("suppressed", 0)),
+        label="억제된 알림 누적", unit="건")
 
 
 def build_services(app, socketio):
@@ -187,6 +223,9 @@ def build_services(app, socketio):
         retention_days=app.config.get("BLOCK_DECISION_RETENTION_DAYS", 365))
     soar.block_decisions = block_decisions
     app.block_decisions = block_decisions
+    # 자기 관측성 프로브 — 모듈을 고치지 않고 현재 값만 꺼내온다 (AUDIT 제안 B).
+    # 등록 실패가 기동을 막으면 안 되므로 각 프로브는 자기 안에서 방어한다.
+    _register_telemetry_probes(app)
     app.soar            = soar
     app.decision_support = decision
     app.incidents        = incidents

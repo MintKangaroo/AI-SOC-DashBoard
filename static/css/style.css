@@ -1508,3 +1508,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .bd-gate.fail { background:rgba(248,81,73,.15);  border-color:#f85149; color:#ffb3ad; }
 .bd-replay { border:1px solid var(--border); border-radius:6px; padding:8px; margin-top:6px; }
 .bd-replay .flip { color:#d29922; font-weight:700; }
+
+/* 자기 관측성 (docs/AUDIT.md 3단계 제안 B) */
+.tel-probe { display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; border-radius:4px;
+             border:1px solid var(--border); font-size:11px; color:#e6edf3; }
+.tel-probe.warn { border-color:#d29922; background:rgba(210,153,34,.12); color:#f0c674; }
+.tel-probe .v { font-family:monospace; font-weight:700; margin-left:4px; }
+.tel-slow { color:#d29922; font-weight:700; }
+.tel-fail { color:#f85149; font-weight:700; }
+.tel-spark { display:inline-flex; align-items:flex-end; gap:1px; height:16px; }
+.tel-spark i { display:block; width:2px; background:#39d0d8; opacity:.75; }
+.tel-spark.slow i { background:#d29922; }

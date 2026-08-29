@@ -51,6 +51,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
 | `modules/correlation.py` | 킬체인 상관관계 — 같은 IP를 MITRE 전술 순서 캠페인으로 구성 |
 | `modules/system_health.py` | 전 모듈 헬스 중앙 집계(방어적 조회, SPECS 리스트) |
+| `modules/telemetry.py` | 자기 관측성 — 지점별 지연 p50/p95·실패·큐 적체. `with telemetry.timed("지점")` 로 계측, 프로브는 모듈 수정 없이 등록 |
 | `modules/logging_setup.py` | 구조화 로깅 설정 — 모든 모듈이 `_log = get_logger(__name__)` 사용 (print 금지) |
 | `app.py` | Flask 앱 팩토리, SocketIO 이벤트 (서비스 생성/시작은 `wiring.py`) |
 | `wiring.py` | 서비스 생성·교차배선·시작 (`build_services` / `start_services`) |

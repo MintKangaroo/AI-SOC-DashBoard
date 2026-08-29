@@ -7,6 +7,8 @@ import json
 import sqlite3
 import threading
 
+from modules.telemetry import telemetry
+
 # 활성·아카이브 공통 컬럼 (조회 결과 순서와 1:1 대응)
 ALERT_COLUMNS = (
     "id", "threat_type", "severity", "src_ip", "dst_ip", "description",
@@ -182,7 +184,7 @@ class AlertStore:
 
     def save(self, alert):
         """Alert 객체 저장 (id 충돌 시 갱신)"""
-        with self._lock:
+        with telemetry.timed("alert_store.write"), self._lock:
             self._conn.execute(
                 """INSERT OR REPLACE INTO alerts
                    (id, threat_type, severity, src_ip, dst_ip, description,
@@ -297,7 +299,8 @@ class AlertStore:
         clause = ("WHERE " + " AND ".join(where)) if where else ""
 
         archived_expr = "archived" if scope == "all" else str(int(scope == "archive"))
-        with self._read_lock:
+        # AUDIT B-7 이 숨었던 지점 — 이 조회가 길어지면 쓰기가 밀린다
+        with telemetry.timed("alert_store.search"), self._read_lock:
             total = self._read_conn.execute(
                 f"SELECT COUNT(*) FROM {src} {clause}", params
             ).fetchone()[0]

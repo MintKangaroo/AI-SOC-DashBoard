@@ -18,6 +18,7 @@ import threading
 from datetime import datetime, timedelta
 
 from modules.logging_setup import get_logger
+from modules.telemetry import telemetry
 
 _log = get_logger(__name__)
 
@@ -424,6 +425,11 @@ class IncidentManager:
         self._meta_dirty = True
 
     def _save_sqlite(self):
+        # AUDIT B-1 이 숨었던 지점 — 저장 지연을 재서 다시 숨지 않게 한다
+        with telemetry.timed("incidents.save"):
+            return self._save_sqlite_inner()
+
+    def _save_sqlite_inner(self):
         """변경된 인시던트만 저장한다.
 
         이전 구현은 매 저장마다 self.incidents 전체를 재직렬화하고
