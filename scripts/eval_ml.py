@@ -95,13 +95,21 @@ def survey():
 
     out["labels_live"] = _label_counts(ALERTS_DB, "alerts")
     out["labels_archive"] = _label_counts(ARCHIVE_DB, "alerts_archive")
+    out["labels_grouped"] = _group_label_counts()
 
     human = (out["labels_live"].get("human_total", 0)
              + out["labels_archive"].get("human_total", 0))
     real_feats = out["features"].get("real", 0)
 
+    # **그룹 라벨을 개별 라벨과 합쳐 세지 않는다.**
+    # 한 번의 판정으로 수천 건이 덮이지만 그건 개별 검토보다 약한 증거다.
+    # 합쳐 세면 '측정 가능' 문턱을 낮은 품질의 라벨로 넘기게 된다 —
+    # 자기 지표를 스스로 속이는 짓이다. 평가 가능 판정은 개별 라벨로만 한다.
+    grouped = out["labels_grouped"]
     out["verdict"] = {
         "human_labels": human,
+        "grouped_decisions": grouped.get("group_decisions", 0),
+        "grouped_covers": grouped.get("group_covers", 0),
         "real_features": real_feats,
         "can_retrain_if": real_feats >= MIN_FEATURES_FOR_RETRAIN,
         "can_evaluate": human >= MIN_LABELS_FOR_EVAL,
@@ -109,6 +117,36 @@ def survey():
         "labels_needed": max(0, MIN_LABELS_FOR_EVAL - human),
     }
     return out
+
+
+def _group_label_counts(db_path=None):
+    """그룹 단위 라벨(`data/labels.db`) 현황.
+
+    라벨링 큐에서 그룹을 판정하면 여기 쌓인다. 재학습의 **약한 지도(weak
+    supervision)** 재료로는 쓸 수 있지만, precision/recall 의 근거로는
+    개별 검토 라벨과 같은 무게를 줄 수 없다.
+    """
+    path = db_path or os.path.join(os.path.dirname(ALERTS_DB) or ".", "labels.db")
+    if not os.path.exists(path):
+        return {"exists": False, "group_decisions": 0, "group_covers": 0,
+                "single_decisions": 0}
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        rows = conn.execute(
+            "SELECT scope, COUNT(*), COALESCE(SUM(covers), 0) FROM labels "
+            "GROUP BY scope").fetchall()
+    except sqlite3.Error:
+        return {"exists": True, "group_decisions": 0, "group_covers": 0,
+                "single_decisions": 0}
+    finally:
+        conn.close()
+    by = {scope: (n, covers) for scope, n, covers in rows}
+    return {
+        "exists": True,
+        "group_decisions": by.get("group", (0, 0))[0],
+        "group_covers": by.get("group", (0, 0))[1],
+        "single_decisions": by.get("single", (0, 0))[0],
+    }
 
 
 # ──────────────────────────────────────────────────────────
@@ -211,6 +249,7 @@ def real_evaluation(data):
 def _fmt_survey(d):
     f = d["features"]
     live, arch, v = d["labels_live"], d["labels_archive"], d["verdict"]
+    grouped = d.get("labels_grouped", {})
     lines = [
         "═══ 1. 데이터 현황 ═══",
         "",
@@ -227,6 +266,13 @@ def _fmt_survey(d):
         f"· 전체 알림 {live.get('total_alerts', 0):,}건",
         f"  아카이브       : 사람 {arch.get('human_total', 0)}건  "
         f"· 전체 알림 {arch.get('total_alerts', 0):,}건",
+        "",
+        "그룹 라벨 (data/labels.db — 라벨링 큐에서 그룹 단위로 판정)",
+        f"  그룹 판정 {grouped.get('group_decisions', 0)}건 → 알림 "
+        f"{grouped.get('group_covers', 0):,}건 덮음  ·  개별 판정 "
+        f"{grouped.get('single_decisions', 0)}건",
+        "  ※ 그룹 라벨은 개별 검토보다 **약한 증거**다. 재학습의 약한 지도로는 쓰되",
+        "     precision/recall 판정에는 개별 라벨만 센다(아래 '판정'은 개별 기준).",
         "",
         "판정",
         f"  IF 실트래픽 재학습 : {'가능' if v['can_retrain_if'] else '불가'}"

@@ -113,6 +113,10 @@
         <i class="fa fa-user-shield"></i><span>IP 평판 (AbuseIPDB)</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-rep-count">0</span>
       </a>
+      <a href="#labeling" class="sidebar-link" data-panel="labeling">
+        <i class="fa fa-tags"></i><span>라벨링 큐</span>
+        <span class="badge bg-secondary ms-auto" id="sidebar-labeling-count">0</span>
+      </a>
       <a href="#hunt" class="sidebar-link" data-panel="hunt">
         <i class="fa fa-crosshairs"></i><span>위협 헌팅</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-hunt-count">0</span>
@@ -240,6 +244,7 @@
     {% include "panels/sigma.html" %}
     {% include "panels/yara.html" %}
     {% include "panels/hunt.html" %}
+    {% include "panels/labeling.html" %}
     {% include "panels/vulnscan.html" %}
     {% include "panels/fuzz.html" %}
     {% include "panels/patch.html" %}
@@ -289,5 +294,6 @@
 <script src="/static/js/dash/18-snort.js"></script>
 <script src="/static/js/dash/19-yara.js"></script>
 <script src="/static/js/dash/20-hunt.js"></script>
+<script src="/static/js/dash/21-labeling.js"></script>
 </body>
 </html>

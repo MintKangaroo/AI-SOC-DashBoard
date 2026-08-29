@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **49개 모듈 / 약 17,400 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **50개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -39,6 +39,7 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **SOC 운영 지표** | `soc_metrics` — MTTD/MTTR/MTTA·오탐율·처리량 계량 | 관제 성숙도를 수치로 관리 |
 | **detection-as-code** | Sigma·YARA 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 — 실제로 **정상 프로세스를 HIGH 로 올리던 룰**을 잡아냄 |
 | **커버리지 자가 진단** | `coverage` — 룰·퍼플팀검증·히트 3축을 MITRE 매트릭스에 겹침 | 히트 0 이 *공격이 없었다*인지 ***룰이 없어 못 본다*** 인지 구분 |
+| **라벨링 큐** | `labeling` — 11만 건을 (유형·룰·설명패턴)으로 묶으면 **서로 다른 그룹 67개**. 한 번의 판정이 수천 건을 덮음 | ML 성능 *측정*의 병목인 사람 라벨을 실행 가능한 규모로 |
 | **차단 결정 재현** | `block_decision` — 결정 시점 신호를 고정, 임계값 replay | **왜 안 막았나**까지 남아 임계값을 실데이터로 튜닝 |
 
 ---
@@ -237,7 +238,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 49개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 50개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -248,8 +249,8 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 108개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (35개, Jinja include)
-├── static/js/dash/           # 패널별 JS (01~20, 순서대로 로드)
+│   └── panels/               # 패널별 UI 조각 (36개, Jinja include)
+├── static/js/dash/           # 패널별 JS (01~21, 순서대로 로드)
 ├── tests/                    # pytest 758개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB

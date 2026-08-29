@@ -237,6 +237,7 @@
     if (name === 'sigma') loadSigma();
     if (name === 'yara') loadYara();
     if (name === 'hunt') loadHunts();
+    if (name === 'labeling') loadLabeling();
     if (name === 'vulnscan') loadVulnScan();
     if (name === 'fuzz') loadFuzz();
     if (name === 'patch') loadPatch();

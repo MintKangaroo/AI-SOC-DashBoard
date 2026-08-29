@@ -1,0 +1,33 @@
+    <!-- ════ 라벨링 큐 ════ -->
+    <div id="panel-labeling" class="panel-section d-none">
+      <div class="panel-title">
+        <i class="fa fa-tags me-2 text-warning"></i>라벨링 큐 — 정탐/오탐 확정
+        <span class="badge bg-dark ms-2" id="lab-coverage">-</span>
+        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadLabeling()">
+          <i class="fa fa-sync me-1"></i>새로고침
+        </button>
+      </div>
+
+      <div class="card-panel mb-3" style="border-left:3px solid var(--warning, #d29922); background:rgba(210,153,34,.05);">
+        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+          <i class="fa fa-lightbulb text-warning me-2"></i>이 패널은 어떻게 봐야 할까?
+        </div>
+        <div class="small" style="color:#e6edf3; line-height:1.7">
+          ML 성능을 <strong>측정</strong>하려면 사람이 확정한 정탐/오탐 라벨이 필요합니다.
+          그런데 알림이 11만 건이라 한 건씩 볼 수 없습니다.
+          <ul class="mb-0 mt-1 ps-3">
+            <li>같은 종류(위협유형·룰·설명패턴)를 묶으면 <strong>서로 다른 그룹은 67개</strong>뿐입니다 —
+                한 번의 판정이 수천 건을 덮습니다</li>
+            <li>큐는 <strong>한 번의 판정이 덮는 건수가 큰 것부터</strong> 보여줍니다</li>
+            <li><strong>출발지 수</strong>를 보고 그룹이 균질한지 판단하세요. 여러 주체가 같은 짓을
+                한 것인지, 한 호스트의 반복인지에 따라 판정이 달라질 수 있습니다</li>
+            <li>⚠ <strong>그룹 라벨은 개별 검토보다 약한 증거</strong>입니다. 평가 스크립트는 이를
+                개별 라벨과 <strong>나눠서</strong> 셉니다 — 합쳐 세면 '측정 가능' 문턱을
+                낮은 품질로 넘기게 됩니다</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="lab-stats" class="small text-muted mb-2"></div>
+      <div id="lab-groups"></div>
+    </div>

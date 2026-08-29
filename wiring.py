@@ -16,6 +16,7 @@ from modules.block_decision import BlockDecisionLog
 from modules.telemetry import telemetry
 from modules.yara_scanner import YaraScanner
 from modules.hunt import HuntStore
+from modules.labeling import LabelStore
 from modules.threat_intel import ThreatIntel
 from modules.ip_reputation import IPReputation
 from modules.edr import EDRSensor
@@ -235,6 +236,8 @@ def build_services(app, socketio):
     app.hunts = HuntStore(db_path=app.config.get("HUNT_DB", "data/hunts.db"),
                           alert_store=getattr(threat_detector, "store", None),
                           watchlist=watchlist)
+    # 분석가 라벨 저장소 — ML 재학습의 병목인 라벨을 그룹 단위로 모은다
+    app.labels = LabelStore(db_path=app.config.get("LABEL_DB", "data/labels.db"))
     app.yara            = yara_scanner
     edr.yara = yara_scanner        # 실행 파일 내용 검사 (Sigma 는 커맨드라인)
     app.soar            = soar

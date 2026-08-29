@@ -138,6 +138,8 @@ class Config:
     WATCHLIST_DB = os.getenv("WATCHLIST_DB", "data/watchlist.db")
     # 위협 헌팅 콘솔 — 저장된 쿼리 (docs/AUDIT.md 3단계 제안 #7)
     HUNT_DB = os.getenv("HUNT_DB", "data/hunts.db")
+    # 분석가 라벨 — 알림 원본과 분리 보관(아카이브는 조회 전용이므로)
+    LABEL_DB = os.getenv("LABEL_DB", "data/labels.db")
 
     # 알림 중복제거·억제 레이어
     DEDUP_ENABLED = os.getenv("DEDUP_ENABLED", "True")

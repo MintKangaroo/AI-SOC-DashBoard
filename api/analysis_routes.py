@@ -319,3 +319,60 @@ def hunts_promote():
         return jsonify(result), 400
     audit_record("WATCHLIST_ADD", value, "헌팅에서 승격")
     return jsonify(result)
+
+
+# ------------------------------------------------------------------ #
+#  라벨링 큐 (ML 재학습의 병목 — 사람 라벨)
+# ------------------------------------------------------------------ #
+
+@api_bp.route("/labeling/queue", methods=["GET"])
+def labeling_queue():
+    """판정이 필요한 알림 그룹 — 한 번의 판정이 덮는 건수가 큰 것부터.
+
+    11만 건이 67개 그룹으로 압축된다. 한 건씩 보는 문제가 아니다.
+    """
+    from modules.labeling import build_queue
+    app = current_app._get_current_object()
+    a = request.args
+    return jsonify(build_queue(
+        getattr(getattr(app, "threat_detector", None), "store", None),
+        getattr(app, "labels", None),
+        limit=min(200, max(1, a.get("limit", 50, type=int))),
+        include_labeled=(a.get("include_labeled", "") or "").lower() in ("1", "true")))
+
+
+@api_bp.route("/labeling/label", methods=["POST"])
+def labeling_label():
+    """그룹 하나를 판정한다.
+
+    **그룹 라벨은 개별 검토보다 약한 증거다.** `scope` 로 구분해 저장하고
+    평가 스크립트가 나눠 센다 — 뭉뚱그리면 자기 지표를 속이게 된다.
+    """
+    app = current_app._get_current_object()
+    store = getattr(app, "labels", None)
+    if store is None:
+        return jsonify({"error": "라벨 저장소가 비활성입니다"}), 503
+    body = request.get_json(silent=True) or {}
+    key = (body.get("key") or "").strip()
+    if not key:
+        return jsonify({"error": "그룹 key 가 필요합니다"}), 400
+    scope = "single" if body.get("scope") == "single" else "group"
+    try:
+        store.put(key, (body.get("verdict") or "").upper(), _actor(),
+                  body.get("reason", ""), scope=scope,
+                  alert_id=body.get("alert_id"), covers=body.get("covers", 0))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    audit_record("LABEL_SET", key[:80],
+                 f"{body.get('verdict')} ({scope}, {body.get('covers', 0)}건)")
+    return jsonify({"ok": True, "key": key, "scope": scope, "stats": store.stats()})
+
+
+@api_bp.route("/labeling/stats", methods=["GET"])
+def labeling_stats():
+    app = current_app._get_current_object()
+    store = getattr(app, "labels", None)
+    if store is None:
+        return jsonify({"enabled": False})
+    return jsonify({"enabled": True, "stats": store.stats(),
+                    "labels": store.all_labels()[:50]})
