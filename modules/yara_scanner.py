@@ -140,6 +140,9 @@ class YaraScanner:
                 "severity": str(meta.get("severity", "MEDIUM")).upper(),
                 "mitre": str(meta.get("mitre", "")).upper() or None,
                 "author": meta.get("author", ""),
+                # "manual" 룰은 자동 스캔에서 제외한다 — 분석가가 파일을 지목해
+                # 볼 때는 유용하지만 시스템 전체를 훑을 때는 소음인 룰이 있다.
+                "scope": str(meta.get("scope", "auto")).lower(),
             })
         return sorted(out, key=lambda r: r["name"])
 
@@ -147,8 +150,12 @@ class YaraScanner:
     #  스캔
     # ------------------------------------------------------------------ #
 
-    def scan_file(self, path):
-        """파일 1개 스캔. 결과 dict 반환(예외를 밖으로 내보내지 않는다)."""
+    def scan_file(self, path, scope="manual"):
+        """파일 1개 스캔. 결과 dict 반환(예외를 밖으로 내보내지 않는다).
+
+        `scope="auto"` 면 `scope = "manual"` 로 표시된 룰의 매치를 버린다.
+        자동 스캔은 시스템 전체를 훑으므로 오탐 기준이 다르다.
+        """
         if not YARA_OK:
             return {"path": path, "error": "yara-python 미설치", "enabled": False,
                     "matches": []}
@@ -185,6 +192,8 @@ class YaraScanner:
             return {"path": path, "error": str(e), "matches": []}
 
         matches = [self._match_dict(m) for m in raw]
+        if scope == "auto":
+            matches = [m for m in matches if m.get("scope", "auto") != "manual"]
         result = {
             "path": path, "size": size, "matches": matches,
             "malicious": bool(matches),
@@ -225,7 +234,7 @@ class YaraScanner:
             _log.error(f"[YARA] 데이터 스캔 오류: {e}")
             return []
 
-    def scan_directory(self, directory, extensions=None):
+    def scan_directory(self, directory, extensions=None, scope="manual"):
         """디렉터리 재귀 스캔. 파일 수 상한을 두고 심볼릭 링크는 따라가지 않는다."""
         results, scanned = [], 0
         truncated = False
@@ -241,7 +250,7 @@ class YaraScanner:
                     truncated = True
                     break
                 scanned += 1
-                res = self.scan_file(full)
+                res = self.scan_file(full, scope=scope)
                 if res.get("matches"):
                     results.append(res)
             if truncated:
@@ -268,6 +277,7 @@ class YaraScanner:
             "description": meta.get("description", ""),
             "severity": str(meta.get("severity", "MEDIUM")).upper(),
             "mitre": str(meta.get("mitre", "")).upper() or None,
+            "scope": str(meta.get("scope", "auto")).lower(),
             "tags": list(getattr(match, "tags", []) or []),
             "matched_strings": sorted(hits),
             "match_count": sum(hits.values()) or len(hits),
@@ -341,7 +351,7 @@ class YaraScanner:
                 # 오래된 절반을 버린다 — 정확한 LRU 가 필요할 만큼 비싸지 않다
                 self._seen = set(list(self._seen)[self._seen_cap // 2:])
         self.stats["auto_scanned"] += 1
-        return self.scan_file(path)
+        return self.scan_file(path, scope="auto")
 
     def scan_process_images(self, processes):
         """EDR 이 관측한 프로세스의 실행 파일을 스캔한다.

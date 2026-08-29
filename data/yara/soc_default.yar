@@ -84,6 +84,18 @@ rule SOC_UPX_Packed_ELF
         author = "SOC Dashboard"
         severity = "MEDIUM"
         mitre = "T1027"
+        // 자동 스캔에서는 제외한다(scope=manual).
+        //
+        // **UPX 패킹 자체는 악성이 아니다.** 정상 소프트웨어도 쓰고, 무엇보다
+        // 패커 도구(/usr/bin/upx-ucl)가 자기 시그니처를 담고 있어 CI 에서
+        // 걸렸다. 패킹된 파일과 패커를 내용만으로 구분하려면 UPX 트레일러
+        // magic 의 위치를 봐야 하는데, 검증할 실제 패킹 샘플이 없어 추측으로
+        // 룰을 조이지 않았다.
+        //
+        // 패킹은 **탐지가 아니라 정황**이다. 분석가가 특정 파일을 지목해
+        // 들여다볼 때(수동 스캔)는 유용하고, 시스템 전체를 훑는 자동 스캔에서는
+        // 소음이다. 그 구분을 여기 적는다.
+        scope = "manual"
     strings:
         $upx1 = "UPX!"
         $upx2 = "$Info: This file is packed with the UPX"

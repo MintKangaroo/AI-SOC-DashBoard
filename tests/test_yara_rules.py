@@ -345,9 +345,13 @@ def test_system_files_do_not_false_positive():
     2. CI 러너의 **GNU parallel** — 자기 설치 안내문에 "wget -O - pi.dk/3 | bash"
        가 있다. 문서에 적힌 명령과 실행되는 명령을 YARA 는 구분 못 한다
        → 스킴 있는 전체 URL 요구.
+    3. CI 러너의 **upx-ucl**(패커 도구 자신) — UPX 룰이 걸렸다. 패킹 자체는
+       악성이 아니고 패커와 패킹된 파일을 내용만으로 구분하기 어렵다
+       → 그 룰을 `scope = "manual"` 로 내려 자동 스캔에서 뺐다.
 
     **이 테스트가 새 환경에서 실패하면 그건 진짜 오탐을 찾은 것이다.** 룰을
-    조이거나, 정말 탐지가 맞다면 그 판단을 여기 적을 것. 그냥 넘기지 말 것.
+    조이거나, 자동 스캔에 맞지 않는 룰이면 scope 를 내리거나, 정말 탐지가 맞다면
+    그 판단을 여기 적을 것. 그냥 넘기지 말 것.
     """
     import glob
     import os
@@ -359,9 +363,37 @@ def test_system_files_do_not_false_positive():
                        if os.path.isfile(p) and not os.path.islink(p)]
     if len(candidates) < 50:
         pytest.skip("시스템 파일이 충분치 않은 환경")
-    matched = {p: [m["rule"] for m in engine.scan_file(p)["matches"]]
-               for p in candidates if engine.scan_file(p).get("matches")}
+    matched = {}
+    for path in candidates:
+        # 자동 스캔과 같은 조건으로 본다 — scope="manual" 룰은 여기 해당 없다
+        hits = [m["rule"] for m in engine.scan_file(path, scope="auto")["matches"]]
+        if hits:
+            matched[path] = hits
     assert matched == {}, f"시스템 파일 오탐: {matched}"
+
+
+def test_manual_scope_rules_are_excluded_from_auto_scan(tmp_path):
+    """자동 스캔에 맞지 않는 룰을 뺄 수 있어야 한다 — 없으면 룰을 지우게 된다.
+
+    UPX 룰이 그 경우다. 패킹 자체는 악성이 아니고 패커 도구가 자기 시그니처를
+    담고 있어 자동 스캔에서 소음이지만, 분석가가 의심 파일을 지목했을 때는
+    의미 있는 정황이다.
+    """
+    import base64
+
+    engine = _auto_scanner()
+    sample = tmp_path / "packed.bin"
+    sample.write_bytes(base64.b64decode("f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAVVBYIQ=="))
+    manual = [m["rule"] for m in engine.scan_file(str(sample), scope="manual")["matches"]]
+    auto = [m["rule"] for m in engine.scan_file(str(sample), scope="auto")["matches"]]
+    assert "SOC_UPX_Packed_ELF" in manual, "수동 스캔에서도 안 잡히면 룰이 죽은 것이다"
+    assert "SOC_UPX_Packed_ELF" not in auto
+
+
+def test_every_rule_declares_a_valid_scope(scanner):
+    for rule in scanner.rule_meta:
+        assert rule["scope"] in ("auto", "manual"), \
+            f"{rule['name']}: scope={rule['scope']}"
 
 
 def test_permission_denied_is_a_skip_not_an_error(tmp_path):
