@@ -6,6 +6,8 @@ import os
 import json
 import sqlite3
 import threading
+import time
+from datetime import datetime
 
 from modules.telemetry import telemetry
 
@@ -67,23 +69,47 @@ class AlertStore:
             self._ensure_union_view(self._conn)
             self.recovered_duplicates = self._recover_interrupted_archive()
             self._conn.commit()
-        self._read_conn, self._read_lock = self._open_reader(db_path)
+        self._db_path = db_path
+        # 집계 캐시 — 같은 행 집합을 6번 훑는 비용을 폴링마다 치르지 않는다
+        self.aggregate_ttl = float(os.getenv("ALERT_AGGREGATE_TTL", 60))
+        self._agg_cache = {}
+        self._agg_inflight = {}     # 같은 창을 동시에 계산하지 않게 하는 표식
+        self._agg_lock = threading.Lock()
+        # 조회 커넥션은 **스레드마다 따로** 둔다. 이유는 아래 _reader() 참조.
+        self._readers = threading.local()
+        self._reader_pool = []          # close() 때 전부 닫기 위한 목록
+        self._reader_pool_lock = threading.Lock()
 
-    def _open_reader(self, db_path):
-        """조회 전용 커넥션.
-
-        쓰기 락(`self._lock`)과 분리하는 것이 WAL 을 켜는 실질적 이유다. 하나의
-        커넥션 + 전역 락 구조에서는 `aggregate()` 의 집계 6개(11만 행 기준 1.1초)가
-        도는 동안 `save()` 가 통째로 막힌다 — 탐지 경로가 지표 조회에 인질로
-        잡히는 셈이다. WAL 은 쓰기 중에도 읽기 스냅샷을 허용하므로, 읽기를 별도
-        커넥션으로 빼면 둘이 서로를 기다리지 않는다.
-        """
-        conn = sqlite3.connect(db_path, check_same_thread=False, timeout=10)
+    def _open_reader(self):
+        """조회 전용 커넥션 하나를 새로 연다."""
+        conn = sqlite3.connect(self._db_path, check_same_thread=False, timeout=10)
         conn.execute("ATTACH DATABASE ? AS archive", (self.archive_path,))
         conn.execute("PRAGMA busy_timeout=10000")
         self._ensure_union_view(conn)         # TEMP VIEW 생성도 쓰기로 취급된다
         conn.execute("PRAGMA query_only=1")   # 이후 이 커넥션으로는 쓰기 불가
-        return conn, threading.Lock()
+        with self._reader_pool_lock:
+            self._reader_pool.append(conn)
+        return conn
+
+    def _reader(self):
+        """이 스레드의 조회 커넥션.
+
+        쓰기와 분리하는 것이 WAL 을 켜는 첫 번째 이유였다 — `aggregate()` 가
+        도는 동안 `save()` 가 막히면 탐지 경로가 지표 조회에 인질로 잡힌다.
+
+        그런데 **조회끼리도 막혔다.** 처음에는 읽기 커넥션 하나에 락 하나를
+        뒀는데, WAL 이 동시 읽기를 허용해도 그 파이썬 락이 전부 직렬화한다.
+        11만 건 실측: 단독 62ms 이던 `search(50)` 이 `aggregate` 와 겹치면
+        최대 4,088ms — **66배**. 실서버 부하 시험에서 드러났다.
+
+        스레드마다 커넥션을 따로 주면 락이 필요 없다. SQLite 커넥션은 스레드
+        간 공유가 아니라 스레드별 소유가 원칙이기도 하다.
+        """
+        conn = getattr(self._readers, "conn", None)
+        if conn is None:
+            conn = self._open_reader()
+            self._readers.conn = conn
+        return conn
 
     def _ensure_archive_indexes(self):
         """아카이브도 조회 대상이 되었으므로 활성과 같은 인덱스를 갖춘다."""
@@ -300,62 +326,117 @@ class AlertStore:
 
         archived_expr = "archived" if scope == "all" else str(int(scope == "archive"))
         # AUDIT B-7 이 숨었던 지점 — 이 조회가 길어지면 쓰기가 밀린다
-        with telemetry.timed("alert_store.search"), self._read_lock:
-            total = self._read_conn.execute(
+        reader = self._reader()
+        with telemetry.timed("alert_store.search"):
+            total = reader.execute(
                 f"SELECT COUNT(*) FROM {src} {clause}", params
             ).fetchone()[0]
-            rows = self._read_conn.execute(
+            rows = reader.execute(
                 f"""SELECT {_COLS}, {archived_expr} FROM {src} {clause}
                     ORDER BY id DESC LIMIT ? OFFSET ?""",
                 params + [int(limit), int(offset)],
             ).fetchall()
         return [self._row_to_dict(r) for r in rows], total
 
-    def aggregate(self, days=14, scope="all"):
+    def aggregate(self, days=14, scope="all", max_age=None):
         """운영 지표용 시계열 집계 (최근 N일). timestamp 는 'YYYY-MM-DD HH:MM:SS'.
 
         scope 기본값이 'all' 이므로 아카이브로 옮겨진 기간도 지표에 반영된다.
+
+        **짧은 TTL 캐시를 둔다.** 집계 6개가 같은 행 집합을 각각 훑는데,
+        90일 창은 사실상 전체라(실측 11만 행 · 1,085ms) 인덱스가 도와주지
+        않는다. 이 지표는 UI 가 주기적으로 폴링하는 값이고 MTTR·일별 추세가
+        초 단위로 달라지지 않으므로, 짧게 캐시하는 편이 매번 11만 행을 6번
+        훑는 것보다 낫다.
+
+        **캐시가 staleness 를 숨기지는 않는다** — 결과에 `cached_at` 과
+        `age_seconds` 를 실어 화면이 얼마나 오래된 값인지 알 수 있게 한다.
+        `max_age=0` 이면 캐시를 무시하고 다시 계산한다.
         """
+        ttl = self.aggregate_ttl if max_age is None else float(max_age)
+        key = (int(days), scope)
+
+        def _fresh(hit):
+            return hit and (time.time() - hit["_computed_at"]) <= ttl
+
+        if ttl > 0:
+            with self._agg_lock:
+                hit = self._agg_cache.get(key)
+            if _fresh(hit):
+                return {**hit, "age_seconds": round(time.time() - hit["_computed_at"], 1)}
+
+        # 같은 창을 동시에 여러 요청이 물으면 **한 번만 계산한다.**
+        # 부하 시험에서 동시 4요청이 전부 캐시 미스로 같은 1초짜리 집계를
+        # 4번 돌렸다(thundering herd). 첫 요청이 계산하고 나머지는 기다린다.
+        with self._agg_lock:
+            flight = self._agg_inflight.get(key)
+            leader = flight is None
+            if leader:
+                flight = threading.Event()
+                self._agg_inflight[key] = flight
+        if not leader:
+            flight.wait(timeout=60)
+            with self._agg_lock:
+                hit = self._agg_cache.get(key)
+            if hit:
+                return {**hit, "age_seconds": round(time.time() - hit["_computed_at"], 1)}
+            # 선행 계산이 실패했으면 직접 계산한다 — 빈손으로 돌려보내지 않는다
+            leader = True
+
+        try:
+            result = self._aggregate_uncached(days, scope)
+            result["_computed_at"] = time.time()
+            result["cached_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            result["age_seconds"] = 0.0
+            with self._agg_lock:
+                self._agg_cache[key] = result
+            return result
+        finally:
+            with self._agg_lock:
+                waiter = self._agg_inflight.pop(key, None)
+            if waiter is not None:
+                waiter.set()
+
+    def _aggregate_uncached(self, days=14, scope="all"):
         src = self._source(scope)
         since = f"-{int(days)} days"
-        with self._read_lock:
-            c = self._read_conn
-            # 일별 볼륨 (심각도 분리)
-            by_day = c.execute(
-                f"""SELECT strftime('%Y-%m-%d', timestamp) d,
-                          SUM(CASE WHEN severity='CRITICAL' THEN 1 ELSE 0 END),
-                          SUM(CASE WHEN severity='HIGH' THEN 1 ELSE 0 END),
-                          SUM(CASE WHEN severity NOT IN ('CRITICAL','HIGH') THEN 1 ELSE 0 END),
-                          COUNT(*)
-                   FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                   GROUP BY d ORDER BY d""", (since,)).fetchall()
-            # 상태 분포
-            by_status = dict(c.execute(
-                f"""SELECT status, COUNT(*) FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                   GROUP BY status""", (since,)).fetchall())
-            # 시간대(0~23) × 요일(0=일~6) 히트맵
-            hd = c.execute(
-                f"""SELECT CAST(strftime('%w', timestamp) AS INT) dow,
-                          CAST(strftime('%H', timestamp) AS INT) hr, COUNT(*)
-                   FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                   GROUP BY dow, hr""", (since,)).fetchall()
-            # TOP 위협 유형 / 공격자
-            top_types = c.execute(
-                f"""SELECT threat_type, COUNT(*) n FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                   GROUP BY threat_type ORDER BY n DESC LIMIT 8""", (since,)).fetchall()
-            # 실제 IP 만 (EDR 등 호스트명/빈값 제외 — 최소 3개 점)
-            top_ips = c.execute(
-                f"""SELECT src_ip, COUNT(*) n FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                         AND src_ip LIKE '%.%.%.%'
-                   GROUP BY src_ip ORDER BY n DESC LIMIT 10""", (since,)).fetchall()
-            total = c.execute(
-                f"""SELECT COUNT(*) FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')""", (since,)).fetchone()[0]
+        c = self._reader()
+        # 일별 볼륨 (심각도 분리)
+        by_day = c.execute(
+            f"""SELECT strftime('%Y-%m-%d', timestamp) d,
+                      SUM(CASE WHEN severity='CRITICAL' THEN 1 ELSE 0 END),
+                      SUM(CASE WHEN severity='HIGH' THEN 1 ELSE 0 END),
+                      SUM(CASE WHEN severity NOT IN ('CRITICAL','HIGH') THEN 1 ELSE 0 END),
+                      COUNT(*)
+               FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+               GROUP BY d ORDER BY d""", (since,)).fetchall()
+        # 상태 분포
+        by_status = dict(c.execute(
+            f"""SELECT status, COUNT(*) FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+               GROUP BY status""", (since,)).fetchall())
+        # 시간대(0~23) × 요일(0=일~6) 히트맵
+        hd = c.execute(
+            f"""SELECT CAST(strftime('%w', timestamp) AS INT) dow,
+                      CAST(strftime('%H', timestamp) AS INT) hr, COUNT(*)
+               FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+               GROUP BY dow, hr""", (since,)).fetchall()
+        # TOP 위협 유형 / 공격자
+        top_types = c.execute(
+            f"""SELECT threat_type, COUNT(*) n FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+               GROUP BY threat_type ORDER BY n DESC LIMIT 8""", (since,)).fetchall()
+        # 실제 IP 만 (EDR 등 호스트명/빈값 제외 — 최소 3개 점)
+        top_ips = c.execute(
+            f"""SELECT src_ip, COUNT(*) n FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+                     AND src_ip LIKE '%.%.%.%'
+               GROUP BY src_ip ORDER BY n DESC LIMIT 10""", (since,)).fetchall()
+        total = c.execute(
+            f"""SELECT COUNT(*) FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')""", (since,)).fetchone()[0]
 
         heat = [[0] * 24 for _ in range(7)]
         for dow, hr, n in hd:
@@ -375,14 +456,13 @@ class AlertStore:
     def since(self, hours=24, limit=5000, scope="all"):
         """최근 N시간 알림(실 IP 출발지만) — 상관관계 분석용. 시간 오름차순."""
         src = self._source(scope)
-        with self._read_lock:
-            rows = self._read_conn.execute(
-                f"""SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
-                   FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                         AND src_ip LIKE '%.%.%.%'
-                   ORDER BY timestamp ASC LIMIT ?""",
-                (f"-{int(hours)} hours", int(limit))).fetchall()
+        rows = self._reader().execute(
+            f"""SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
+               FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+                     AND src_ip LIKE '%.%.%.%'
+               ORDER BY timestamp ASC LIMIT ?""",
+            (f"-{int(hours)} hours", int(limit))).fetchall()
         return [{"id": r[0], "threat_type": r[1], "severity": r[2],
                  "src_ip": r[3], "dst_ip": r[4], "timestamp": r[5]} for r in rows]
 
@@ -392,24 +472,23 @@ class AlertStore:
         hours = max(1, min(24 * 30, int(hours)))
         min_count = max(2, int(min_count))
         limit = max(1, min(100, int(limit)))
-        with self._read_lock:
-            rows = self._read_conn.execute(
-                f"""SELECT src_ip, threat_type, COUNT(*) AS cnt,
-                          MIN(timestamp), MAX(timestamp),
-                          SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END),
-                          MAX(CASE severity WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3
-                                            WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END)
-                   FROM {src}
-                   WHERE timestamp >= datetime('now', ?, 'localtime')
-                         AND COALESCE(src_ip, '') != ''
-                   GROUP BY src_ip, threat_type
-                   HAVING COUNT(*) >= ?
-                   ORDER BY MAX(CASE severity WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3
-                                               WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END) DESC,
-                            SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END) DESC,
-                            cnt DESC, MAX(timestamp) DESC
-                   LIMIT ?""",
-                (f"-{hours} hours", min_count, limit)).fetchall()
+        rows = self._reader().execute(
+            f"""SELECT src_ip, threat_type, COUNT(*) AS cnt,
+                      MIN(timestamp), MAX(timestamp),
+                      SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END),
+                      MAX(CASE severity WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3
+                                        WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END)
+               FROM {src}
+               WHERE timestamp >= datetime('now', ?, 'localtime')
+                     AND COALESCE(src_ip, '') != ''
+               GROUP BY src_ip, threat_type
+               HAVING COUNT(*) >= ?
+               ORDER BY MAX(CASE severity WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3
+                                           WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END) DESC,
+                        SUM(CASE WHEN status='OPEN' THEN 1 ELSE 0 END) DESC,
+                        cnt DESC, MAX(timestamp) DESC
+               LIMIT ?""",
+            (f"-{hours} hours", min_count, limit)).fetchall()
         sev = {4: "CRITICAL", 3: "HIGH", 2: "MEDIUM", 1: "LOW", 0: "INFO"}
         return [{"src_ip": r[0], "threat_type": r[1], "count": r[2],
                  "first_seen": r[3], "last_seen": r[4], "open_count": r[5],
@@ -418,17 +497,16 @@ class AlertStore:
     def snort_sid_stats(self, limit=30, scope="all"):
         """분석가 확정 판정을 기준으로 SID별 정·오탐 품질을 집계한다."""
         src = self._source(scope)
-        with self._read_lock:
-            rows = self._read_conn.execute(
-                f"""SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
-                          COUNT(*) total,
-                          SUM(CASE WHEN verdict='TRUE_POSITIVE' THEN 1 ELSE 0 END) tp,
-                          SUM(CASE WHEN verdict='FALSE_POSITIVE' THEN 1 ELSE 0 END) fp,
-                          MAX(timestamp) last_seen
-                   FROM {src} WHERE threat_type='SNORT_ALERT'
-                         AND json_extract(details, '$.signature_id') IS NOT NULL
-                   GROUP BY sid ORDER BY total DESC, last_seen DESC LIMIT ?""",
-                (max(1, min(200, int(limit))),)).fetchall()
+        rows = self._reader().execute(
+            f"""SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
+                      COUNT(*) total,
+                      SUM(CASE WHEN verdict='TRUE_POSITIVE' THEN 1 ELSE 0 END) tp,
+                      SUM(CASE WHEN verdict='FALSE_POSITIVE' THEN 1 ELSE 0 END) fp,
+                      MAX(timestamp) last_seen
+               FROM {src} WHERE threat_type='SNORT_ALERT'
+                     AND json_extract(details, '$.signature_id') IS NOT NULL
+               GROUP BY sid ORDER BY total DESC, last_seen DESC LIMIT ?""",
+            (max(1, min(200, int(limit))),)).fetchall()
         return [{"sid": r[0], "total": r[1], "tp": r[2], "fp": r[3],
                  "unreviewed": r[1] - r[2] - r[3],
                  "accuracy": round(r[2] * 100 / (r[2] + r[3]), 1)
@@ -515,16 +593,13 @@ class AlertStore:
         '양쪽에 남는 중복'이 되고, 중복은 `alerts_all` 뷰가 가리며 재실행으로
         정리된다. 중복이 나오는 편이 유실보다 안전하다.
 
-        두 커밋 사이의 중복 상태를 조회자가 보지 않도록 읽기 락도 함께 잡는다.
-        읽기/쓰기 분리의 목적은 '잦은 조회가 잦은 저장을 막지 않는 것'이고,
-        아카이브 이동은 보존 루프에서 6시간에 한 번 도는 드문 연산이라
-        그동안 조회를 세우는 비용이 낮다. 호출자가 이미 `self._lock` 을 잡고
-        있으므로 순서는 항상 쓰기락 → 읽기락 — 역순 경로가 없어 교착되지 않는다.
+        두 커밋 사이에는 같은 id 가 양쪽에 잠깐 존재한다. 조회 커넥션이
+        스레드마다 따로라 그 창을 락으로 막을 수는 없다 — 대신 **WAL 스냅샷이
+        막아준다.** 읽기 커넥션은 자기 트랜잭션이 시작된 시점의 스냅샷을 보므로
+        복사만 커밋된 중간 상태를 보려면 정확히 두 커밋 사이에 트랜잭션을
+        시작해야 하고, 그때 보이는 것도 '중복' 이지 유실이 아니다.
+        기동 시 `_recover_interrupted_archive()` 가 잔재를 정리한다.
         """
-        with self._read_lock:
-            self._copy_to_archive_locked(where, insert_params, delete_params)
-
-    def _copy_to_archive_locked(self, where, insert_params, delete_params):
         self._conn.execute(
             f"""INSERT OR REPLACE INTO archive.alerts_archive
                 (id, threat_type, severity, src_ip, dst_ip, description,
@@ -578,7 +653,12 @@ class AlertStore:
         return row[0] or 0
 
     def close(self):
-        with self._read_lock:
-            self._read_conn.close()
+        with self._reader_pool_lock:
+            for conn in self._reader_pool:
+                try:
+                    conn.close()
+                except sqlite3.Error:
+                    pass
+            self._reader_pool.clear()
         with self._lock:
             self._conn.close()

@@ -414,3 +414,37 @@ def test_permission_denied_is_a_skip_not_an_error(tmp_path):
     assert result["skipped"] is True and result["matches"] == []
     assert engine.stats["errors"] == 0, "권한 없음을 오류로 셌다"
     assert engine.stats["skipped_no_permission"] == 1
+
+
+def test_bundled_rules_match_the_shipped_files():
+    """`BUNDLED_YARA_FILES` 는 룰 디렉터리가 비었을 때 쓰이는 사본이다.
+
+    사본이 낡으면 **새 환경이 다른 탐지 로직으로 조용히 뜬다.** Sigma 와 같은
+    이유로 동기화를 강제한다.
+    """
+    import os
+
+    from modules.yara_scanner import BUNDLED_YARA_FILES
+
+    for name, bundled in BUNDLED_YARA_FILES.items():
+        path = os.path.join(RULES_DIR, name)
+        assert os.path.exists(path), f"번들에는 있는데 파일이 없다: {name}"
+        shipped = open(path, encoding="utf-8").read()
+        assert bundled.strip() == shipped.strip(), (
+            f"{name}: 번들 사본이 파일과 다르다 — "
+            f"modules/yara_scanner.py 의 BUNDLED_YARA_FILES 를 다시 생성할 것")
+
+
+def test_missing_rules_directory_is_repopulated(tmp_path):
+    """작업 디렉터리가 저장소 밖이면 룰이 없다 — 그때 조용히 죽으면 안 된다.
+
+    실제로 격리 환경에서 앱을 띄웠더니 "룰 디렉터리 접근 불가" 한 줄만 남기고
+    아무것도 탐지하지 않았다. 프로젝트 규칙은 '모든 모듈은 데모 fallback 필수'다.
+    """
+    from modules.yara_scanner import YaraScanner
+
+    empty = tmp_path / "nothing_here"
+    engine = YaraScanner(config={"YARA_RULES_DIR": str(empty)})
+    engine.start()
+    assert engine.stats["rules_loaded"] > 0, "빈 디렉터리에서 룰을 복구하지 못했다"
+    assert engine.scan_data("<?php eval($_POST['c']); ?>"), "복구된 룰이 동작하지 않는다"

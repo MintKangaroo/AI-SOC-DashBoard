@@ -218,9 +218,13 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
       ※ 진행 중 인시던트와 waiting_approval 실행은 절대 삭제 대상이 아니다.
 
 동시성: alerts/audit/watchlist DB 는 WAL + busy_timeout 10s. alert_store 는
-      **조회 전용 커넥션(query_only)을 쓰기 커넥션과 분리**한다 — 집계가 쓰기 락을
-      잡으면 탐지 경로의 save() 가 통째로 막힌다(실측 최대 34초). 단 아카이브 이동
-      (`_copy_to_archive`)은 읽기 락도 함께 잡는다.
+      **조회 커넥션을 쓰기와 분리하고, 조회는 스레드마다 따로 연다**(query_only).
+      쓰기와 분리하는 이유는 집계가 쓰기 락을 잡으면 탐지 경로의 save() 가 막히기
+      때문이고(실측 최대 34초), 조회끼리도 나누는 이유는 커넥션 하나를 락으로
+      공유하면 WAL 의 동시 읽기가 무의미해지기 때문이다(실측: 단독 62ms 인
+      search 가 집계와 겹치면 4,088ms — 66배. 실서버 부하 시험에서 드러났다).
+      집계는 짧은 TTL 캐시 + single-flight — 같은 창을 동시에 물어도 한 번만
+      계산한다. 캐시가 신선도를 숨기지 않도록 응답에 `age_seconds` 를 싣는다.
       ※ WAL 에서 SQLite 는 ATTACH 된 DB 간 커밋의 원자성을 보장하지 않는다. 그래서
         활성→아카이브 이동은 **복사를 커밋한 뒤 삭제를 커밋하는 2단계**다. 크래시 시
         최악이 '양쪽 중복'이 되고(유실 아님), 기동 시 `_recover_interrupted_archive()`

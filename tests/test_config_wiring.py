@@ -225,6 +225,9 @@ DIRECTLY_READ_ENV = {
     "ANTHROPIC_API_KEY",        # modules/ai_analyst.py
     "AI_MODEL",                 # modules/ai_analyst.py
     "HASH_SCAN_ALLOWED_DIRS",   # api/_common.py
+    # modules/alert_store.py — AlertStore 는 config 를 받지 않는다(ThreatDetector 가
+    # 경로만 넘겨 만든다). 생성자 시그니처를 넓히는 것보다 여기 적는 편이 작다.
+    "ALERT_AGGREGATE_TTL",
 }
 
 

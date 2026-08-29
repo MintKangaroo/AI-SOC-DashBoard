@@ -297,7 +297,7 @@ def test_mitre_coverage_endpoint_reports_gaps(client):
 
 
 def test_telemetry_endpoint_reports_latency_and_probes(client):
-    """/api/health 가 '살아 있는가'라면 /api/telemetry 는 '얼마나 느린가'다."""
+    """/api/system/health 가 '살아 있는가'라면 /api/telemetry 는 '얼마나 느린가'다."""
     d = client.get("/api/telemetry").get_json()
     assert set(d) >= {"points", "probes", "summary"}
     assert set(d["summary"]) >= {"points", "slow", "failing", "probe_warnings"}

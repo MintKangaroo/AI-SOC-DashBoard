@@ -12,6 +12,7 @@
 유실이어서는 안 된다.**
 """
 import sqlite3
+import time
 
 import pytest
 
@@ -204,7 +205,67 @@ def test_reader_connection_cannot_write(tmp_path):
     store = AlertStore(str(tmp_path / "ro.db"))
     try:
         with pytest.raises(sqlite3.OperationalError):
-            store._read_conn.execute("DELETE FROM alerts")
+            store._reader().execute("DELETE FROM alerts")
+    finally:
+        store.close()
+
+
+def test_each_thread_gets_its_own_reader(tmp_path):
+    """조회 커넥션 하나를 락으로 공유하면 WAL 의 동시 읽기가 무의미해진다.
+
+    실측(11만 건): 단독 62ms 이던 `search(50)` 이 `aggregate` 와 겹치면
+    최대 4,088ms — **66배**. 실서버 부하 시험에서 드러난 값이다.
+    """
+    import threading
+
+    store = AlertStore(str(tmp_path / "pool.db"))
+    try:
+        seen = {}
+
+        def grab(tag):
+            seen[tag] = id(store._reader())
+
+        threads = [threading.Thread(target=grab, args=(i,)) for i in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert len(set(seen.values())) == 3, "스레드가 커넥션을 공유하고 있다"
+        assert id(store._reader()) not in seen.values()   # 메인 스레드도 자기 것
+    finally:
+        store.close()
+
+
+def test_reads_do_not_block_each_other(tmp_path):
+    """조회끼리 직렬화되면 무거운 집계 하나가 대시보드 전체를 세운다."""
+    import threading
+    import time
+
+    store = AlertStore(str(tmp_path / "concurrent.db"))
+    try:
+        for i in range(200):
+            store.save(_alert(f"2026-01-01 00:00:{i % 60:02d}", desc=f"a{i}"))
+
+        holding = threading.Event()
+        release = threading.Event()
+
+        def slow_reader():
+            conn = store._reader()
+            conn.execute("BEGIN")
+            conn.execute("SELECT COUNT(*) FROM alerts_all").fetchone()
+            holding.set()
+            release.wait(timeout=5)
+            conn.execute("COMMIT")
+
+        thread = threading.Thread(target=slow_reader, daemon=True)
+        thread.start()
+        assert holding.wait(timeout=5)
+        start = time.time()
+        store.search(limit=10)          # 다른 조회가 열려 있어도 즉시 끝나야 한다
+        elapsed = time.time() - start
+        release.set()
+        thread.join(timeout=5)
+        assert elapsed < 2.0, f"다른 조회에 막혔다: {elapsed:.1f}초"
     finally:
         store.close()
 
@@ -243,27 +304,156 @@ def test_reads_do_not_take_the_write_lock(tmp_path):
         store.close()
 
 
-def test_archive_move_blocks_readers_so_no_duplicate_is_visible(tmp_path):
-    """이동 중에는 조회를 세운다 — 두 커밋 사이의 중복이 노출되면 안 된다."""
+def test_archive_move_is_not_visible_as_loss(tmp_path):
+    """이동 중에 조회해도 알림이 사라져 보이면 안 된다.
+
+    조회 커넥션이 스레드마다 따로라 이동을 락으로 막지는 않는다. 대신 복사를
+    먼저 커밋하므로 최악이 '중복'이고 유실이 아니다 — 조회자가 무엇을 보든
+    건수가 줄어드는 순간은 없다.
+    """
     import threading
 
     store = AlertStore(str(tmp_path / "movelock.db"))
     try:
-        store.save(_alert("2020-01-01 00:00:00"))
-        with store._read_lock:            # 조회가 진행 중인 상황
-            started = threading.Event()
-            finished = threading.Event()
+        for i in range(5):
+            store.save(_alert(f"2020-01-01 00:00:0{i}", desc=f"old{i}"))
+        seen = []
+        stop = threading.Event()
 
-            def mover():
-                started.set()
-                store.archive_older_than(1)
-                finished.set()
+        def watcher():
+            while not stop.is_set():
+                seen.append(store.search()[1])
 
-            threading.Thread(target=mover, daemon=True).start()
-            assert started.wait(timeout=5)
-            # 읽기 락을 쥐고 있는 동안 이동은 완료될 수 없다
-            assert not finished.wait(timeout=0.5)
-        assert finished.wait(timeout=5)   # 놓아주면 끝난다
-        assert store.search()[1] == 1
+        thread = threading.Thread(target=watcher, daemon=True)
+        thread.start()
+        store.archive_older_than(1)
+        stop.set()
+        thread.join(timeout=5)
+        assert seen, "관찰된 값이 없다"
+        assert min(seen) >= 5, f"이동 중에 알림이 사라져 보였다: {min(seen)}"
+        assert store.search()[1] == 5
+    finally:
+        store.close()
+
+
+# ─────────────── 집계 캐시 (실서버 부하 시험에서 나온 것) ───────────────
+
+def test_aggregate_is_cached_but_staleness_is_visible(tmp_path):
+    """집계 6개가 같은 행 집합을 각각 훑는다 — 폴링마다 치를 비용이 아니다.
+
+    다만 **캐시가 staleness 를 숨기면 안 된다.** 화면이 얼마나 오래된 값을
+    보고 있는지 알 수 있어야 한다.
+    """
+    store = AlertStore(str(tmp_path / "agg.db"))
+    try:
+        store.save(_alert("2026-01-01 00:00:00"))
+        first = store.aggregate(days=3650)
+        assert first["age_seconds"] == 0.0 and first["cached_at"]
+
+        store.save(_alert("2026-01-02 00:00:00"))
+        cached = store.aggregate(days=3650)
+        assert cached["total"] == first["total"], "캐시가 안 먹었다"
+        assert cached["age_seconds"] >= 0.0
+
+        fresh = store.aggregate(days=3650, max_age=0)
+        assert fresh["total"] == first["total"] + 1, "강제 재계산이 안 된다"
+    finally:
+        store.close()
+
+
+def test_aggregate_cache_is_per_window(tmp_path):
+    """기간이 다르면 다른 질문이다 — 한 캐시에 뭉뚱그리면 틀린 답이 나온다."""
+    store = AlertStore(str(tmp_path / "agg2.db"))
+    try:
+        from datetime import datetime, timedelta
+        recent = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        old = (datetime.now() - timedelta(days=200)).strftime("%Y-%m-%d %H:%M:%S")
+        store.save(_alert(recent))
+        store.save(_alert(old, src="9.9.9.9"))
+        assert store.aggregate(days=7)["total"] == 1
+        assert store.aggregate(days=365)["total"] == 2
+    finally:
+        store.close()
+
+
+def test_aggregate_cache_can_be_disabled(tmp_path):
+    store = AlertStore(str(tmp_path / "agg3.db"))
+    try:
+        store.aggregate_ttl = 0
+        store.save(_alert("2026-01-01 00:00:00"))
+        store.aggregate(days=3650)
+        store.save(_alert("2026-01-02 00:00:00"))
+        assert store.aggregate(days=3650)["total"] == 2, "TTL 0 인데 캐시가 먹었다"
+    finally:
+        store.close()
+
+
+def test_concurrent_aggregates_compute_only_once(tmp_path):
+    """같은 창을 동시에 물으면 한 번만 계산한다.
+
+    실서버 부하 시험에서 동시 4요청이 전부 캐시 미스로 같은 1초짜리 집계를
+    4번 돌렸다(thundering herd). 캐시만으로는 순차 폴링밖에 못 막는다.
+    """
+    import threading
+
+    store = AlertStore(str(tmp_path / "herd.db"))
+    try:
+        store.save(_alert("2026-01-01 00:00:00"))
+        calls = []
+        original = store._aggregate_uncached
+
+        def counted(*args, **kwargs):
+            calls.append(1)
+            time.sleep(0.2)          # 계산이 겹칠 시간을 준다
+            return original(*args, **kwargs)
+
+        store._aggregate_uncached = counted
+        results = []
+        threads = [threading.Thread(target=lambda: results.append(store.aggregate(days=3650)))
+                   for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+        assert len(calls) == 1, f"같은 집계를 {len(calls)}번 계산했다"
+        assert len(results) == 5
+        assert len({r["total"] for r in results}) == 1, "요청마다 다른 답을 줬다"
+    finally:
+        store.close()
+
+
+def test_aggregate_failure_does_not_wedge_other_waiters(tmp_path):
+    """선행 계산이 실패해도 기다리던 요청이 빈손으로 끝나면 안 된다."""
+    import threading
+
+    store = AlertStore(str(tmp_path / "herd2.db"))
+    try:
+        store.save(_alert("2026-01-01 00:00:00"))
+        original = store._aggregate_uncached
+        state = {"first": True}
+
+        def flaky(*args, **kwargs):
+            if state["first"]:
+                state["first"] = False
+                time.sleep(0.2)
+                raise RuntimeError("첫 계산 실패")
+            return original(*args, **kwargs)
+
+        store._aggregate_uncached = flaky
+        results, errors = [], []
+
+        def call():
+            try:
+                results.append(store.aggregate(days=3650))
+            except RuntimeError as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=call) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+        assert len(errors) == 1, "실패는 호출자에게 보고돼야 한다"
+        assert len(results) == 1, "기다리던 쪽이 결과를 못 받았다"
     finally:
         store.close()
