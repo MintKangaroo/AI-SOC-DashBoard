@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **49개 모듈 / 약 15,000 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **49개 모듈 / 약 17,400 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -37,6 +37,9 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **킬체인 상관관계** | `correlation` — 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
 | **허니팟** | `honeypot` — 유인 서비스 접촉은 오탐이 거의 없는 고신뢰 침해지표 | 진짜 공격자를 확실하게 식별 |
 | **SOC 운영 지표** | `soc_metrics` — MTTD/MTTR/MTTA·오탐율·처리량 계량 | 관제 성숙도를 수치로 관리 |
+| **detection-as-code** | Sigma·YARA 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 — 실제로 **정상 프로세스를 HIGH 로 올리던 룰**을 잡아냄 |
+| **커버리지 자가 진단** | `coverage` — 룰·퍼플팀검증·히트 3축을 MITRE 매트릭스에 겹침 | 히트 0 이 *공격이 없었다*인지 ***룰이 없어 못 본다*** 인지 구분 |
+| **차단 결정 재현** | `block_decision` — 결정 시점 신호를 고정, 임계값 replay | **왜 안 막았나**까지 남아 임계값을 실데이터로 튜닝 |
 
 ---
 
@@ -177,7 +180,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **750+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **758개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -242,12 +245,12 @@ SOC_DashBoard/
 │   ├── 취약점  vuln_scanner · web_fuzzer · patch_manager · purple_team
 │   ├── 운영    soc_metrics · audit_log · system_health
 │   └── 플랫폼  auth · geoip · alert_store · system_info
-├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 93개)
+├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 108개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (35개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~20, 순서대로 로드)
-├── tests/                    # pytest 750+개
+├── tests/                    # pytest 758개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
@@ -256,10 +259,28 @@ SOC_DashBoard/
 ## 문서
 
 - 🔍 **[실제 탐지 케이스 스터디](docs/CASE_STUDIES.md)** — 원본 로그 근거, 오탐·미탐 사례 포함
-- 🧪 **[코드 감사 보고서](docs/AUDIT.md)** — 구조·신뢰성·보안·테스트 진단 27건
+- 🧪 **[코드 감사 보고서](docs/AUDIT.md)** — 구조·신뢰성·보안·테스트 진단 **27건 전부 종결**.
+  각 항목에 *무엇을 왜 그렇게 고쳤는지*와 **의도적으로 하지 않은 것**(ES 모듈 전환·Postgres 이관·
+  OCSF 전면 도입 등)이 근거와 함께 적혀 있습니다
 - 📸 **[포트폴리오 (화면 소개)](docs/PORTFOLIO.md)** — 스크린샷으로 보는 대시보드·기술 소개
 - [아키텍처](docs/architecture.md) · [모듈 상세](docs/modules.md) · [연동 가이드](docs/integrations.md)
 - [탐지 규칙](docs/detection_rules.md) · [MITRE ATT&CK](docs/mitre_attack.md) · [AI 모델](docs/ml_models.md)
+
+## 검증
+
+| 계층 | 무엇을 | 실행 |
+|------|--------|------|
+| 단위·통합 | 758건 (대부분 Flask `test_client`) | `pytest` |
+| **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
+| **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
+
+`test_client` 는 프로세스도 소켓도 없고 작업 디렉터리가 항상 저장소입니다. 실제로
+그래서 *"YARA 룰 디렉터리가 없으면 탐지가 통째로 죽는"* 문제를 테스트 700여 개가
+전부 놓쳤습니다(작업 디렉터리가 저장소 밖일 때 발생). 실서버 계층은 그 종류를 잡습니다.
+
+느린 실서버 테스트를 빼려면 `pytest -m "not live"`.
+
+---
 
 ## 라이선스
 
