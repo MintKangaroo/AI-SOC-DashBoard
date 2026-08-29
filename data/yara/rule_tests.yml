@@ -90,5 +90,10 @@ SOC_Curl_Pipe_Shell_Dropper:
     # /usr/bin 743개를 실제로 스캔했더니 ctest·tailscale 이 걸렸다 — 바이너리 안에
     # "curl " 과 "| sh" 가 **서로 멀리 떨어져** 있었을 뿐이다. 자동 스캔을 켜면
     # 이런 게 매번 알림으로 올라온다. 근접성 조건으로 고쳤고 여기서 고정한다.
+    # CI 러너의 GNU parallel 이 자기 설치 안내문 때문에 걸렸다. 문서에 적힌
+    # 명령과 실행되는 명령을 YARA 는 구분 못 하므로, 스킴 있는 전체 URL 을 요구해
+    # 축약형을 뺐다.
+    - name: 문서에 적힌 축약형 설치 명령 (GNU parallel 실측 오탐이었다)
+      content: "Install: wget -O - pi.dk/3 | bash"
     - name: 문자열이 흩어진 바이너리 (실측 오탐이었다)
       content: "curl usage: fetch a URL\n\n....(다른 섹션)....\n\npipe to | sh is unsupported"

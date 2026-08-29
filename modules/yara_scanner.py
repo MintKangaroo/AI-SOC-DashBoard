@@ -69,6 +69,7 @@ class YaraScanner:
             "files_scanned": 0, "matches": 0, "skipped_too_big": 0,
             "errors": 0, "last_load": None, "last_scan": None,
             "auto_scanned": 0, "auto_skipped_cached": 0,
+            "skipped_no_permission": 0,
         }
 
     # ------------------------------------------------------------------ #
@@ -169,6 +170,15 @@ class YaraScanner:
             with telemetry.timed("yara.scan_file"):
                 raw = rules.match(path, timeout=self.timeout)
         except Exception as e:
+            # 권한 없는 파일은 **오류가 아니라 예상된 상황**이다. 자동 스캔이
+            # /etc 를 훑으면 shadow·sudoers 등에서 매번 걸린다 — 이걸 ERROR 로
+            # 세면 로그가 잠기고 텔레메트리의 실패 카운터가 거짓말을 한다.
+            if self._is_permission_error(path, e):
+                with self._lock:
+                    self.stats["skipped_no_permission"] += 1
+                _log.debug(f"[YARA] 권한 없음, 건너뜀: {path}")
+                return {"path": path, "matches": [], "skipped": True,
+                        "error": "읽기 권한 없음"}
             with self._lock:
                 self.stats["errors"] += 1
             _log.error(f"[YARA] 스캔 오류({path}): {e}")
@@ -190,6 +200,13 @@ class YaraScanner:
         if matches:
             self._report(result)
         return result
+
+    @staticmethod
+    def _is_permission_error(path, exc):
+        """yara 는 권한 오류도 문자열 메시지로 준다 — 실제 접근 가능 여부로 확인한다."""
+        if isinstance(exc, PermissionError):
+            return True
+        return not os.access(path, os.R_OK)
 
     def scan_data(self, data):
         """바이트열 스캔 — 룰 테스트·업로드 검사용(파일을 만들지 않는다)."""
