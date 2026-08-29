@@ -59,6 +59,7 @@ class EDRSensor:
         self.ai = ai_analyst
         self.ip_reputation = ip_reputation
         self.sigma = None          # app.py 에서 주입 (Sigma 룰 평가)
+        self.yara = None           # wiring 에서 주입 (실행 파일 내용 검사)
         self.running = False
         self._lock = threading.Lock()
 
@@ -250,6 +251,15 @@ class EDRSensor:
                     self.sigma.feed_process(pr)
                 except Exception:
                     pass
+
+        # YARA 로 실행 파일 자체를 검사한다. Sigma 가 '무엇을 실행했나'를 본다면
+        # 여기는 '그 파일이 무엇인가'를 본다 — 이름을 바꿔 위장한 바이너리는
+        # 커맨드라인만 봐서는 안 잡힌다. 같은 파일은 캐시로 한 번만 읽는다.
+        if self.yara:
+            try:
+                self.yara.scan_process_images(procs)
+            except Exception as e:
+                _log.error(f"[EDR] YARA 스캔 오류: {e}")
 
         try:
             self.socketio.emit("edr_status", {

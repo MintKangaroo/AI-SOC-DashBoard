@@ -32,7 +32,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/packet_analyzer.py` | PyShark/Scapy 패킷 캡처, 통계, SocketIO emit |
 | `modules/threat_detector.py` | DDoS/포트스캔/악성코드 탐지, Alert 객체 관리 |
 | `modules/hash_checker.py` | 해시 계산 + 악성 DB 비교 |
-| `modules/yara_scanner.py` | YARA 내용 기반 악성코드 탐지 — 해시가 못 잡는 변종. 룰은 `data/yara/*.yar`, 정탐/오탐 샘플은 `rule_tests.yml` 에 두고 CI 가 검증 |
+| `modules/yara_scanner.py` | YARA 내용 기반 악성코드 탐지 — 해시가 못 잡는 변종. 룰은 `data/yara/*.yar`, 정탐/오탐 샘플은 `rule_tests.yml` 에 두고 CI 가 검증. EDR 실행파일 자동스캔 + 디렉터리 감시(지문 캐시로 중복 방지) |
 | `modules/sysmon_parser.py` | Windows Sysmon 이벤트 파싱 |
 | `modules/ai_analyst.py` | Claude API 연동, 비동기 분석 큐, 챗봇 |
 | `modules/ml_analyst.py` | 자체 이상탐지(Isolation Forest) — 참고용 판정, 탐지 경로 미연결 |
@@ -86,6 +86,25 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
   → ai_analyst._do_analyze_alert() → Claude API 호출
   → SocketIO emit("ai_analysis") → UI 업데이트
 ```
+
+## YARA 악성코드 탐지 흐름
+
+```
+수동:   /api/yara/scan (경로) → HASH_SCAN_ALLOWED_DIRS 검사 → scan_file/scan_directory
+자동①: EDR _scan_loop → yara.scan_process_images(procs) → 실행 파일 내용 검사
+        (Sigma 는 '무엇을 실행했나', YARA 는 '그 파일이 무엇인가')
+자동②: YARA_WATCH_DIRS 감시 스레드 → 새/변경 파일만 scan_once()
+  → 매치 시 report_alert("MALWARE_FILE") → AI 트리아지 → SOAR (+ MITRE)
+  → emit("yara_match") → 패널·라이브 스트림
+```
+※ `scan_once()` 는 (경로+크기+mtime) 지문 캐시로 **같은 파일을 두 번 읽지 않는다.**
+   EDR 이 수 초마다 같은 프로세스를 돌려주므로 캐시가 없으면 /usr/bin/python3 를
+   하루에 수만 번 읽는다. 내용이 바뀌면 mtime 이 달라져 다시 스캔된다.
+※ 자동 스캔은 `HASH_SCAN_ALLOWED_DIRS` 를 적용하지 않는다 — 그 제한은 **API 로
+   들어오는 임의 경로**를 막기 위한 것이고, 프로세스 실행 파일은 /usr/bin 에 있다.
+   비용은 파일 크기 상한·타임아웃·지문 캐시로 통제한다.
+※ 심볼릭 링크는 따라가지 않는다(경로 탈출 방지). 매치 결과에 원문 페이로드를
+   담지 않는다(패턴 식별자와 개수만).
 
 ## 자체 ML 분석 흐름
 

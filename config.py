@@ -112,6 +112,11 @@ class Config:
     YARA_MAX_FILE_MB = float(os.getenv("YARA_MAX_FILE_MB", 32))
     YARA_TIMEOUT = int(os.getenv("YARA_TIMEOUT", 10))
     YARA_MAX_FILES = int(os.getenv("YARA_MAX_FILES", 2000))
+    # 자동 스캔: EDR 이 관측한 프로세스의 실행 파일 + 지정 디렉터리 감시
+    YARA_SCAN_PROCESSES = os.getenv("YARA_SCAN_PROCESSES", "True") == "True"
+    YARA_WATCH_DIRS = os.getenv("YARA_WATCH_DIRS", "")   # "경로1,경로2" (비우면 감시 안 함)
+    YARA_WATCH_INTERVAL = float(os.getenv("YARA_WATCH_INTERVAL", 30))
+    YARA_SEEN_CACHE = int(os.getenv("YARA_SEEN_CACHE", 20000))
 
     # 일일 AI 리포트
     REPORT_HOUR = int(os.getenv("REPORT_HOUR", 8))     # 매일 자동 생성 시각(0~23)

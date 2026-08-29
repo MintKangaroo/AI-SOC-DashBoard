@@ -98,13 +98,12 @@ rule SOC_Curl_Pipe_Shell_Dropper
         author = "SOC Dashboard"
         severity = "HIGH"
         mitre = "T1105"
+        // 처음에는 "curl " 과 "| sh" 를 각각 찾아 AND 로 묶었는데, /usr/bin 743개를
+        // 실제로 스캔해 보니 ctest·tailscale 이 걸렸다 — 바이너리 안에 두 문자열이
+        // 서로 멀리 떨어져 존재했을 뿐이다. 실제 드로퍼는 **한 명령줄 안에서**
+        // 파이프가 이어진다. 근접성을 조건에 넣어 그 차이를 표현한다.
     strings:
-        $tool1 = "curl "
-        $tool2 = "wget "
-        $pipe1 = "| bash"
-        $pipe2 = "| sh"
-        $pipe3 = "|bash"
-        $pipe4 = "|sh"
+        $dropper = /(curl|wget)[^\n\r]{0,200}\|\s{0,4}(sudo\s+|env\s+)?(ba|z|k|da)?sh\b/
     condition:
-        any of ($tool*) and any of ($pipe*)
+        $dropper
 }

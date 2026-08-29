@@ -231,6 +231,7 @@ def build_services(app, socketio):
                                threat_detector=threat_detector,
                                mitre_tracker=mitre_tracker)
     app.yara            = yara_scanner
+    edr.yara = yara_scanner        # 실행 파일 내용 검사 (Sigma 는 커맨드라인)
     app.soar            = soar
     app.decision_support = decision
     app.incidents        = incidents

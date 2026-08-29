@@ -112,6 +112,7 @@ flowchart LR
 - **MITRE ATT&CK** — 위협·Sysmon 이벤트를 14 Tactic × Technique 매트릭스에 실시간 매핑 (`mitre_attack`)
 
 - **YARA 악성코드 탐지** — 해시 대조는 *알려진 그 파일*만 잡지만, YARA는 **파일 내용의 패턴**으로 잡아 변종을 덮습니다. 웹셸·리버스셸·크립토마이너·UPX 패킹 등 6개 룰, 매치 시 `MALWARE_FILE` 알림으로 AI 트리아지 파이프라인에 투입
+- **자동 스캔** — EDR이 관측한 프로세스의 **실행 파일**을 검사하고(이름을 바꿔 위장한 바이너리는 커맨드라인만으로는 안 잡힙니다), 지정 디렉터리에 새 파일이 생기면 자동 검사합니다. 지문 캐시로 같은 파일은 한 번만 읽습니다
 - **detection-as-code** — 각 Sigma 룰이 `tests:` 블록에 정탐/오탐 샘플을 함께 담고, CI 가 매 push 마다 *잡아야 할 것을 잡고 잡지 말아야 할 것을 안 잡는지* 검증합니다 (실제로 이 검증이 크립토마이너 룰의 오탐 하나를 잡아냈습니다)
 
 ### ③ 위협 인텔 · 분석
@@ -173,7 +174,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **650+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **660+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -243,7 +244,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (34개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~19, 순서대로 로드)
-├── tests/                    # pytest 650+개
+├── tests/                    # pytest 660+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

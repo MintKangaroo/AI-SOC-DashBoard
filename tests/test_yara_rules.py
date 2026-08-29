@@ -262,3 +262,93 @@ def test_yara_rules_appear_in_coverage_report(scanner):
     sources = {r["source"] for r in covered["T1505"]["rules"]}
     assert "YARA" in sources, f"YARA 가 커버리지 룰 소스에 없다: {sources}"
     assert report["untracked"] == [], "매트릭스에 칸이 없는 YARA 기법이 있다"
+
+
+# ─────────────── 자동 스캔 (EDR 실행 파일 · 디렉터리 감시) ───────────────
+
+def _auto_scanner(**cfg):
+    from modules.yara_scanner import YaraScanner
+
+    engine = YaraScanner(config={"YARA_RULES_DIR": RULES_DIR, **cfg})
+    engine.start()
+    return engine
+
+
+def test_same_file_is_scanned_once(tmp_path):
+    """자동 스캔의 전제는 같은 파일을 반복해서 읽지 않는 것이다.
+
+    EDR 은 수 초마다 같은 프로세스 목록을 돌려준다 — 캐시가 없으면
+    /usr/bin/python3 를 하루에 수만 번 읽는다.
+    """
+    engine = _auto_scanner()
+    sample = tmp_path / "app.bin"
+    sample.write_text("normal content", encoding="utf-8")
+    assert engine.scan_once(str(sample)) is not None
+    for _ in range(5):
+        assert engine.scan_once(str(sample)) is None, "같은 파일을 또 읽었다"
+    assert engine.stats["auto_scanned"] == 1
+    assert engine.stats["auto_skipped_cached"] == 5
+
+
+def test_modified_file_is_scanned_again(tmp_path):
+    """내용이 바뀌면 다시 봐야 한다 — 캐시가 탐지를 가리면 안 된다."""
+    import os
+    import time
+
+    engine = _auto_scanner()
+    sample = tmp_path / "app.bin"
+    sample.write_text("normal content", encoding="utf-8")
+    engine.scan_once(str(sample))
+    time.sleep(1.1)                     # mtime 초 단위 해상도
+    sample.write_text("<?php eval($_POST['c']); ?>", encoding="utf-8")
+    os.utime(str(sample), None)
+    result = engine.scan_once(str(sample))
+    assert result is not None and result["malicious"] is True
+
+
+def test_process_images_are_scanned_and_matched(tmp_path):
+    """이름을 바꿔 위장한 파일은 커맨드라인만 봐서는 안 잡힌다."""
+    engine = _auto_scanner()
+    disguised = tmp_path / "systemd-helper"
+    disguised.write_text("<?php system($_GET['c']); ?>", encoding="utf-8")
+    hits = engine.scan_process_images([
+        {"pid": 1, "name": "systemd-helper", "exe_path": str(disguised)},
+        {"pid": 2, "name": "python3", "exe_path": "/nonexistent/python3"},
+        {"pid": 3, "name": "kthreadd", "exe_path": ""},            # 커널 스레드
+        {"pid": 4, "name": "rel", "exe_path": "relative/path"},    # 절대경로 아님
+    ])
+    assert [h["path"] for h in hits] == [str(disguised)]
+
+
+def test_process_scan_can_be_disabled():
+    engine = _auto_scanner(YARA_SCAN_PROCESSES=False)
+    assert engine.scan_process_images([{"exe_path": "/usr/bin/env"}]) == []
+
+
+def test_seen_cache_is_bounded(tmp_path):
+    """캐시가 무한히 자라면 그것도 누수다."""
+    engine = _auto_scanner(YARA_SEEN_CACHE=20)
+    for i in range(60):
+        f = tmp_path / f"f{i}.bin"
+        f.write_text(f"content {i}", encoding="utf-8")
+        engine.scan_once(str(f))
+    assert len(engine._seen) <= 20 + 1
+
+
+def test_system_binaries_do_not_false_positive():
+    """자동 스캔은 시스템 바이너리를 통째로 훑는다 — 오탐이 곧 알림 폭탄이다.
+
+    실제로 초기 룰은 /usr/bin 743개 중 ctest·tailscale 을 잡았다. 바이너리 안에
+    'curl ' 과 '| sh' 가 멀리 떨어져 있었을 뿐이다. 근접성 조건으로 고쳤고,
+    이 테스트가 그 회귀를 막는다.
+    """
+    import glob
+    import os
+
+    engine = _auto_scanner(YARA_MAX_FILES=5000)
+    candidates = [p for p in glob.glob("/usr/bin/*")[:400]
+                  if os.path.isfile(p) and not os.path.islink(p)]
+    if len(candidates) < 50:
+        pytest.skip("시스템 바이너리가 충분치 않은 환경")
+    matched = [p for p in candidates if engine.scan_file(p).get("matches")]
+    assert matched == [], f"시스템 바이너리 오탐: {matched}"

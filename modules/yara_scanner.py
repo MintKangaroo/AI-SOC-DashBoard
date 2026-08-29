@@ -17,6 +17,7 @@ Sigma 엔진과 같은 원칙으로 만든다.
 """
 import os
 import threading
+import time
 from collections import deque
 from datetime import datetime
 
@@ -50,6 +51,16 @@ class YaraScanner:
         self.timeout = int(self.config.get("YARA_TIMEOUT", 10))
         self.max_files = int(self.config.get("YARA_MAX_FILES", 2000))
 
+        self.auto_scan_processes = bool(self.config.get("YARA_SCAN_PROCESSES", True))
+        self.watch_dirs = [d.strip() for d in
+                           str(self.config.get("YARA_WATCH_DIRS", "")).split(",")
+                           if d.strip()]
+        self.watch_interval = float(self.config.get("YARA_WATCH_INTERVAL", 30))
+        # 같은 파일(경로+크기+mtime)을 반복 스캔하지 않기 위한 지문 집합
+        self._seen = set()
+        self._seen_cap = int(self.config.get("YARA_SEEN_CACHE", 20000))
+        self._watch_thread = None
+
         self._rules = None            # 컴파일된 yara.Rules
         self.rule_meta = []           # 패널·커버리지용 룰 목록
         self.matches = deque(maxlen=200)
@@ -57,6 +68,7 @@ class YaraScanner:
             "enabled": YARA_OK, "rules_loaded": 0, "rules_error": 0,
             "files_scanned": 0, "matches": 0, "skipped_too_big": 0,
             "errors": 0, "last_load": None, "last_scan": None,
+            "auto_scanned": 0, "auto_skipped_cached": 0,
         }
 
     # ------------------------------------------------------------------ #
@@ -71,7 +83,13 @@ class YaraScanner:
             return
         self.load_rules()
         _log.info(f"[YARA] 스캐너 시작 — 룰 {self.stats['rules_loaded']}개 "
-                  f"· 파일 상한 {self.max_file_mb:g}MB · 타임아웃 {self.timeout}s")
+                  f"· 파일 상한 {self.max_file_mb:g}MB · 타임아웃 {self.timeout}s"
+                  f" · 프로세스 자동스캔 {'ON' if self.auto_scan_processes else 'OFF'}")
+        if self.watch_dirs:
+            self._watch_thread = threading.Thread(target=self._watch_loop, daemon=True)
+            self._watch_thread.start()
+            _log.info(f"[YARA] 디렉터리 감시 시작 — {', '.join(self.watch_dirs)} "
+                      f"({self.watch_interval:g}초 주기)")
 
     def stop(self):
         self.running = False
@@ -275,6 +293,85 @@ class YaraScanner:
         except Exception:
             pass
 
+    # ------------------------------------------------------------------ #
+    #  자동 스캔 — 실행 파일 · 디렉터리 감시
+    # ------------------------------------------------------------------ #
+
+    def _seen_key(self, path):
+        """경로+크기+수정시각. 같은 파일을 반복 스캔하지 않기 위한 지문."""
+        try:
+            st = os.stat(path)
+        except OSError:
+            return None
+        return (os.path.realpath(path), st.st_size, int(st.st_mtime))
+
+    def scan_once(self, path):
+        """같은 내용을 이미 본 적 있으면 건너뛴다. (결과 or None) 반환.
+
+        자동 스캔의 전제는 **같은 파일을 반복해서 읽지 않는 것**이다. EDR 은
+        수 초마다 같은 프로세스 목록을 돌려주므로, 캐시가 없으면 /usr/bin/python3
+        를 하루에 수만 번 읽는다.
+        """
+        key = self._seen_key(path)
+        if key is None:
+            return None
+        with self._lock:
+            if key in self._seen:
+                self.stats["auto_skipped_cached"] += 1
+                return None
+            self._seen.add(key)
+            if len(self._seen) > self._seen_cap:
+                # 오래된 절반을 버린다 — 정확한 LRU 가 필요할 만큼 비싸지 않다
+                self._seen = set(list(self._seen)[self._seen_cap // 2:])
+        self.stats["auto_scanned"] += 1
+        return self.scan_file(path)
+
+    def scan_process_images(self, processes):
+        """EDR 이 관측한 프로세스의 실행 파일을 스캔한다.
+
+        `HASH_SCAN_ALLOWED_DIRS` 를 적용하지 않는다 — 프로세스 실행 파일은
+        /usr/bin 등 시스템 경로에 있고, 그 제한은 **API 로 들어오는 임의 경로**를
+        막기 위한 것이지 내부 자동 스캔용이 아니다. 대신 파일 크기 상한과
+        중복 스캔 캐시로 비용을 통제한다.
+        """
+        if not (YARA_OK and self.auto_scan_processes):
+            return []
+        hits = []
+        for proc in processes or []:
+            path = (proc or {}).get("exe_path") or ""
+            if not path or not os.path.isabs(path) or not os.path.isfile(path):
+                continue
+            result = self.scan_once(path)
+            if result and result.get("matches"):
+                hits.append(result)
+        return hits
+
+    def _watch_loop(self):
+        """감시 디렉터리에 새로 생기거나 바뀐 파일만 스캔한다."""
+        while self.running and self.watch_dirs:
+            for directory in self.watch_dirs:
+                if not os.path.isdir(directory):
+                    continue
+                try:
+                    scanned = 0
+                    for root, dirs, files in os.walk(directory, followlinks=False):
+                        dirs[:] = [d for d in dirs
+                                   if not os.path.islink(os.path.join(root, d))]
+                        for name in files:
+                            if scanned >= self.max_files:
+                                break
+                            full = os.path.join(root, name)
+                            if os.path.islink(full):
+                                continue
+                            scanned += 1
+                            self.scan_once(full)
+                except OSError as e:
+                    _log.error(f"[YARA] 감시 디렉터리 오류({directory}): {e}")
+            for _ in range(int(self.watch_interval)):
+                if not self.running:
+                    return
+                time.sleep(1)
+
     def get_status(self):
         with self._lock:
             return {
@@ -284,4 +381,8 @@ class YaraScanner:
                 "matches": list(self.matches)[:30],
                 "limits": {"max_file_mb": self.max_file_mb, "timeout": self.timeout,
                            "max_files": self.max_files},
+                "auto": {"processes": self.auto_scan_processes,
+                         "watch_dirs": list(self.watch_dirs),
+                         "watch_interval": self.watch_interval,
+                         "cache_size": len(self._seen)},
             }

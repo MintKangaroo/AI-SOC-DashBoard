@@ -18,7 +18,11 @@
           <ul class="mb-0 mt-1 ps-3">
             <li>각 룰은 <code>data/yara/rule_tests.yml</code>에 정탐/오탐 샘플을 갖고, <strong>CI가 매 push마다 검증</strong>합니다</li>
             <li>매치되면 <code>MALWARE_FILE</code> 알림으로 AI 트리아지 파이프라인에 들어갑니다</li>
-            <li>스캔 경로는 <code>HASH_SCAN_ALLOWED_DIRS</code>로 제한됩니다 — 임의 경로를 읽는 스캐너는 그 자체가 취약점입니다</li>
+            <li>수동 스캔 경로는 <code>HASH_SCAN_ALLOWED_DIRS</code>로 제한됩니다 — 임의 경로를 읽는 스캐너는 그 자체가 취약점입니다</li>
+            <li><strong>자동 스캔</strong>: EDR이 관측한 프로세스의 <strong>실행 파일</strong>을 검사합니다.
+                Sigma가 <em>무엇을 실행했나</em>를 본다면 여기는 <em>그 파일이 무엇인가</em>를 봅니다 —
+                이름을 바꿔 위장한 바이너리는 커맨드라인만으로는 안 잡힙니다.
+                같은 파일은 지문(경로+크기+수정시각) 캐시로 한 번만 읽습니다</li>
           </ul>
         </div>
       </div>
@@ -45,7 +49,7 @@
         <div class="col-6 col-md-3">
           <div class="stat-card border-purple">
             <div class="stat-icon text-purple"><i class="fa fa-shield-halved"></i></div>
-            <div class="stat-value" id="yara-limits" style="font-size:15px">-</div><div class="stat-label">스캔 한계</div>
+            <div class="stat-value" id="yara-auto" style="font-size:15px">-</div><div class="stat-label">자동 스캔</div>
           </div>
         </div>
       </div>
@@ -61,6 +65,7 @@
           <span class="small text-muted">허용 경로 밖은 거부됩니다</span>
         </div>
         <div id="yara-scan-result" class="mt-2 small"></div>
+        <div id="yara-auto-note" class="mt-2 small text-muted"></div>
       </div>
 
       <div class="row g-3">

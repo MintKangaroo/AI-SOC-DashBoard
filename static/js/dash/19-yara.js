@@ -24,8 +24,22 @@
       badge.textContent = on ? '실동작' : (stats.enabled ? '대기' : 'yara-python 미설치');
       badge.style.background = on ? '#238636' : '#6e7681';
     }
-    const limits = d.limits || {};
-    set('yara-limits', `${limits.max_file_mb ?? '-'}MB · ${limits.timeout ?? '-'}s`);
+    const auto = d.auto || {};
+    const watch = (auto.watch_dirs || []).length;
+    set('yara-auto', auto.processes ? (watch ? `실행파일+감시${watch}` : '실행파일') : '꺼짐');
+
+    const note = document.getElementById('yara-auto-note');
+    if (note) {
+      const limits = d.limits || {};
+      const parts = [
+        `자동 스캔 ${Number(stats.auto_scanned || 0).toLocaleString()}건`,
+        `캐시로 건너뜀 ${Number(stats.auto_skipped_cached || 0).toLocaleString()}건`,
+        `지문 캐시 ${Number(auto.cache_size || 0).toLocaleString()}개`,
+        `파일 상한 ${limits.max_file_mb ?? '-'}MB · 타임아웃 ${limits.timeout ?? '-'}s`,
+      ];
+      if (watch) parts.push(`감시: ${(auto.watch_dirs || []).map(escapeHtml).join(', ')}`);
+      note.innerHTML = parts.join(' · ');
+    }
 
     const sidebar = document.getElementById('sidebar-yara-count');
     if (sidebar) sidebar.textContent = stats.rules_loaded || 0;
