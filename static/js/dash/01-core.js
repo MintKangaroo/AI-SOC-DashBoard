@@ -235,6 +235,7 @@
     if (name === 'edr') loadEdr();
     if (name === 'network') loadNetwork();
     if (name === 'sigma') loadSigma();
+    if (name === 'yara') loadYara();
     if (name === 'vulnscan') loadVulnScan();
     if (name === 'fuzz') loadFuzz();
     if (name === 'patch') loadPatch();

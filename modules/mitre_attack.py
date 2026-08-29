@@ -115,6 +115,7 @@ THREAT_MAPPING = {
     "PORT_SCAN":       [("TA0043", "T1046"), ("TA0007", "T1018")],
     "BRUTE_FORCE":     [("TA0006", "T1110")],
     "MALWARE_BEACON":  [("TA0011", "T1071"), ("TA0011", "T1105")],
+    "MALWARE_FILE":    [("TA0005", "T1027"), ("TA0002", "T1204")],
     "DATA_EXFIL":      [("TA0010", "T1048"), ("TA0010", "T1041")],
     "ARP_SPOOFING":    [("TA0008", "T1021")],
     "DNS_TUNNELING":   [("TA0011", "T1572")],

@@ -106,6 +106,12 @@ class Config:
 
     # Sigma 룰 엔진 (업계 표준 탐지룰)
     SIGMA_RULES_DIR = os.getenv("SIGMA_RULES_DIR", "data/sigma")
+    # YARA 파일 스캐너 — 해시 대조가 못 잡는 변종을 내용 패턴으로 잡는다
+    YARA_ENABLED = os.getenv("YARA_ENABLED", "True") == "True"
+    YARA_RULES_DIR = os.getenv("YARA_RULES_DIR", "data/yara")
+    YARA_MAX_FILE_MB = float(os.getenv("YARA_MAX_FILE_MB", 32))
+    YARA_TIMEOUT = int(os.getenv("YARA_TIMEOUT", 10))
+    YARA_MAX_FILES = int(os.getenv("YARA_MAX_FILES", 2000))
 
     # 일일 AI 리포트
     REPORT_HOUR = int(os.getenv("REPORT_HOUR", 8))     # 매일 자동 생성 시각(0~23)

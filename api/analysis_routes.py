@@ -137,6 +137,7 @@ def mitre_coverage():
         mitre_tracker=getattr(app, "mitre_tracker", None),
         sigma=getattr(app, "sigma", None),
         purple=getattr(app, "purple", None),
+        yara=getattr(app, "yara", None),
     ))
 
 

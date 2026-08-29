@@ -30,6 +30,7 @@ SPECS = [
     ("ip_reputation",   "IP 평판 (AbuseIPDB)", "위협 분석"),
     ("mitre_tracker",   "MITRE ATT&CK 매퍼", "위협 분석"),
     ("sigma",           "Sigma 룰 엔진",    "위협 분석"),
+    ("yara",            "YARA 악성코드 스캐너", "위협 분석"),
     ("decision_support","ML 의사결정 지원", "위협 분석"),
     ("watchlist",       "IOC 워치리스트",   "위협 분석"),
     ("siem_correlator", "SIEM 상관관계",    "위협 분석"),

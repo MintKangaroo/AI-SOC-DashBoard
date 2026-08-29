@@ -14,6 +14,7 @@ from modules.geoip import AttackMapTracker
 from modules.mitre_attack import MitreTracker
 from modules.block_decision import BlockDecisionLog
 from modules.telemetry import telemetry
+from modules.yara_scanner import YaraScanner
 from modules.threat_intel import ThreatIntel
 from modules.ip_reputation import IPReputation
 from modules.edr import EDRSensor
@@ -226,6 +227,10 @@ def build_services(app, socketio):
     # 자기 관측성 프로브 — 모듈을 고치지 않고 현재 값만 꺼내온다 (AUDIT 제안 B).
     # 등록 실패가 기동을 막으면 안 되므로 각 프로브는 자기 안에서 방어한다.
     _register_telemetry_probes(app)
+    yara_scanner = YaraScanner(socketio, app.config,
+                               threat_detector=threat_detector,
+                               mitre_tracker=mitre_tracker)
+    app.yara            = yara_scanner
     app.soar            = soar
     app.decision_support = decision
     app.incidents        = incidents
@@ -264,6 +269,8 @@ def start_services(app, socketio):
     app.honeypot.start(demo=demo)         # 유인 서비스 리스너, 바인딩 실패 시 데모
     app.siem_correlator.start(demo=demo)  # 알림 스트림 상관관계 분석(항상 실동작)
     app.sigma.start(demo=demo)        # Sigma 룰 로드 (EDR 보다 먼저)
+    if app.config.get("YARA_ENABLED", True):
+        app.yara.start(demo=demo)     # YARA 룰 컴파일 (온디맨드 스캔, 자동 실행 없음)
     app.edr.start(demo=demo)          # psutil 있으면 실센서, 없으면 데모
     app.net_monitor.start(demo=demo)
     app.patch_manager.start(demo=demo)   # apt 스캔은 읽기전용, 실제 패치는 수동

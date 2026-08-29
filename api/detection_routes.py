@@ -264,6 +264,61 @@ def hash_file():
     return jsonify(hc.scan_file(path))
 
 
+# ------------------------------------------------------------------ #
+#  YARA 악성코드 스캔 (내용 기반 — 해시 대조가 못 잡는 변종을 잡는다)
+# ------------------------------------------------------------------ #
+
+def _yara():
+    return getattr(current_app._get_current_object(), "yara", None)
+
+
+@api_bp.route("/yara/status", methods=["GET"])
+def yara_status():
+    scanner = _yara()
+    if scanner is None:
+        return jsonify({"running": False, "stats": {"enabled": False},
+                        "rules": [], "matches": [],
+                        "reason": "YARA 스캐너가 비활성입니다 (YARA_ENABLED)"})
+    return jsonify(scanner.get_status())
+
+
+@api_bp.route("/yara/scan", methods=["POST"])
+def yara_scan():
+    """파일 또는 디렉터리를 YARA 룰로 스캔한다.
+
+    해시 스캔과 **같은 경로 제한**을 쓴다 — 스캐너가 임의 경로를 읽는 순간
+    그 자체가 취약점이다.
+    """
+    scanner = _yara()
+    if scanner is None:
+        return jsonify({"error": "YARA 스캐너가 비활성입니다"}), 503
+    data = request.get_json(silent=True) or {}
+    path = (data.get("path") or "").strip()
+    if not path:
+        return jsonify({"error": "파일 경로가 필요합니다"}), 400
+    if not _hash_scan_allowed(path):
+        return jsonify({"error": "허용되지 않은 경로입니다 (HASH_SCAN_ALLOWED_DIRS 참고)"}), 403
+    import os
+    if os.path.isdir(path):
+        result = scanner.scan_directory(path)
+    else:
+        result = scanner.scan_file(path)
+    audit_record("YARA_SCAN", path,
+                 f"매치 {len(result.get('matches') or result.get('results') or [])}건")
+    return jsonify(result)
+
+
+@api_bp.route("/yara/reload", methods=["POST"])
+def yara_reload():
+    """룰 파일을 고친 뒤 재기동 없이 다시 컴파일한다."""
+    scanner = _yara()
+    if scanner is None:
+        return jsonify({"error": "YARA 스캐너가 비활성입니다"}), 503
+    loaded = scanner.load_rules()
+    audit_record("YARA_RELOAD", "rules", f"{loaded}개 로드")
+    return jsonify({"loaded": loaded, "stats": scanner.get_status()["stats"]})
+
+
 @api_bp.route("/hash/history", methods=["GET"])
 def hash_history():
     hc = hash_checker()

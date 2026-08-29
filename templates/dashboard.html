@@ -131,6 +131,10 @@
         <i class="fa fa-file-shield"></i><span>Sigma 룰 엔진</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-sigma-count">0</span>
       </a>
+      <a href="#yara" class="sidebar-link" data-panel="yara">
+        <i class="fa fa-viruses"></i><span>YARA 악성코드</span>
+        <span class="badge bg-secondary ms-auto" id="sidebar-yara-count">0</span>
+      </a>
     </div>
 
     <button class="sidebar-group" id="sgroup-head-soar" onclick="toggleGroup('soar')">
@@ -230,6 +234,7 @@
     {% include "panels/audit.html" %}
     {% include "panels/report.html" %}
     {% include "panels/sigma.html" %}
+    {% include "panels/yara.html" %}
     {% include "panels/vulnscan.html" %}
     {% include "panels/fuzz.html" %}
     {% include "panels/patch.html" %}
@@ -277,5 +282,6 @@
 <script src="/static/js/dash/16-honeypot.js"></script>
 <script src="/static/js/dash/17-siem-correlation.js"></script>
 <script src="/static/js/dash/18-snort.js"></script>
+<script src="/static/js/dash/19-yara.js"></script>
 </body>
 </html>

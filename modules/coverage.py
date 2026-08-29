@@ -41,7 +41,7 @@ def base_technique(technique_id):
     return str(technique_id or "").strip().upper().split(".")[0]
 
 
-def _rule_index(sigma=None):
+def _rule_index(sigma=None, yara=None):
     """기법 → 그 기법을 탐지하는 룰 목록."""
     index = {}
 
@@ -57,6 +57,11 @@ def _rule_index(sigma=None):
     for event_id, pairs in SYSMON_MAPPING.items():
         for _tactic, technique in pairs:
             add(technique, "Sysmon", f"EventID {event_id}")
+
+    for rule in _yara_rules(yara):
+        # YARA 는 파일 내용 기반이라 Sigma(프로세스·로그)가 못 덮는 기법을 덮는다
+        if rule.get("mitre"):
+            add(rule["mitre"], "YARA", rule.get("name") or "(이름 없음)")
 
     for rule in _sigma_rules(sigma):
         title = rule.get("title") or rule.get("id") or "(제목 없음)"
@@ -75,6 +80,15 @@ def _sigma_rules(sigma):
         rules = getattr(sigma, "rules", None) or []
         # 비활성 룰은 탐지하지 않으므로 커버리지로 치지 않는다
         return [r for r in rules if r.get("enabled", True)]
+    except Exception:
+        return []
+
+
+def _yara_rules(yara):
+    if yara is None:
+        return []
+    try:
+        return list(getattr(yara, "rule_meta", None) or [])
     except Exception:
         return []
 
@@ -123,9 +137,9 @@ def _hit_index(mitre_tracker=None):
     return hits
 
 
-def build_coverage(mitre_tracker=None, sigma=None, purple=None):
+def build_coverage(mitre_tracker=None, sigma=None, purple=None, yara=None):
     """세 축을 조인한 커버리지 보고서."""
-    rules = _rule_index(sigma)
+    rules = _rule_index(sigma, yara)
     validations = _validation_index(purple)
     hits = _hit_index(mitre_tracker)
 

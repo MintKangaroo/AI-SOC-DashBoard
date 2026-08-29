@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **46개 모듈 / 약 14,200 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **47개 모듈 / 약 14,500 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -111,6 +111,7 @@ flowchart LR
 - **해시 검사** — MD5/SHA256 악성 DB 대조, EICAR 검증 (`hash_checker`)
 - **MITRE ATT&CK** — 위협·Sysmon 이벤트를 14 Tactic × Technique 매트릭스에 실시간 매핑 (`mitre_attack`)
 
+- **YARA 악성코드 탐지** — 해시 대조는 *알려진 그 파일*만 잡지만, YARA는 **파일 내용의 패턴**으로 잡아 변종을 덮습니다. 웹셸·리버스셸·크립토마이너·UPX 패킹 등 6개 룰, 매치 시 `MALWARE_FILE` 알림으로 AI 트리아지 파이프라인에 투입
 - **detection-as-code** — 각 Sigma 룰이 `tests:` 블록에 정탐/오탐 샘플을 함께 담고, CI 가 매 push 마다 *잡아야 할 것을 잡고 잡지 말아야 할 것을 안 잡는지* 검증합니다 (실제로 이 검증이 크립토마이너 룰의 오탐 하나를 잡아냈습니다)
 
 ### ③ 위협 인텔 · 분석
@@ -172,7 +173,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **600+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **650+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -229,7 +230,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 46개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 47개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -240,9 +241,9 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 93개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (33개, Jinja include)
-├── static/js/dash/           # 패널별 JS (01~18, 순서대로 로드)
-├── tests/                    # pytest 600+개
+│   └── panels/               # 패널별 UI 조각 (34개, Jinja include)
+├── static/js/dash/           # 패널별 JS (01~19, 순서대로 로드)
+├── tests/                    # pytest 650+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

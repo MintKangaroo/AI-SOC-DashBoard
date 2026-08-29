@@ -32,6 +32,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/packet_analyzer.py` | PyShark/Scapy 패킷 캡처, 통계, SocketIO emit |
 | `modules/threat_detector.py` | DDoS/포트스캔/악성코드 탐지, Alert 객체 관리 |
 | `modules/hash_checker.py` | 해시 계산 + 악성 DB 비교 |
+| `modules/yara_scanner.py` | YARA 내용 기반 악성코드 탐지 — 해시가 못 잡는 변종. 룰은 `data/yara/*.yar`, 정탐/오탐 샘플은 `rule_tests.yml` 에 두고 CI 가 검증 |
 | `modules/sysmon_parser.py` | Windows Sysmon 이벤트 파싱 |
 | `modules/ai_analyst.py` | Claude API 연동, 비동기 분석 큐, 챗봇 |
 | `modules/ml_analyst.py` | 자체 이상탐지(Isolation Forest) — 참고용 판정, 탐지 경로 미연결 |
@@ -59,8 +60,8 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 33개) |
-| `static/js/dash/01~18-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 34개) |
+| `static/js/dash/01~19-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 외부 시스템 연동 확장 방법

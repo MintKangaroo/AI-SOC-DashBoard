@@ -32,6 +32,7 @@ THREAT_TYPES = {
     "PORT_SCAN": "포트 스캔",
     "BRUTE_FORCE": "무차별 대입 공격",
     "MALWARE_BEACON": "악성코드 C2 통신",
+    "MALWARE_FILE":   "악성 파일 (YARA 탐지)",
     "DATA_EXFIL": "데이터 유출 의심",
     "ARP_SPOOFING": "ARP 스푸핑",
     "DNS_TUNNELING": "DNS 터널링",
