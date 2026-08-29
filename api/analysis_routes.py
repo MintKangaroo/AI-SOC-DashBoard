@@ -223,3 +223,99 @@ def correlation_campaigns():
     return jsonify(correlation.compute(store, hours=hours,
                                        window_minutes=window, min_alerts=2,
                                        labels=labels))
+
+
+# ------------------------------------------------------------------ #
+#  위협 헌팅 콘솔 (docs/AUDIT.md 3단계 제안 #7)
+# ------------------------------------------------------------------ #
+
+def _hunts():
+    return getattr(current_app._get_current_object(), "hunts", None)
+
+
+@api_bp.route("/hunts", methods=["GET"])
+def hunts_list():
+    store = _hunts()
+    if store is None:
+        return jsonify({"hunts": [], "enabled": False})
+    return jsonify({"hunts": store.list_all(), "enabled": True})
+
+
+@api_bp.route("/hunts", methods=["POST"])
+def hunts_create():
+    store = _hunts()
+    if store is None:
+        return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
+    body = request.get_json(silent=True) or {}
+    try:
+        created = store.create(body.get("name", ""), body.get("filters") or {},
+                               description=body.get("description", ""),
+                               created_by=_actor())
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    audit_record("HUNT_CREATE", created["name"], str(created["filters"]))
+    return jsonify(created), 201
+
+
+@api_bp.route("/hunts/<int:hunt_id>", methods=["PUT"])
+def hunts_update(hunt_id):
+    store = _hunts()
+    if store is None:
+        return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
+    body = request.get_json(silent=True) or {}
+    ok = store.update(hunt_id, name=body.get("name"), filters=body.get("filters"),
+                      description=body.get("description"))
+    if not ok:
+        return jsonify({"error": "헌팅을 찾을 수 없거나 바뀐 내용이 없습니다"}), 404
+    audit_record("HUNT_UPDATE", str(hunt_id))
+    return jsonify(store.get(hunt_id))
+
+
+@api_bp.route("/hunts/<int:hunt_id>", methods=["DELETE"])
+def hunts_delete(hunt_id):
+    store = _hunts()
+    if store is None:
+        return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
+    if not store.delete(hunt_id):
+        return jsonify({"error": "헌팅을 찾을 수 없습니다"}), 404
+    audit_record("HUNT_DELETE", str(hunt_id))
+    return jsonify({"deleted": hunt_id})
+
+
+@api_bp.route("/hunts/<int:hunt_id>/run", methods=["GET"])
+def hunts_run(hunt_id):
+    """헌팅 실행 — 조회 전용이라 GET 이다.
+
+    `mark=0` 이면 '지난 실행 이후' 기준선을 갱신하지 않는다. 미리보기로 돌려볼
+    때 델타가 소진되면 안 되기 때문이다.
+    """
+    store = _hunts()
+    if store is None:
+        return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
+    limit = min(500, max(1, request.args.get("limit", 100, type=int)))
+    mark = (request.args.get("mark", "1") or "1").lower() not in ("0", "false", "no")
+    result = store.run(hunt_id, limit=limit, mark=mark)
+    if result is None:
+        return jsonify({"error": "헌팅을 찾을 수 없습니다"}), 404
+    return jsonify(result)
+
+
+@api_bp.route("/hunts/promote", methods=["POST"])
+def hunts_promote():
+    """헌팅에서 찾은 지표를 워치리스트로 승격한다.
+
+    결과가 행동으로 이어지지 않으면 헌팅은 조회일 뿐이다.
+    """
+    store = _hunts()
+    if store is None:
+        return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
+    body = request.get_json(silent=True) or {}
+    value = (body.get("value") or "").strip()
+    if not value:
+        return jsonify({"error": "승격할 지표(value)가 필요합니다"}), 400
+    result = store.promote_to_watchlist(value, ioc_type=body.get("type", "ip"),
+                                        note=body.get("note", ""), actor=_actor())
+    if not result.get("ok"):
+        return jsonify(result), 400
+    audit_record("WATCHLIST_ADD", value, "헌팅에서 승격")
+    return jsonify(result)

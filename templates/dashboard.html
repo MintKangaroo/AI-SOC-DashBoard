@@ -113,6 +113,10 @@
         <i class="fa fa-user-shield"></i><span>IP 평판 (AbuseIPDB)</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-rep-count">0</span>
       </a>
+      <a href="#hunt" class="sidebar-link" data-panel="hunt">
+        <i class="fa fa-crosshairs"></i><span>위협 헌팅</span>
+        <span class="badge bg-secondary ms-auto" id="sidebar-hunt-count">0</span>
+      </a>
       <a href="#watchlist" class="sidebar-link" data-panel="watchlist">
         <i class="fa fa-binoculars"></i><span>IOC 워치리스트</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-wl-count">0</span>
@@ -235,6 +239,7 @@
     {% include "panels/report.html" %}
     {% include "panels/sigma.html" %}
     {% include "panels/yara.html" %}
+    {% include "panels/hunt.html" %}
     {% include "panels/vulnscan.html" %}
     {% include "panels/fuzz.html" %}
     {% include "panels/patch.html" %}
@@ -283,5 +288,6 @@
 <script src="/static/js/dash/17-siem-correlation.js"></script>
 <script src="/static/js/dash/18-snort.js"></script>
 <script src="/static/js/dash/19-yara.js"></script>
+<script src="/static/js/dash/20-hunt.js"></script>
 </body>
 </html>

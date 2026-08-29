@@ -1,0 +1,92 @@
+    <!-- ════ 위협 헌팅 콘솔 ════ -->
+    <div id="panel-hunt" class="panel-section d-none">
+      <div class="panel-title">
+        <i class="fa fa-crosshairs me-2 text-purple"></i>위협 헌팅 콘솔 — 저장된 쿼리
+        <span class="badge bg-dark ms-2" id="hunt-count">0</span>
+      </div>
+
+      <div class="card-panel mb-3" style="border-left:3px solid var(--purple); background:rgba(163,113,247,.05);">
+        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+          <i class="fa fa-lightbulb text-purple me-2"></i>이 패널은 어떻게 봐야 할까?
+        </div>
+        <div class="small" style="color:#e6edf3; line-height:1.7">
+          헌팅은 <strong>반복 행위</strong>입니다 — &ldquo;지난주에 봤던 그 패턴을 다시 본다&rdquo;가 핵심인데,
+          이력 검색만으로는 그 &lsquo;그 패턴&rsquo;을 어디에도 적어둘 수 없었습니다.
+          <ul class="mb-0 mt-1 ps-3">
+            <li><strong>쿼리를 저장</strong>해 분석가의 지식(무엇을 왜 찾는가)을 실행 가능한 형태로 남깁니다</li>
+            <li><strong>지난 실행 이후 새로 걸린 것</strong>만 따로 셉니다 — 매번 같은 결과를 다시 보면 사람은 곧 안 봅니다</li>
+            <li>찾은 지표는 <strong>워치리스트로 승격</strong>합니다. 행동으로 이어지지 않으면 조회일 뿐입니다</li>
+            <li>검색 범위는 <strong>아카이브 포함 전체 이력</strong>입니다</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-panel mb-3">
+        <div class="card-panel-header"><i class="fa fa-plus text-cyan me-2"></i>새 헌팅 저장</div>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <input id="hunt-name" class="form-control form-control-sm bg-dark text-white border-secondary"
+                   placeholder="이름 (예: 신규 국가 브루트포스)">
+          </div>
+          <div class="col-md-4">
+            <input id="hunt-desc" class="form-control form-control-sm bg-dark text-white border-secondary"
+                   placeholder="무엇을 왜 찾는가 (이게 헌팅의 값어치입니다)">
+          </div>
+          <div class="col-6 col-md-2">
+            <select id="hunt-sev" class="form-select form-select-sm bg-dark text-white border-secondary">
+              <option value="">심각도 전체</option>
+              <option value="CRITICAL">CRITICAL</option><option value="HIGH">HIGH</option>
+              <option value="MEDIUM">MEDIUM</option><option value="LOW">LOW</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <input id="hunt-ip" class="form-control form-control-sm bg-dark text-white border-secondary"
+                   placeholder="IP 부분일치">
+          </div>
+          <div class="col-6 col-md-2">
+            <input id="hunt-text" class="form-control form-control-sm bg-dark text-white border-secondary"
+                   placeholder="본문 검색">
+          </div>
+          <div class="col-6 col-md-2">
+            <select id="hunt-verdict" class="form-select form-select-sm bg-dark text-white border-secondary">
+              <option value="">판정 전체</option>
+              <option value="UNREVIEWED">미판정</option>
+              <option value="TRUE_POSITIVE">정탐</option>
+              <option value="FALSE_POSITIVE">오탐</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-sm btn-purple w-100" onclick="createHunt()">
+              <i class="fa fa-floppy-disk me-1"></i>저장
+            </button>
+          </div>
+        </div>
+        <div id="hunt-create-msg" class="small mt-2"></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="card-panel">
+            <div class="card-panel-header"><i class="fa fa-bookmark text-purple me-2"></i>저장된 헌팅</div>
+            <div id="hunt-list" class="small" style="max-height:460px; overflow-y:auto">불러오는 중...</div>
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <div class="card-panel">
+            <div class="card-panel-header">
+              <i class="fa fa-magnifying-glass text-cyan me-2"></i>실행 결과
+              <span class="badge bg-dark ms-2" id="hunt-result-badge">-</span>
+            </div>
+            <div id="hunt-promote" class="small mb-2"></div>
+            <div class="table-responsive" style="max-height:400px; overflow-y:auto">
+              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+                <thead><tr><th>시각</th><th>심각도</th><th>유형</th><th>출발지</th><th>설명</th></tr></thead>
+                <tbody id="hunt-result-tbody">
+                  <tr><td colspan="5" class="text-muted text-center p-3">왼쪽에서 헌팅을 실행하세요.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

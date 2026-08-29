@@ -15,6 +15,7 @@ from modules.mitre_attack import MitreTracker
 from modules.block_decision import BlockDecisionLog
 from modules.telemetry import telemetry
 from modules.yara_scanner import YaraScanner
+from modules.hunt import HuntStore
 from modules.threat_intel import ThreatIntel
 from modules.ip_reputation import IPReputation
 from modules.edr import EDRSensor
@@ -230,6 +231,10 @@ def build_services(app, socketio):
     yara_scanner = YaraScanner(socketio, app.config,
                                threat_detector=threat_detector,
                                mitre_tracker=mitre_tracker)
+    # 헌팅 콘솔 — 전체 이력(아카이브 포함) 위에서 저장된 쿼리를 돌린다
+    app.hunts = HuntStore(db_path=app.config.get("HUNT_DB", "data/hunts.db"),
+                          alert_store=getattr(threat_detector, "store", None),
+                          watchlist=watchlist)
     app.yara            = yara_scanner
     edr.yara = yara_scanner        # 실행 파일 내용 검사 (Sigma 는 커맨드라인)
     app.soar            = soar

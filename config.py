@@ -136,6 +136,8 @@ class Config:
     # DB 경로 — wiring.py 가 읽고 있었으나 여기 없어 .env 로 바꿀 수 없었다
     AUDIT_DB = os.getenv("AUDIT_DB", "data/audit.db")
     WATCHLIST_DB = os.getenv("WATCHLIST_DB", "data/watchlist.db")
+    # 위협 헌팅 콘솔 — 저장된 쿼리 (docs/AUDIT.md 3단계 제안 #7)
+    HUNT_DB = os.getenv("HUNT_DB", "data/hunts.db")
 
     # 알림 중복제거·억제 레이어
     DEDUP_ENABLED = os.getenv("DEDUP_ENABLED", "True")

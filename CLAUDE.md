@@ -50,6 +50,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
+| `modules/hunt.py` | 위협 헌팅 콘솔 — 저장된 쿼리·델타(지난 실행 이후)·워치리스트 승격. 기본 scope=all(아카이브 포함) |
 | `modules/correlation.py` | 킬체인 상관관계 — 같은 IP를 MITRE 전술 순서 캠페인으로 구성 |
 | `modules/system_health.py` | 전 모듈 헬스 중앙 집계(방어적 조회, SPECS 리스트) |
 | `modules/telemetry.py` | 자기 관측성 — 지점별 지연 p50/p95·실패·큐 적체. `with telemetry.timed("지점")` 로 계측, 프로브는 모듈 수정 없이 등록 |
@@ -60,8 +61,8 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 34개) |
-| `static/js/dash/01~19-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 35개) |
+| `static/js/dash/01~20-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 외부 시스템 연동 확장 방법
