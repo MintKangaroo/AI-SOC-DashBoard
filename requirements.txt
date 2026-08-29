@@ -14,6 +14,9 @@ anthropic==0.116.0
 PyYAML==6.0.3
 # YARA 내용 기반 악성코드 탐지 (미설치 시 해시 대조만 동작)
 yara-python==4.5.4
+# OCSF 내보내기의 표준 준수를 **독립적으로** 검증한다(테스트 전용).
+# 내가 만든 매핑을 내가 만든 어서션으로 확인하면 그건 검증이 아니다.
+py-ocsf-models==0.10.0
 
 # ML (Isolation Forest 이상탐지)
 scikit-learn==1.7.2

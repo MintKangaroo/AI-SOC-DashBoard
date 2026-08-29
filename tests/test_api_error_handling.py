@@ -164,7 +164,11 @@ def test_csrf_403_not_swallowed(client):
 
 
 # 성공 응답이 의도적으로 JSON 이 아닌 엔드포인트 (파일 다운로드)
-NON_JSON_BY_DESIGN = {"/api/alerts/history/export.csv"}
+# 내보내기 엔드포인트는 의도적으로 JSON 문서가 아니다.
+# CSV 는 표 형식이고, OCSF 는 NDJSON(줄 단위 JSON) — SIEM 수집기가
+# 기대하는 형태이고 11만 건을 한 배열로 묶으면 받는 쪽이 통째로 올려야 한다.
+NON_JSON_BY_DESIGN = {"/api/alerts/history/export.csv",
+                      "/api/alerts/history/export.ocsf.json"}
 
 
 def test_every_get_endpoint_returns_json(client, app_module):
@@ -304,3 +308,25 @@ def test_telemetry_endpoint_reports_latency_and_probes(client):
     assert {p["name"] for p in d["probes"]} >= {"ai.queue_depth", "incidents.dirty"}
     for probe in d["probes"]:
         assert probe.get("error") is None, f"프로브 실패: {probe}"
+
+
+def test_ocsf_export_returns_ndjson(client):
+    """SIEM 수집기가 기대하는 줄 단위 JSON — 11만 건을 한 배열로 묶지 않는다."""
+    import json
+
+    r = client.get("/api/alerts/history/export.ocsf.json", query_string={"limit": 5})
+    assert r.status_code == 200
+    assert r.mimetype == "application/x-ndjson"
+    assert r.headers.get("X-OCSF-Class-Uid") == "2004"
+    body = r.get_data(as_text=True).strip()
+    if body:
+        for line in body.split("\n"):
+            event = json.loads(line)          # 줄마다 독립적으로 파싱돼야 한다
+            assert event["class_uid"] == 2004
+            assert event["type_uid"] == event["class_uid"] * 100 + event["activity_id"]
+
+
+def test_ocsf_export_rejects_bad_scope(client):
+    r = client.get("/api/alerts/history/export.ocsf.json",
+                   query_string={"scope": "'; DROP TABLE alerts--"})
+    assert r.status_code == 400 and r.is_json

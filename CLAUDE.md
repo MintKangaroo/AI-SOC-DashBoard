@@ -50,6 +50,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
+| `modules/ocsf_export.py` | OCSF 1.1.0 Detection Finding 매핑 — 내보내기 전용. 스키마 상수는 schema.ocsf.io 에서 확인한 값, 준수는 py-ocsf-models 로 독립 검증 |
 | `modules/hunt.py` | 위협 헌팅 콘솔 — 저장된 쿼리·델타(지난 실행 이후)·워치리스트 승격. 기본 scope=all(아카이브 포함) |
 | `modules/correlation.py` | 킬체인 상관관계 — 같은 IP를 MITRE 전술 순서 캠페인으로 구성 |
 | `modules/system_health.py` | 전 모듈 헬스 중앙 집계(방어적 조회, SPECS 리스트) |

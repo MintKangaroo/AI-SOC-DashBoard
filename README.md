@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **48개 모듈 / 약 14,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **49개 모듈 / 약 15,000 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -148,6 +148,7 @@ flowchart LR
 
 - **자기 관측성** — 이 도구가 자기 자신을 관측합니다. 지점별 처리 지연(p50/p95/최대)·실패 횟수·큐 적체를 재고, 임계값을 넘으면 표시합니다. *코드 감사에서 나온 성능 문제 대부분이 이 값들이 보였다면 스스로 드러났을 것들이었습니다*
 
+- **OCSF 내보내기** — 알림 이력을 [OCSF](https://schema.ocsf.io) 1.1.0 Detection Finding(class_uid 2004) NDJSON으로 내보냅니다. 내부 스키마는 그대로 두고 **밖으로 나갈 때만** 표준 형태로 바꿉니다. 표준 준수는 독립 라이브러리(`py-ocsf-models`)로 검증합니다 — 실데이터 2,000건 통과
 - **위협 헌팅 콘솔** — 분석가가 반복해서 찾는 패턴을 **쿼리로 저장**하고 재실행합니다. *지난 실행 이후 새로 걸린 것*만 따로 세고(매번 같은 결과를 다시 보면 사람은 곧 안 봅니다), 찾은 지표는 워치리스트로 승격합니다. 검색 범위는 아카이브 포함 전체 이력(11만 건)입니다
 
 ### 플랫폼
@@ -176,7 +177,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **690+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **730+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -233,7 +234,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 48개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 49개 관제 모듈 (SOC 도메인별)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -246,7 +247,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (35개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~20, 순서대로 로드)
-├── tests/                    # pytest 690+개
+├── tests/                    # pytest 730+개
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```

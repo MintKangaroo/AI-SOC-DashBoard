@@ -137,6 +137,51 @@ def alerts_history_export():
                              "attachment; filename=alert_history.csv"})
 
 
+@api_bp.route("/alerts/history/export.ocsf.json", methods=["GET"])
+def alerts_history_export_ocsf():
+    """현재 검색 조건의 알림 이력을 OCSF Detection Finding 으로 내보낸다.
+
+    감사(#1)는 OCSF **전면 도입**을 비추천했다 — 40개 모듈을 표준 클래스에
+    매핑하는 대공사인데 얻는 게 "표준을 따른다"는 사실뿐이다. 대신 권고된 것이
+    **내보내기 계층 하나**다. 내부 구조는 그대로 두고 밖으로 나갈 때만 바꾼다.
+
+    NDJSON(줄 단위 JSON)으로 준다 — SIEM 수집기들이 기대하는 형태이고, 11만 건을
+    한 배열로 묶으면 받는 쪽이 통째로 메모리에 올려야 한다.
+    """
+    import json
+
+    from flask import Response
+
+    from modules.ocsf_export import OCSF_VERSION, alert_to_ocsf
+    _, td, *_ = None, threat_detector(), None
+    a = request.args
+    scope = a.get("scope") or "all"
+    if scope not in ("all", "live", "archive"):
+        return jsonify({"error": "scope 는 all/live/archive 중 하나여야 합니다"}), 400
+    limit = min(50000, max(1, a.get("limit", 10000, type=int)))
+    rows, _total = td.search_alerts(
+        scope=scope,
+        severity=a.get("severity") or None,
+        status=a.get("status") or None,
+        threat_type=a.get("threat_type") or None,
+        verdict=a.get("verdict") or None,
+        origin=a.get("origin") or None,
+        ip=(a.get("ip") or "").strip() or None,
+        text=(a.get("text") or "").strip() or None,
+        date_from=a.get("from") or None,
+        date_to=a.get("to") or None,
+        limit=limit, offset=0,
+    )
+    body = "\n".join(json.dumps(alert_to_ocsf(r), ensure_ascii=False) for r in rows)
+    audit_record("OCSF_EXPORT", f"{len(rows)}건", f"scope={scope}")
+    return Response(
+        body + ("\n" if body else ""),
+        mimetype="application/x-ndjson",
+        headers={"Content-Disposition": "attachment; filename=alerts_ocsf.ndjson",
+                 "X-OCSF-Version": OCSF_VERSION,
+                 "X-OCSF-Class-Uid": "2004"})
+
+
 @api_bp.route("/alerts/retention", methods=["GET"])
 def alerts_retention():
     """계층별 보존 현황과 변경 없는 정리 미리보기."""
