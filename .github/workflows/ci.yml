@@ -41,6 +41,16 @@ jobs:
         # 돌린다 — 룰이 깨졌는지 앱이 깨졌는지 로그에서 바로 갈린다.
         run: python -m pytest tests/test_sigma_rules.py tests/test_yara_rules.py -q
 
+      - name: 실서버 통합 (작업 디렉터리 밖에서 기동)
+        # 나머지 테스트는 전부 test_client 로 돈다 — 프로세스도 소켓도 없고
+        # 작업 디렉터리가 항상 저장소다. 그래서 못 보는 종류가 있다.
+        # 실제로 이게 없어서 "YARA 룰 디렉터리가 없으면 탐지가 통째로 죽는" 문제를
+        # 테스트 700여 개가 전부 놓쳤다. 여기서 먼저 돌려 원인을 분리한다.
+        env:
+          SOAR_BLOCK_MODE: simulate
+          SOAR_AUTO_BLOCK: "False"
+        run: python -m pytest tests/test_live_server.py -q
+
       - name: 테스트
         # CI 에는 .env 가 없다 — fresh clone 과 같은 상태에서 통과해야 한다.
         # 차단 경로는 simulate 로 고정해 어떤 경우에도 방화벽을 건드리지 않는다.

@@ -66,6 +66,25 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `static/js/dash/01~20-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
+## 검증 계층
+
+```
+pytest (758건)          — 대부분 test_client. 빠르고 결정적.
+  └ -m "not live"       로 실서버 테스트만 제외 가능
+tests/test_live_server.py — **실제 프로세스를 빈 임시 디렉터리에서 띄워** HTTP 로 검증.
+                            CI 에서 전체 테스트보다 **먼저** 돌려 원인을 분리한다.
+scripts/loadtest.py     — 부하 시험(사람이 실행). 실데이터 사본으로 지연·텔레메트리 측정.
+```
+
+**test_client 로는 못 보는 것이 있다.** 프로세스·소켓·백그라운드 스레드가 없고,
+작업 디렉터리가 항상 저장소다. 실제로 그래서 "YARA 룰 디렉터리가 없으면 탐지가
+통째로 죽는" 문제를 테스트 700여 개가 전부 놓쳤다(작업 디렉터리가 저장소 밖일 때
+발생). 실서버 테스트는 **빈 디렉터리에서** 띄워 그 종류를 잡는다.
+
+성능 회귀가 의심되면 `python scripts/loadtest.py --with-real-data`. 텔레메트리
+요약의 `slow` 가 0 이 아닌 지점부터 본다. 실측 기준선(11만 건·동시 8):
+`alert_store.search` p95 약 400ms, `/api/metrics/soc` 1회차 약 1.1초·2회차 캐시로 수 ms.
+
 ## 외부 시스템 연동 확장 방법
 
 새 시스템(예: 방화벽) 연동 시:

@@ -27,3 +27,6 @@ addopts = "-q"
 # 저장소 루트를 sys.path 에 넣는다. 없으면 `python -m pytest` 로는 되고 `pytest`
 # 로는 `No module named 'modules'` 로 죽는다 — 실제로 CI 에서 그렇게 깨졌다.
 pythonpath = ["."]
+# 실제 프로세스를 띄우는 테스트. 느리지만 test_client 로는 못 잡는 종류를 잡는다
+# (작업 디렉터리 의존·백그라운드 스레드·소켓). 건너뛰려면 `pytest -m "not live"`.
+markers = ["live: 실제 서버 프로세스를 띄우는 통합 테스트"]

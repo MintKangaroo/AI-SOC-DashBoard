@@ -177,7 +177,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **730+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **750+개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 75% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -247,7 +247,8 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (35개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~20, 순서대로 로드)
-├── tests/                    # pytest 730+개
+├── tests/                    # pytest 750+개
+├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```
