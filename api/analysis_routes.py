@@ -338,7 +338,9 @@ def labeling_queue():
         getattr(getattr(app, "threat_detector", None), "store", None),
         getattr(app, "labels", None),
         limit=min(200, max(1, a.get("limit", 50, type=int))),
-        include_labeled=(a.get("include_labeled", "") or "").lower() in ("1", "true")))
+        include_labeled=(a.get("include_labeled", "") or "").lower() in ("1", "true"),
+        # provenance=real 이면 합성 표지가 붙은 알림을 제외하고 센다.
+        provenance=("real" if (a.get("provenance", "") or "").lower() == "real" else None)))
 
 
 @api_bp.route("/labeling/label", methods=["POST"])

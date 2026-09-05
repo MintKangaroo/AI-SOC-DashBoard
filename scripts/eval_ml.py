@@ -225,12 +225,57 @@ def capture_backend_status():
         import modules.packet_analyzer as pa
     except Exception as e:                      # pragma: no cover - 방어
         return False, f"packet_analyzer 임포트 실패: {e}"
-    if pa.PYSHARK_AVAILABLE or pa.SCAPY_AVAILABLE:
-        backend = "PyShark" if pa.PYSHARK_AVAILABLE else "Scapy"
-        return True, f"{backend} 사용 가능"
-    return False, ("PyShark·Scapy 둘 다 없음 — 실모드로 띄워도 합성 트래픽이므로 "
-                   "실트래픽 피처는 0건에서 늘지 않는다. "
-                   "pip install scapy + 캡처 권한(setcap 또는 wireshark 그룹) 필요")
+    if not (pa.PYSHARK_AVAILABLE or pa.SCAPY_AVAILABLE):
+        return False, ("PyShark·Scapy 둘 다 없음 — 실모드로 띄워도 합성 트래픽이므로 "
+                       "실트래픽 피처는 0건에서 늘지 않는다. "
+                       "sudo bash scripts/enable_packet_capture.sh")
+
+    backend = "PyShark" if pa.PYSHARK_AVAILABLE else "Scapy"
+    # **설치됐다는 것과 캡처할 수 있다는 것은 다르다.** 라이브러리만 보고
+    # "가능" 이라고 하면 사람이 서버를 몇 시간 돌린 뒤에야 권한 문제를 안다.
+    # 원시 소켓을 여는 것으로 즉시 확인한다(패킷은 읽지 않는다).
+    if not _can_open_raw_socket():
+        return False, (f"{backend} 는 있으나 캡처 권한이 없다(CAP_NET_RAW) — "
+                       "sudo bash scripts/enable_packet_capture.sh 후 재로그인")
+    return True, f"{backend} 사용 가능 · 캡처 권한 있음"
+
+
+def _can_open_raw_socket():
+    """원시 소켓을 열 수 있는가 — 캡처 권한의 실질 조건."""
+    import socket
+    if not hasattr(socket, "AF_PACKET"):            # 리눅스가 아니면 판단 보류
+        return True
+    try:
+        sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, 0)
+    except (PermissionError, OSError):
+        return False
+    sock.close()
+    return True
+
+
+def labelable_real_alerts():
+    """정답지로 쓸 수 있는 **실측** 알림이 몇 건인가.
+
+    "사람 라벨 100건 필요" 는 라벨을 붙일 실측 알림이 그만큼 있을 때만
+    의미가 있다. 이 저장소는 실제 센서와 합성 생성기를 함께 돌리므로
+    알림 대부분이 합성이다 — 그걸 판정해봐야 생성기가 의도한 바를 확인할
+    뿐이고, 모델이 실제 침해를 잡는지는 아무것도 말해주지 않는다.
+
+    반환: (실측 알림 수, 전체 알림 수) — 못 세면 (None, None).
+    """
+    try:
+        from modules.alert_store import AlertStore
+        from modules.labeling import build_queue
+        store = AlertStore("data/alerts.db")
+        try:
+            total = build_queue(store, None, limit=1)["summary"]["total_alerts"]
+            real = build_queue(store, None, limit=1,
+                               provenance="real")["summary"]["total_alerts"]
+        finally:
+            store.close()
+        return real, total
+    except Exception:
+        return None, None
 
 
 _CAPTURE_OK, _CAPTURE_WHY = capture_backend_status()
@@ -290,6 +335,7 @@ def _fmt_survey(d):
         f"· 전체 알림 {live.get('total_alerts', 0):,}건",
         f"  아카이브       : 사람 {arch.get('human_total', 0)}건  "
         f"· 전체 알림 {arch.get('total_alerts', 0):,}건",
+        _labelable_line(),
         "",
         "그룹 라벨 (data/labels.db — 라벨링 큐에서 그룹 단위로 판정)",
         f"  그룹 판정 {grouped.get('group_decisions', 0)}건 → 알림 "
@@ -310,6 +356,18 @@ def _fmt_survey(d):
         + ("" if v["can_evaluate"] else f" — 사람 라벨 {v['labels_needed']}건 부족"),
     ]
     return "\n".join(lines)
+
+
+def _labelable_line():
+    real, total = labelable_real_alerts()
+    if real is None:
+        return "  라벨 가능 실측 : 집계 실패"
+    pct = (real / total * 100) if total else 0.0
+    warn = "  ← 100건 라벨도 불가능" if real < 100 else ""
+    return (f"  라벨 가능 실측 : {real:,}건 / 전체 {total:,}건 ({pct:.2f}%){warn}\n"
+            f"                   ※ 나머지는 합성(허니팟 데모·퍼플팀 TEST-NET·데모 평판·\n"
+            f"                      SIMULATED 로그·데모 생성기). 합성에 붙인 정탐 라벨은\n"
+            f"                      생성기 확인일 뿐 탐지력의 근거가 아니다.")
 
 
 def _fmt_synthetic(s):

@@ -3,7 +3,15 @@
       <div class="panel-title">
         <i class="fa fa-tags me-2 text-warning"></i>라벨링 큐 — 정탐/오탐 확정
         <span class="badge bg-dark ms-2" id="lab-coverage">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadLabeling()">
+        <div class="form-check form-switch ms-auto me-3 small" style="padding-top:2px;">
+          <input class="form-check-input" type="checkbox" id="lab-real-only"
+                 onchange="loadLabeling()">
+          <label class="form-check-label" for="lab-real-only"
+                 title="허니팟 데모·퍼플팀 TEST-NET·데모 평판·SIMULATED 로그·데모 생성기 산출물을 제외한다">
+            합성 제외(실측만)
+          </label>
+        </div>
+        <button class="btn btn-xs btn-outline-cyan" onclick="loadLabeling()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </div>

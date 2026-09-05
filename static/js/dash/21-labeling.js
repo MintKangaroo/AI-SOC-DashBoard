@@ -2,7 +2,9 @@
    11만 건을 한 건씩 보는 대신 67개 그룹을 판정한다. */
 (function () {
   function loadLabeling() {
-    fetch('/api/labeling/queue?limit=40')
+    const only = document.getElementById('lab-real-only');
+    const q = (only && only.checked) ? '&provenance=real' : '';
+    fetch('/api/labeling/queue?limit=40' + q)
       .then(r => r.json()).then(renderLabeling).catch(() => {});
     fetch('/api/labeling/stats').then(r => r.json()).then(renderLabelStats).catch(() => {});
   }
@@ -23,8 +25,15 @@
     const cov = document.getElementById('lab-coverage');
     if (cov) {
       const s = d.summary || {};
-      cov.textContent = `그룹 ${Number(s.groups || 0)}개 · 판정 ${Number(s.labeled_groups || 0)}개 `
-        + `· 덮인 알림 ${Number(s.covered_alerts || 0).toLocaleString()}건 (${s.coverage_pct || 0}%)`;
+      const parts = [`그룹 ${Number(s.groups || 0)}개`,
+                     `판정 ${Number(s.labeled_groups || 0)}개`,
+                     `덮인 알림 ${Number(s.covered_alerts || 0).toLocaleString()}건 (${s.coverage_pct || 0}%)`];
+      if (Number(s.excluded_synthetic || 0) > 0) {
+        parts.push(`합성 ${Number(s.excluded_synthetic).toLocaleString()}건 제외됨`);
+      } else if (Number(s.synthetic_alerts || 0) > 0) {
+        parts.push(`이 중 합성 ${Number(s.synthetic_alerts).toLocaleString()}건 포함`);
+      }
+      cov.textContent = parts.join(' · ');
     }
     const box = document.getElementById('lab-groups');
     if (!box) return;
@@ -36,6 +45,20 @@
     box.innerHTML = groups.map((g, i) => {
       const sev = Object.entries(g.severities || {})
         .map(([k, v]) => `${escapeHtml(k)} ${Number(v)}`).join(' · ');
+      // 합성 알림에 붙인 '정탐' 은 생성기가 의도한 바를 확인할 뿐이다.
+      // 분석가가 그걸 모르고 판정하지 않도록 카드에 못박아 둔다.
+      const pv = g.provenance || {};
+      const nSyn = Number(pv.synthetic || 0), nReal = Number(pv.real || 0);
+      let prov = '';
+      if (nSyn > 0 && nReal === 0) {
+        prov = `<span class="badge bg-warning text-dark" title="${escapeHtml(pv.reason || '')}">`
+             + `합성 — 정답지로 쓰지 말 것</span>`;
+      } else if (nSyn > 0) {
+        prov = `<span class="badge bg-warning text-dark" title="${escapeHtml(pv.reason || '')}">`
+             + `혼합 실측 ${nReal.toLocaleString()} / 합성 ${nSyn.toLocaleString()}</span>`;
+      } else {
+        prov = '<span class="badge bg-success">합성 표지 없음</span>';
+      }
       /* 출발지가 많으면 여러 주체가 같은 짓을 한 것이고, 하나면 한 호스트의 반복이다.
          그룹이 균질한지 판단하는 재료라 눈에 띄게 둔다. */
       const homo = g.unique_sources > 1
@@ -47,6 +70,7 @@
           <span class="text-muted small">(${g.coverage_pct}%)</span>
           <span class="badge bg-secondary">${escapeHtml(g.threat_type || '-')}</span>
           ${g.rule_id ? `<span class="badge bg-dark">${escapeHtml(g.rule_id)}</span>` : ''}
+          ${prov}
           <span class="ms-auto small">${homo}</span>
         </div>
         <div class="desc mt-1">${escapeHtml(g.description || '')}</div>

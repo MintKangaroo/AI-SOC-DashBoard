@@ -750,4 +750,7 @@ class ThreatDetector:
         ttype, sev, src_t, dst_t, desc, _ = choice
         src = self._rand_ip(src_t)
         dst = self._rand_ip(dst_t) if "{}" in dst_t else dst_t
-        self._add_alert(Alert(ttype, sev, src, dst, desc))
+        # details 를 안 넘기면 Alert.origin 이 'real' 로 찍힌다(68행) — 데모
+        # 생성기가 만든 알림이 실측으로 둔갑하고, 나중에 그걸 정답지로 삼으면
+        # 생성기가 의도한 바를 확인할 뿐인 라벨이 된다.
+        self._add_alert(Alert(ttype, sev, src, dst, desc, {"demo": True}))

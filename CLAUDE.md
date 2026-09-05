@@ -51,7 +51,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
 | `modules/ocsf_export.py` | OCSF 1.1.0 Detection Finding 매핑 — 내보내기 전용. 스키마 상수는 schema.ocsf.io 에서 확인한 값, 준수는 py-ocsf-models 로 독립 검증 |
-| `modules/labeling.py` | 라벨링 큐 — 알림을 그룹으로 묶어 한 번에 판정. **그룹 라벨과 개별 라벨을 나눠 센다**(그룹은 약한 증거 — 합치면 평가 문턱을 속이게 된다) |
+| `modules/labeling.py` | 라벨링 큐 — 알림을 그룹으로 묶어 한 번에 판정. **그룹 라벨과 개별 라벨을 나눠 센다**(그룹은 약한 증거 — 합치면 평가 문턱을 속이게 된다). `classify_provenance()` 가 합성/실측을 가른다 — 실측 결과 알림 11만 건 중 **합성 표지가 없는 것은 183건(0.17%)** 뿐이다 |
 | `modules/hunt.py` | 위협 헌팅 콘솔 — 저장된 쿼리·델타(지난 실행 이후)·워치리스트 승격. 기본 scope=all(아카이브 포함) |
 | `modules/correlation.py` | 킬체인 상관관계 — 같은 IP를 MITRE 전술 순서 캠페인으로 구성 |
 | `modules/system_health.py` | 전 모듈 헬스 중앙 집계(방어적 조회, SPECS 리스트) |

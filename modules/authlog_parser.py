@@ -46,6 +46,7 @@ class AuthLogMonitor:
         self.events = deque(maxlen=500)
         self._fail_window = defaultdict(list)   # ip → [실패 ts]
         self._alerted = {}                       # ip → 마지막 알림 ts
+        self.simulated = False                   # 원본 로그가 합성 fixture 인가
         self._ip_counter = Counter()
         self.stats = {
             "total": 0, "failed": 0, "invalid": 0, "accepted": 0,
@@ -55,12 +56,38 @@ class AuthLogMonitor:
 
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _looks_simulated(path):
+        """로그 앞머리에 SIMULATED 표지가 있는가.
+
+        `soc_monitor` 가 만드는 검증용 auth.log 는 첫 줄에 그렇게 적어 둔다.
+        파일을 tail 하는 것은 실제 동작이지만 **내용은 합성**이므로, 그걸
+        'demo=False' 로 보고하면 나중에 라벨링·평가에서 합성 이벤트가 실측으로
+        둔갑한다(ml_analyst._origin_of 와 같은 문제다).
+        """
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                for _ in range(5):
+                    line = fh.readline()
+                    if not line:
+                        break
+                    if "SIMULATED" in line.upper():
+                        return True
+        except OSError:
+            pass
+        return False
+
     def start(self, demo=True):
         if self.running:
             return
         self.running = True
         if os.path.exists(self.log_path) and os.access(self.log_path, os.R_OK):
-            self.stats["mode"] = "real"
+            self.simulated = self._looks_simulated(self.log_path)
+            self.stats["mode"] = "simulated" if self.simulated else "real"
+            if self.simulated:
+                _log.warning(
+                    f"[AuthLog] {self.log_path} 는 SIMULATED 로그다 — 탐지는 실제로"
+                    " 동작하지만 알림은 합성(demo=True)으로 표시된다")
             _log.info(f"[AuthLog] 실시간 SSH 인증 로그 감시 시작: {self.log_path}")
             threading.Thread(target=self._tail_loop, daemon=True).start()
         elif demo:
@@ -183,7 +210,8 @@ class AuthLogMonitor:
                     f"SSH 무차별 대입: {ip} → {count}회 실패/{int(self.window)}초 (대상 계정: {user})",
                     {"fail_count": count, "window_s": int(self.window),
                      "last_user": user, "source": "auth.log",
-                     "evidence": ["auth_bruteforce"], "demo": False})
+                     "evidence": ["auth_bruteforce"],
+                     "demo": bool(getattr(self, "simulated", False))})
             except Exception as e:
                 _log.error(f"[AuthLog] 알림 전달 오류: {e}")
 

@@ -20,6 +20,13 @@
 "측정 가능" 문턱을 낮은 품질의 라벨로 넘기게 된다 — 자기 지표를 스스로 속이는
 짓이다. 그래서 `scope`(group/single)를 함께 저장하고 평가 스크립트가 나눠 센다.
 
+**3. 합성 알림을 실측과 섞지 않는다.** 실측 결과 11만 건 중 **70.8%가 합성**
+이었다 — 허니팟 데모(`details.demo=True`), 퍼플팀 하네스의 TEST-NET IP,
+데모 평판(`Demo ISP`), 허니넷 SIMULATED 로그. 이걸 모르고 상위 그룹을 판정하면
+**합성 데이터로 정답지를 만들게 된다.** ML 피처에서 이미 같은 실수가 있었다
+(설정만 보고 합성 트래픽을 'real' 로 기록 — `ml_analyst._origin_of` 참조).
+그래서 각 그룹이 무엇으로 이뤄져 있는지 큐가 먼저 말한다.
+
 ## 큐 순서
 
 한 번의 판정이 **몇 건을 덮는가**로 정렬한다. 정보량이 큰 것부터 본다.
@@ -48,6 +55,105 @@ def normalize_description(description):
     """
     text = _DIGITS.sub("#", description or "")
     return _SPACES.sub(" ", text).strip()[:120]
+
+
+# 문서용(RFC 5737) 대역 — 퍼플팀 하네스가 실제 공격 대신 쓰는 IP.
+_TESTNET = re.compile(r"\b(?:192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)")
+
+PROVENANCE_SYNTHETIC = "synthetic"
+PROVENANCE_REAL = "real"
+
+_demo_descriptions = None
+
+
+def _demo_catalog():
+    """`threat_detector` 데모 생성기의 문구 카탈로그(정규화된 형태).
+
+    아카이브의 알림은 origin 이 전부 'legacy' 라 저장값으로는 실측·합성을 가릴
+    수 없다. 그런데 데모 생성기는 **고정된 목록**에서 문구를 고르고, 그 문구는
+    실제 탐지 경로 어디에도 없다(확인함). 그래서 문구 일치가 확실한 표지가 된다.
+
+    카탈로그를 여기 복사하지 않고 원본을 읽는다 — 복사하면 생성기가 바뀔 때
+    조용히 어긋난다.
+    """
+    global _demo_descriptions
+    if _demo_descriptions is None:
+        try:
+            from modules.threat_detector import ThreatDetector
+            _demo_descriptions = {
+                normalize_description(row[4]) for row in ThreatDetector._DEMO_THREATS
+            }
+        except Exception as e:                      # pragma: no cover - 방어
+            _log.warning(f"[Labeling] 데모 카탈로그 로드 실패: {e}")
+            _demo_descriptions = set()
+    return _demo_descriptions
+
+
+_demo_cmdlines = None
+
+
+def _demo_cmdline_catalog():
+    """EDR 데모가 주입하는 가짜 프로세스의 cmdline.
+
+    EDR 이 데모로 돌던 시기의 알림이 아카이브에 1만 4천 건 넘게 있다. 그
+    cmdline 은 고정 문자열이라 실제 프로세스가 만들어낼 수 없고, Sigma 도
+    같은 프로세스 목록을 먹으므로 SIGMA_MATCH 쪽 알림까지 같이 걸러진다.
+    """
+    global _demo_cmdlines
+    if _demo_cmdlines is None:
+        try:
+            from modules.edr import DEMO_THREAT_PROCESSES
+            _demo_cmdlines = {p["cmdline"] for _, p in DEMO_THREAT_PROCESSES}
+        except Exception as e:                      # pragma: no cover - 방어
+            _log.warning(f"[Labeling] EDR 데모 카탈로그 로드 실패: {e}")
+            _demo_cmdlines = set()
+    return _demo_cmdlines
+
+
+def classify_provenance(description, details_json, details=None, stored_origin=None):
+    """이 알림이 실측인가 합성인가 — **라벨의 값어치를 정하는 정보**다.
+
+    이 저장소는 실제 센서와 합성 생성기를 함께 돌린다(허니팟 데모, 퍼플팀
+    하네스, 허니넷 SIMULATED 로그). 그건 탐지 파이프라인을 검증하려는
+    의도적 설계이고 그 자체로 문제가 아니다. 문제는 **그걸 모른 채 정답지를
+    만드는 것**이다. 합성 알림에 붙은 '정탐' 라벨은 생성기가 의도한 바를
+    확인해 줄 뿐, 모델이 실제 침해를 잡는지에 대해서는 아무것도 말하지 않는다.
+
+    보수적으로 판단한다 — 합성 표지가 하나라도 있으면 합성으로 본다.
+    표지가 없다고 실측이 보장되는 건 아니므로 'real' 은 '합성 표지 없음'
+    으로 읽어야 한다.
+
+    반환: (PROVENANCE_*, 근거 문자열)
+    """
+    if details is None:
+        try:
+            details = json.loads(details_json or "{}")
+        except (TypeError, ValueError):
+            details = {}
+    if not isinstance(details, dict):
+        details = {}
+
+    # 저장된 origin 이 신뢰할 만하면 그것부터 쓴다. 단 'legacy'/'unknown' 은
+    # 소급 백필값이라 아무 의미가 없다 — 아카이브 11만 건이 전부 'legacy' 다.
+    if stored_origin == "demo":
+        return PROVENANCE_SYNTHETIC, "저장된 origin=demo"
+
+    if details.get("demo") is True:
+        return PROVENANCE_SYNTHETIC, "details.demo=True"
+
+    blob = f"{details_json or ''}{description or ''}"
+    if _TESTNET.search(blob):
+        return PROVENANCE_SYNTHETIC, "TEST-NET IP(RFC 5737 문서용 대역)"
+    if "Demo ISP" in blob:
+        return PROVENANCE_SYNTHETIC, "데모 평판(Demo ISP)"
+    if "soc_monitor" in blob:
+        return PROVENANCE_SYNTHETIC, "허니넷 SIMULATED 로그"
+    if normalize_description(description) in _demo_catalog():
+        return PROVENANCE_SYNTHETIC, "threat_detector 데모 카탈로그 문구"
+    cmdline = details.get("cmdline")
+    if cmdline and cmdline in _demo_cmdline_catalog():
+        return PROVENANCE_SYNTHETIC, "EDR 데모 주입 프로세스 cmdline"
+    return PROVENANCE_REAL, "합성 표지 없음"
 
 
 def group_key(threat_type, rule_id, description):
@@ -159,31 +265,47 @@ class LabelStore:
             self._conn.close()
 
 
-def build_queue(alert_store, label_store=None, limit=50, include_labeled=False):
+def build_queue(alert_store, label_store=None, limit=50, include_labeled=False,
+                provenance=None):
     """라벨링 큐 — 한 번의 판정이 덮는 알림 수가 큰 것부터.
 
     `alert_store` 가 없으면 빈 큐를 준다. 조회는 아카이브를 포함한다
     (라벨 대상의 대부분이 거기 있다).
+
+    `provenance="real"` 이면 합성 표지가 붙은 알림을 빼고 센다 — 실측만으로
+    정답지를 만들고 싶을 때 쓴다. 기본은 전부 세되 그룹마다 구성을 함께
+    돌려준다(`provenance` 필드). 어느 쪽이든 **분석가가 무엇을 판정하는지
+    모르는 상태로 두지 않는 것**이 요점이다.
     """
     if alert_store is None:
         return {"groups": [], "summary": {"total_alerts": 0, "groups": 0,
                                           "labeled_groups": 0, "coverage_pct": 0.0}}
     reader = alert_store._reader()
     rows = reader.execute(
-        "SELECT id, threat_type, severity, src_ip, description, details, timestamp "
-        "FROM alerts_all").fetchall()
+        "SELECT id, threat_type, severity, src_ip, description, details, timestamp, "
+        "origin FROM alerts_all").fetchall()
 
     labeled = label_store.by_group() if label_store else {}
     groups = {}
-    for alert_id, threat_type, severity, src_ip, description, details, ts in rows:
+    skipped_synthetic = 0
+    for (alert_id, threat_type, severity, src_ip, description, details, ts,
+         stored_origin) in rows:
+        origin, why = classify_provenance(description, details,
+                                          stored_origin=stored_origin)
+        if provenance == PROVENANCE_REAL and origin == PROVENANCE_SYNTHETIC:
+            skipped_synthetic += 1
+            continue
         key = group_key(threat_type, _rule_id(details), description)
         g = groups.setdefault(key, {
             "key": key, "threat_type": threat_type, "rule_id": _rule_id(details),
             "description": normalize_description(description),
             "count": 0, "severities": {}, "sources": set(),
             "first_seen": ts, "last_seen": ts, "sample_alert_id": alert_id,
+            "origins": {}, "origin_reasons": {},
         })
         g["count"] += 1
+        g["origins"][origin] = g["origins"].get(origin, 0) + 1
+        g["origin_reasons"].setdefault(origin, why)
         g["severities"][severity] = g["severities"].get(severity, 0) + 1
         if src_ip:
             g["sources"].add(src_ip)
@@ -192,7 +314,9 @@ def build_queue(alert_store, label_store=None, limit=50, include_labeled=False):
         if ts and ts > (g["last_seen"] or ts):
             g["last_seen"] = ts
 
-    total_alerts = len(rows)
+    # 필터를 걸었으면 분모도 걸린 뒤 기준이어야 한다 — 안 그러면 coverage_pct 가
+    # 실제보다 작게 나와 진행도를 과소평가한다.
+    total_alerts = len(rows) - skipped_synthetic
     out = []
     for key, g in groups.items():
         label = labeled.get(key)
@@ -205,6 +329,13 @@ def build_queue(alert_store, label_store=None, limit=50, include_labeled=False):
             "severities": dict(sorted(g["severities"].items(), key=lambda kv: -kv[1])),
             "first_seen": g["first_seen"], "last_seen": g["last_seen"],
             "sample_alert_id": g["sample_alert_id"],
+            # 이 그룹이 무엇으로 이뤄져 있는가. 합성이 섞였으면 그 라벨은
+            # 실제 침해 탐지력에 대한 증거가 되지 못한다.
+            "provenance": {
+                "real": g["origins"].get(PROVENANCE_REAL, 0),
+                "synthetic": g["origins"].get(PROVENANCE_SYNTHETIC, 0),
+                "reason": g["origin_reasons"].get(PROVENANCE_SYNTHETIC, ""),
+            },
             "label": label,
             "coverage_pct": round(g["count"] / total_alerts * 100, 2) if total_alerts else 0.0,
         })
@@ -222,5 +353,9 @@ def build_queue(alert_store, label_store=None, limit=50, include_labeled=False):
             "labeled_groups": len(labeled),
             "covered_alerts": covered,
             "coverage_pct": round(covered / total_alerts * 100, 1) if total_alerts else 0.0,
+            "provenance_filter": provenance,
+            "excluded_synthetic": skipped_synthetic,
+            "synthetic_alerts": sum(
+                g["origins"].get(PROVENANCE_SYNTHETIC, 0) for g in groups.values()),
         },
     }
