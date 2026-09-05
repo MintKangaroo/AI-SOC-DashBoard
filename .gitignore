@@ -34,6 +34,7 @@ docs/portfolio.md
 scratchpad/
 .coverage
 data/ml_features.db
+data/ml_features.db.bak-*
 data/ml_features.db-wal
 data/ml_features.db-shm
 data/alert_dedup.db
@@ -41,3 +42,6 @@ data/alert_dedup.db-wal
 data/alert_dedup.db-shm
 data/siem_offsets.json
 data/siem_offsets.json.tmp
+data/labels.db
+data/labels.db-wal
+data/labels.db-shm

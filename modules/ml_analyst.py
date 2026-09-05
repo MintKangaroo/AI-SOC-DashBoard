@@ -120,6 +120,21 @@ class MLAnalyst:
         except Exception as e:
             _log.error(f"[MLAnalyst] 피처 플러시 실패: {e}")
 
+    def _origin_of(self, stats: dict) -> str:
+        """이 피처가 실트래픽인가 합성인가 — **설정이 아니라 실제 출처**로 정한다.
+
+        DEMO_MODE=False 로 띄워도 PyShark·Scapy 가 없으면 PacketAnalyzer 는
+        조용히 합성 루프로 돈다. 그때 origin 을 self.demo(=설정)로 정하면
+        합성 트래픽이 'real' 로 저장되고, eval_ml.py 가 그 수를 실트래픽으로
+        세어 "재학습 가능"을 선언한다 — 데모 생성기를 학습하게 된다.
+        그래서 공급자가 알려준 source_mode 를 우선한다.
+        """
+        mode = (stats or {}).get("source_mode")
+        if mode in ("real", "demo"):
+            return mode
+        # 공급자가 안 알려주면 설정으로 되돌아간다(구버전 호출자 호환).
+        return "demo" if self.demo else "real"
+
     def feed_traffic(self, stats: dict):
         """PacketAnalyzer 통계를 피처로 변환해 버퍼에 넣고 영속화한다."""
         feat = self._extract_features(stats)
@@ -127,7 +142,7 @@ class MLAnalyst:
             self._feature_buffer.append(feat)
         # 저장 실패가 분석을 멈추면 안 된다 — 기록은 부가 기능이다.
         try:
-            self.store.record(feat, origin="demo" if self.demo else "real")
+            self.store.record(feat, origin=self._origin_of(stats))
         except Exception as e:
             _log.error(f"[MLAnalyst] 피처 기록 실패: {e}")
         return feat

@@ -220,8 +220,25 @@ scikit-learn 이 없으면 `MLAnalyst` 초기화가 실패하고 `model_status` 
 기록되지만, **대시보드의 나머지 기능은 정상 동작합니다.** ML 판정은 어떤 탐지·차단
 경로에도 연결되어 있지 않기 때문입니다(`summary.advisory_only = true`).
 
-`demo=True` 로 시작하면 수집되는 피처의 `origin` 이 `demo` 로 기록되어
-실트래픽 재학습 대상에서 자동 제외됩니다.
+### 피처 `origin` 은 설정이 아니라 실제 출처를 따릅니다
+
+`origin` 은 `PacketAnalyzer.get_stats()["source_mode"]` 에서 나옵니다 — 즉
+**설정이 무엇을 의도했는지가 아니라 트래픽이 실제로 어디서 왔는지**입니다.
+
+이게 중요한 이유가 실측으로 드러났습니다. `DEMO_MODE=False` 로 띄웠지만
+PyShark·Scapy 가 둘 다 없어서 `PacketAnalyzer` 는 조용히 `_demo_loop()` 로
+돌았는데, `origin` 은 설정에서 뽑히고 있어 **합성 트래픽 207건이 `real` 로
+저장**됐습니다. 그대로 3,000건을 채웠다면 `eval_ml.py` 가 "실트래픽 재학습
+가능"을 선언하고 **데모 생성기를 학습**했을 것이고, 그 성능 수치는 전부
+거짓이 됩니다. 캡처가 중간에 실패해 폴백한 경우도 같습니다.
+
+그래서 폴백이 일어나면 `source_mode` 가 `demo` 로 바뀌고, 실모드를 요청했는데
+백엔드가 없으면 기동 시 경고를 남깁니다. 잘못 기록된 207건은 `demo` 로
+재라벨했습니다(삭제 아님 — 데이터 자체는 유효한 합성 피처입니다).
+
+**실트래픽 수집 전제**: `pyshark` 또는 `scapy` 설치 + 캡처 권한
+(`setcap cap_net_raw,cap_net_admin+eip /usr/bin/dumpcap` 또는 `wireshark` 그룹).
+둘 중 하나라도 없으면 아무리 오래 돌려도 실트래픽 피처는 0건입니다.
 
 ---
 

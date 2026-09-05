@@ -142,6 +142,9 @@ scripts/loadtest.py     — 부하 시험(사람이 실행). 실데이터 사본
 ```
 packet_analyzer.get_stats() → ml_analyst.feed_traffic() (3초 주기)
   ├→ ml_feature_store.record()  → data/ml_features.db (append-only, real/demo 구분)
+  │    ※ origin 은 stats["source_mode"](실제 캡처 경로)에서 나온다 — DEMO_MODE 가
+  │      아니다. 실모드로 띄워도 PyShark·Scapy 가 없거나 캡처가 실패하면 합성
+  │      루프로 도는데, 그걸 'real' 로 세면 데모 생성기를 학습하게 된다.
   └→ _run_models(): Isolation Forest
      → SocketIO emit("ml_analysis") → ML 패널 차트 갱신
 

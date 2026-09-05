@@ -351,3 +351,72 @@ def test_result_after_model_ready_reports_model_ready(analyst):
     result = analyst.analyze_now(_stats())
     assert result["model_ready"] is True
     assert result["summary"]["severity"] in ("NORMAL", "LOW")
+
+
+# --------------------------------------------------------------------------- #
+#  피처 origin 은 설정이 아니라 실제 트래픽 출처를 따라야 한다
+#
+#  실측으로 드러난 버그: DEMO_MODE=False 로 띄웠는데 PyShark·Scapy 가 둘 다
+#  없어서 PacketAnalyzer 가 조용히 합성 루프로 돌았다. 그런데 origin 은
+#  self.demo(=설정)에서 나오고 있어 합성 트래픽 207건이 'real' 로 저장됐다.
+#  이대로 3천 건을 모으면 eval_ml.py 가 "실트래픽 재학습 가능"을 선언하고
+#  데모 생성기를 학습한다 — 성능 수치가 통째로 거짓이 된다.
+# --------------------------------------------------------------------------- #
+
+def _analyst(tmp_path, demo):
+    a = MLAnalyst(FakeSocketIO(), demo=demo)
+    a.store = MLFeatureStore(str(tmp_path / "f.db"), flush_every=1)
+    return a
+
+
+def test_origin_follows_actual_source_not_config(tmp_path):
+    """설정은 실모드인데 실제로는 합성 — 'demo' 로 기록돼야 한다."""
+    a = _analyst(tmp_path, demo=False)          # DEMO_MODE=False 로 띄운 상황
+    a.feed_traffic({"source_mode": "demo"})     # 그러나 캡처는 합성으로 폴백
+    a.store.flush()
+    assert a.store.stats()["real"] == 0, "합성 트래픽이 실트래픽으로 저장됐다"
+    assert a.store.stats()["demo"] == 1
+
+
+def test_origin_real_when_capture_is_real(tmp_path):
+    a = _analyst(tmp_path, demo=False)
+    a.feed_traffic({"source_mode": "real"})
+    a.store.flush()
+    assert a.store.stats()["real"] == 1
+
+
+def test_origin_falls_back_to_config_when_unreported(tmp_path):
+    """source_mode 를 안 주는 구버전 호출자는 종전대로 설정을 따른다."""
+    a = _analyst(tmp_path, demo=True)
+    a.feed_traffic({})
+    a.store.flush()
+    assert a.store.stats()["demo"] == 1
+
+
+def test_packet_analyzer_reports_demo_when_no_capture_backend(monkeypatch):
+    """캡처 백엔드가 없으면 demo=False 로 시작해도 source_mode 는 'demo'."""
+    import modules.packet_analyzer as pa
+
+    monkeypatch.setattr(pa, "PYSHARK_AVAILABLE", False)
+    monkeypatch.setattr(pa, "SCAPY_AVAILABLE", False)
+    an = pa.PacketAnalyzer(FakeSocketIO(), {})
+    an.start(demo=False)
+    try:
+        assert an.source_mode == "demo"
+        assert an.get_stats()["source_mode"] == "demo"
+    finally:
+        an.stop()
+
+
+def test_packet_analyzer_reports_real_when_backend_present(monkeypatch):
+    import modules.packet_analyzer as pa
+
+    monkeypatch.setattr(pa, "PYSHARK_AVAILABLE", True)
+    monkeypatch.setattr(pa, "SCAPY_AVAILABLE", False)
+    an = pa.PacketAnalyzer(FakeSocketIO(), {})
+    monkeypatch.setattr(an, "_capture_pyshark", lambda iface: None)
+    an.start(demo=False)
+    try:
+        assert an.source_mode == "real"
+    finally:
+        an.stop()

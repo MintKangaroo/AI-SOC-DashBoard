@@ -42,6 +42,11 @@ class PacketAnalyzer:
         self.threat_detector = threat_detector
         self.running = False
         self.thread = None
+        # 실제로 무슨 경로로 트래픽이 들어왔는가 — "real"(캡처) | "demo"(합성).
+        # 설정(DEMO_MODE)이 아니라 **실행 결과**다. 캡처 백엔드가 없거나 캡처가
+        # 실패해 데모로 폴백하면 여기가 "demo" 로 바뀐다. ML 피처의 origin 이
+        # 이 값을 따라야 합성 트래픽이 실트래픽으로 둔갑하지 않는다.
+        self.source_mode = "demo"
 
         self.stats = {
             "total_packets": 0,
@@ -78,10 +83,19 @@ class PacketAnalyzer:
 
         if not demo and (PYSHARK_AVAILABLE or SCAPY_AVAILABLE):
             target = self._capture_pyshark if PYSHARK_AVAILABLE else self._capture_scapy
+            self.source_mode = "real"
             self.thread = threading.Thread(
                 target=target, args=(interface,), daemon=True
             )
         else:
+            # demo=False 로 불러도 캡처 백엔드가 없으면 합성이다. 요청이 아니라
+            # 사실을 기록한다.
+            if not demo:
+                _log.warning(
+                    "[PacketAnalyzer] 실모드를 요청했으나 PyShark·Scapy 가 없어 "
+                    "합성 트래픽으로 동작한다 — ML 피처는 origin='demo' 로 기록된다"
+                )
+            self.source_mode = "demo"
             self.thread = threading.Thread(target=self._demo_loop, daemon=True)
 
         self.thread.start()
@@ -99,6 +113,8 @@ class PacketAnalyzer:
         stats["unique_dst_ports"] = len(
             {p["dst_port"] for p in recent if p.get("dst_port")}
         )
+        # 소비자(ml_analyst)가 합성/실측을 구분할 수 있어야 한다.
+        stats["source_mode"] = self.source_mode
         return stats
 
     def get_recent_packets(self, limit=50):
@@ -134,6 +150,7 @@ class PacketAnalyzer:
                 self._process_pyshark_packet(pkt)
         except Exception as e:
             _log.warning(f"[PacketAnalyzer] PyShark error: {e} — fallback to demo")
+            self.source_mode = "demo"   # 여기부터 나오는 트래픽은 합성이다
             self._demo_loop()
 
     def _process_pyshark_packet(self, pkt):
@@ -176,6 +193,7 @@ class PacketAnalyzer:
             )
         except Exception as e:
             _log.warning(f"[PacketAnalyzer] Scapy error: {e} — fallback to demo")
+            self.source_mode = "demo"   # 여기부터 나오는 트래픽은 합성이다
             self._demo_loop()
 
     def _process_scapy_packet(self, pkt):

@@ -213,6 +213,29 @@ def synthetic_control():
 #  4. 실데이터 평가 (데이터가 충분해지면 동작)
 # ──────────────────────────────────────────────────────────
 
+def capture_backend_status():
+    """실트래픽 수집이 물리적으로 가능한 상태인가.
+
+    "2.5시간 가동하면 3,000건" 은 **캡처 백엔드가 있을 때만** 참이다. PyShark·
+    Scapy 가 없으면 PacketAnalyzer 는 DEMO_MODE=False 로도 합성 루프를 돌아
+    실트래픽 피처가 영원히 0건이다. 그 사실을 숨기면 리포트가 사람을 몇 시간
+    헛돌게 만든다.
+    """
+    try:
+        import modules.packet_analyzer as pa
+    except Exception as e:                      # pragma: no cover - 방어
+        return False, f"packet_analyzer 임포트 실패: {e}"
+    if pa.PYSHARK_AVAILABLE or pa.SCAPY_AVAILABLE:
+        backend = "PyShark" if pa.PYSHARK_AVAILABLE else "Scapy"
+        return True, f"{backend} 사용 가능"
+    return False, ("PyShark·Scapy 둘 다 없음 — 실모드로 띄워도 합성 트래픽이므로 "
+                   "실트래픽 피처는 0건에서 늘지 않는다. "
+                   "pip install scapy + 캡처 권한(setcap 또는 wireshark 그룹) 필요")
+
+
+_CAPTURE_OK, _CAPTURE_WHY = capture_backend_status()
+
+
 def real_evaluation(data):
     """실트래픽 + 사람 라벨로 IF 를 평가한다. 요건 미달이면 사유를 반환."""
     v = data["verdict"]
@@ -222,7 +245,8 @@ def real_evaluation(data):
             "detail": (f"실트래픽 피처 {v['real_features']:,}건 — "
                        f"IF 재학습에 최소 {MIN_FEATURES_FOR_RETRAIN:,}건 필요 "
                        f"({v['features_needed']:,}건 부족, 3초 주기로 약 "
-                       f"{v['features_needed'] * 3 / 3600:.1f}시간 가동분)"),
+                       f"{v['features_needed'] * 3 / 3600:.1f}시간 가동분). "
+                       f"수집 전제: {_CAPTURE_WHY}"),
         }
     if not v["can_evaluate"]:
         return {
@@ -278,7 +302,10 @@ def _fmt_survey(d):
         f"  IF 실트래픽 재학습 : {'가능' if v['can_retrain_if'] else '불가'}"
         + ("" if v["can_retrain_if"]
            else f" — {v['features_needed']:,}건 부족 "
-                f"(약 {v['features_needed'] * 3 / 3600:.1f}시간 가동분)"),
+                + (f"(약 {v['features_needed'] * 3 / 3600:.1f}시간 가동분)"
+                   if _CAPTURE_OK
+                   else "(가동해도 안 모임 — 아래 전제 참조)")),
+        f"  수집 전제          : {'OK — ' if _CAPTURE_OK else '막힘 — '}{_CAPTURE_WHY}",
         f"  precision/recall   : {'가능' if v['can_evaluate'] else '불가'}"
         + ("" if v["can_evaluate"] else f" — 사람 라벨 {v['labels_needed']}건 부족"),
     ]
