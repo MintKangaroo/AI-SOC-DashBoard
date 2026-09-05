@@ -194,7 +194,9 @@ python -m venv venv && ./venv/bin/pip install -r requirements.txt
 # 2. 환경 설정 (.env 편집 — API 키·대상 서버 등)
 #    DEMO_MODE=True 면 실제 센서 없이 가상 데이터로 동작
 
-# 3. 실행 (기본 포트 8080, 예시는 5055)
+# 3. 실행 (config 기본값은 8080 이지만 code-server 등과 흔히 충돌한다.
+#    .env.example 도 5055 를 쓴다 — 충돌하면 조용히 안 뜨는 게 아니라
+#    'Port ... is in use' 로 죽으니 로그를 볼 것)
 PORT=5055 ./venv/bin/python app.py
 
 # 4. 테스트
