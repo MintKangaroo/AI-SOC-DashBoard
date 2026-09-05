@@ -420,3 +420,24 @@ def test_packet_analyzer_reports_real_when_backend_present(monkeypatch):
         assert an.source_mode == "real"
     finally:
         an.stop()
+
+
+def test_blank_capture_interface_is_none(monkeypatch):
+    """`.env` 의 "CAPTURE_INTERFACE=" (빈 값)은 자동 탐지 의도지 인터페이스 이름이 아니다.
+
+    빈 문자열이 그대로 sniff(iface="") 로 내려가면 캡처가 실패해 데모로
+    폴백한다 — 권한을 다 부여하고도 실트래픽이 안 모이는 원인이 된다.
+    """
+    import importlib
+
+    import config as config_mod
+
+    monkeypatch.setenv("CAPTURE_INTERFACE", "")
+    importlib.reload(config_mod)
+    assert config_mod.Config().CAPTURE_INTERFACE is None
+
+    monkeypatch.setenv("CAPTURE_INTERFACE", "eth0")
+    importlib.reload(config_mod)
+    assert config_mod.Config().CAPTURE_INTERFACE == "eth0"
+    monkeypatch.delenv("CAPTURE_INTERFACE", raising=False)
+    importlib.reload(config_mod)

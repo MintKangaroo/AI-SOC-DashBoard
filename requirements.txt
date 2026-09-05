@@ -25,6 +25,9 @@ joblib==1.5.3
 
 # ── 선택 사항 (없어도 데모 fallback 으로 동작) ──
 # 패킷 캡처 — 실환경 전용. 미설치 시 packet_analyzer 가 데모 모드로 동작한다.
+# 설치만으로는 부족하다: 캡처 권한이 없으면 실모드로 띄워도 합성 루프로 폴백하고
+# ML 피처는 origin='demo' 로 기록된다. 권한 포함 설정은
+#   sudo bash scripts/enable_packet_capture.sh
 # pyshark==0.6
 # scapy==2.5.0
 #

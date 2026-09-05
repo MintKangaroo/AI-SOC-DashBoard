@@ -10,7 +10,10 @@ class Config:
     PORT = int(os.getenv("PORT", 8080))
 
     # Packet capture settings
-    CAPTURE_INTERFACE = os.getenv("CAPTURE_INTERFACE", None)  # None = auto-detect
+    # 빈 문자열(.env 에 "CAPTURE_INTERFACE=" 만 있는 경우)은 미지정과 같다.
+    # 그대로 두면 sniff(iface="") 로 넘어가 캡처가 실패하고 조용히 데모로
+    # 폴백한다 — 자동 탐지를 의도한 설정이 캡처를 막는 셈이 된다.
+    CAPTURE_INTERFACE = os.getenv("CAPTURE_INTERFACE", "").strip() or None
     MAX_PACKETS_DISPLAY = int(os.getenv("MAX_PACKETS_DISPLAY", 200))
 
     # 패킷 기반 탐지 임계값.
