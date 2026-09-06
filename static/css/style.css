@@ -20,13 +20,25 @@
   --border:       #2c2c31;
   --text-primary: #ececed;
   --text-muted:   #b4b4b8;
-  --cyan:         #39d0d8;
-  --purple:       #9d79f2;
-  --orange:       #f79000;
-  --green:        #3fb950;
-  --red:          #f85149;
-  --yellow:       #e3b341;
-  --blue:         #58a6ff;
+  /* 강조색은 한 세트로 조율돼 있다.
+     이 값들은 원래 GitHub 다크 팔레트에서 온 것이라 네이비 배경에 맞춰져
+     있었고, 배경을 블랙으로 바꾸면서 서로 어긋났다. 실측한 문제는 셋이었다:
+       · 주황(H35)과 노랑(H42)이 **7° 차이** — 뱃지 크기에서 HIGH 와 MEDIUM 이
+         구분되지 않는다. 운영상 다른 우선순위인데 눈으로 갈리지 않았다.
+       · 채도가 49~100% 로 흩어져 초록만 바래 보이고 파랑·주황만 거칠었다.
+       · 보라가 혼자 가장 밝아(L71) 의미보다 크게 튀었다.
+     색상 정체성은 유지하고 위 셋만 잡았다(간격 20°, 채도 62~93%, 명도 50~66%).
+
+     ※ 밝기를 전부 같게 맞추지는 않았다. 그렇게 하면 빨강이 연어색으로 바래
+       긴급함을 잃는다 — 순수 빨강은 본래 어둡기 때문이다. 심각도는 애초에
+       같은 무게여선 안 되고, 그게 램프의 존재 이유다. */
+  --cyan:         #3bd0d8;
+  --purple:       #a466ea;
+  --orange:       #f08c19;
+  --green:        #30cf65;
+  --red:          #f85249;
+  --yellow:       #e4cd3a;
+  --blue:         #5fa3f2;
   /* 정의 없이 var(--info) 가 쓰이고 있었다 — 색이 안 잡혀 border 가 currentColor 로
      떨어지면서 그 카드만 글자색 테두리가 됐다. 실제 쓰임에 맞춰 blue 계열로 정의. */
   --info:         #58a6ff;
@@ -93,7 +105,7 @@ html, body {
 .camp-stage {
   display: inline-flex; flex-direction: column; gap: 2px;
   padding: 5px 10px; border-radius: 6px;
-  background: rgba(248,81,73,.10); border: 1px solid rgba(248,81,73,.35);
+  background: color-mix(in srgb, var(--red) 10%, transparent); border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
 }
 .camp-stage-tac { font-size: 11px; font-weight: 700; color: var(--red); }
 .camp-stage-tt { font-size: 10.5px; color: var(--text-muted); }
@@ -130,7 +142,7 @@ html, body {
 }
 .sidebar-link i { width: 16px; text-align: center; }
 .sidebar-link:hover { color: var(--text-primary); background: var(--bg-hover); }
-.sidebar-link.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(57,208,216,.07); }
+.sidebar-link.active { color: var(--cyan); border-left-color: var(--cyan); background: color-mix(in srgb, var(--cyan) 7%, transparent); }
 .sidebar-link.disabled-link { opacity: .5; pointer-events: none; }
 .sidebar-section-label { color: var(--text-muted); font-size: 10px; text-transform: uppercase; padding: 10px 16px 4px; letter-spacing: .08em; }
 
@@ -355,8 +367,8 @@ html, body {
   word-break: break-word;
 }
 .chat-msg.user   { text-align: right; }
-.chat-msg.user   .bubble { background: rgba(57,208,216,.2); color: var(--cyan); border-radius: 10px 10px 2px 10px; }
-.chat-msg.bot    .bubble { background: rgba(157,121,242,.15); color: var(--text-primary); border-radius: 2px 10px 10px 10px; }
+.chat-msg.user   .bubble { background: color-mix(in srgb, var(--cyan) 20%, transparent); color: var(--cyan); border-radius: 10px 10px 2px 10px; }
+.chat-msg.bot    .bubble { background: color-mix(in srgb, var(--purple) 15%, transparent); color: var(--text-primary); border-radius: 2px 10px 10px 10px; }
 .chat-msg .ts    { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .chat-typing     { color: var(--text-muted); font-size: 12px; font-style: italic; }
 
@@ -380,7 +392,7 @@ html, body {
 }
 .stat-card.clickable:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 18px rgba(57,208,216,.18);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--cyan) 18%, transparent);
   filter: brightness(1.12);
 }
 .stat-card.clickable:active { transform: translateY(0); }
@@ -403,7 +415,7 @@ html, body {
 .sysmon-mini-row .eid    { color: var(--cyan); font-weight: 700; text-align: center; }
 .sysmon-mini-row .ename  { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sysmon-mini-row .ts     { color: var(--text-muted); font-size: 10px; }
-.sysmon-mini-row.suspicious { background: rgba(248,81,73,.1); }
+.sysmon-mini-row.suspicious { background: color-mix(in srgb, var(--red) 10%, transparent); }
 
 .top-attacker-row {
   display: grid;
@@ -443,7 +455,7 @@ html, body {
   padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer;
 }
 .priority-item:last-child { border-bottom: 0; }
-.priority-item:hover { background: rgba(57, 208, 216, .06); }
+.priority-item:hover { background: color-mix(in srgb, var(--cyan) 6%, transparent); }
 .priority-item .priority-title { color: var(--text-primary); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .priority-item .priority-meta { color: var(--muted); font-size: 10px; }
 .priority-item .priority-count { align-self: center; font-size: 12px; color: var(--orange); }
@@ -454,9 +466,9 @@ html, body {
 .soar-run:last-child { border-bottom: 0; }
 .soar-run-steps { display: flex; gap: 5px; align-items: stretch; overflow-x: auto; padding-top: 7px; }
 .soar-run-step { min-width: 100px; flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 5px; font-size: 9px; color: var(--muted); }
-.soar-run-step.completed { border-color: var(--green); color: #b7e4c1; background: rgba(63,185,80,.09); }
-.soar-run-step.running { border-color: var(--cyan); color: var(--text-primary); background: rgba(57,208,216,.13); box-shadow: 0 0 10px rgba(57,208,216,.2); }
-.soar-run-step.failed { border-color: var(--red); color: #ffb3ad; background: rgba(248,81,73,.1); }
+.soar-run-step.completed { border-color: var(--green); color: #b7e4c1; background: color-mix(in srgb, var(--green) 9%, transparent); }
+.soar-run-step.running { border-color: var(--cyan); color: var(--text-primary); background: color-mix(in srgb, var(--cyan) 13%, transparent); box-shadow: 0 0 10px color-mix(in srgb, var(--cyan) 20%, transparent); }
+.soar-run-step.failed { border-color: var(--red); color: #ffb3ad; background: color-mix(in srgb, var(--red) 10%, transparent); }
 .soar-run-step.skipped { opacity: .55; border-style: dashed; }
 .soar-run-step .step-state { display:block; font-size:8px; text-transform:uppercase; margin-bottom:2px; }
 
@@ -615,26 +627,26 @@ html, body {
 /* 히트 강도는 배경 농도와 글자 굵기로 읽는다. 매트릭스는 셀이 수백 개라
    셀마다 좌측 띠를 두면 격자 전체가 붉은 줄무늬가 되고 정작 강한 셀이 묻힌다. */
 .mitre-technique.hit-low {
-  background: rgba(248,81,73,.12);
-  border-color: rgba(248,81,73,.35);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
   color: var(--text-primary);
 }
 .mitre-technique.hit-med {
-  background: rgba(248,81,73,.24);
-  border-color: rgba(248,81,73,.55);
+  background: color-mix(in srgb, var(--red) 24%, transparent);
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
   color: #fff;
   font-weight: 600;
 }
 .mitre-technique.hit-high {
-  background: rgba(248,81,73,.42);
+  background: color-mix(in srgb, var(--red) 42%, transparent);
   border-color: #ff2d2d;
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 0 0 1px rgba(255,45,45,.45), 0 2px 10px rgba(255,45,45,.28);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 60%, #fff 15%), 0 2px 10px color-mix(in srgb, var(--red) 35%, transparent);
 }
 @keyframes pulseRed {
-  0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 45, 0); }
-  50%      { box-shadow: 0 0 12px rgba(255, 45, 45, .5); }
+  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--red) 0%, transparent); }
+  50%      { box-shadow: 0 0 12px color-mix(in srgb, var(--red) 50%, transparent); }
 }
 
 .mitre-event-item {
@@ -700,9 +712,9 @@ html, body {
   border-radius: 2px;
   margin: 0 2px;
 }
-.mitre-cell.hit-low  { background: rgba(248,81,73,.25); }
-.mitre-cell.hit-med  { background: rgba(248,81,73,.5); }
-.mitre-cell.hit-high { background: rgba(248,81,73,.85); }
+.mitre-cell.hit-low  { background: color-mix(in srgb, var(--red) 25%, transparent); }
+.mitre-cell.hit-med  { background: color-mix(in srgb, var(--red) 50%, transparent); }
+.mitre-cell.hit-high { background: color-mix(in srgb, var(--red) 85%, transparent); }
 
 /* 상세 MITRE 로그 — 행 플래시 */
 #mitre-log-tbody tr.row-flash {
@@ -718,7 +730,7 @@ html, body {
   transition: background .15s;
 }
 .ti-match-item:hover {
-  background: rgba(248,81,73,.08);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
 }
 .ti-match-item:last-child { border-bottom: none !important; }
 
@@ -767,7 +779,7 @@ html, body {
   animation: flashRow 1s ease-out;
 }
 @keyframes flashRow {
-  0%   { background: rgba(248,81,73,.35); }
+  0%   { background: color-mix(in srgb, var(--red) 35%, transparent); }
   100% { background: transparent; }
 }
 .mitre-recent-item .ts { font-size: 10px; }
@@ -790,9 +802,9 @@ html, body {
 :root {
   --bg-gradient: linear-gradient(180deg, #000 0%, #0a0a0b 100%);
   --panel-gradient: linear-gradient(180deg, rgba(26,26,30,.95), rgba(18,18,20,.95));
-  --accent-glow: 0 0 24px rgba(57,208,216,.15);
+  --accent-glow: 0 0 24px color-mix(in srgb, var(--cyan) 15%, transparent);
   --shadow-soft: 0 2px 8px rgba(0,0,0,.35);
-  --shadow-hover: 0 6px 20px rgba(0,0,0,.45), 0 0 0 1px rgba(57,208,216,.2);
+  --shadow-hover: 0 6px 20px rgba(0,0,0,.45), 0 0 0 1px color-mix(in srgb, var(--cyan) 20%, transparent);
 }
 
 body {
@@ -818,8 +830,8 @@ body::before {
 /* Navbar 업그레이드 */
 .navbar-soc {
   background: linear-gradient(90deg, #000000 0%, #141416 100%);
-  border-bottom: 1px solid rgba(57,208,216,.15);
-  box-shadow: 0 1px 0 rgba(57,208,216,.08), 0 4px 18px rgba(0,0,0,.3);
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 15%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--cyan) 8%, transparent), 0 4px 18px rgba(0,0,0,.3);
 }
 .navbar-soc .navbar-brand,
 .navbar-soc h1,
@@ -851,7 +863,7 @@ body::before {
 /* Sidebar — 조금 더 깔끔하게 */
 .sidebar {
   background: linear-gradient(180deg, #0c1118 0%, #0f151d 100%);
-  border-right: 1px solid rgba(57,208,216,.08);
+  border-right: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
 }
 .sidebar-link {
   border-radius: 0 6px 6px 0;
@@ -859,8 +871,8 @@ body::before {
   position: relative;
 }
 .sidebar-link.active {
-  background: linear-gradient(90deg, rgba(57,208,216,.18), rgba(57,208,216,.02));
-  box-shadow: inset 0 0 0 1px rgba(57,208,216,.1);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 18%, transparent), color-mix(in srgb, var(--cyan) 2%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 10%, transparent);
 }
 .sidebar-link.active::after {
   content: "";
@@ -874,7 +886,7 @@ body::before {
 /* Panel title */
 .panel-title {
   font-size: 15px;
-  border-bottom: 1px solid rgba(57,208,216,.15);
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 15%, transparent);
   padding-bottom: 10px;
 }
 .panel-title::before {
@@ -892,19 +904,19 @@ body::before {
 /* Card panel — 미세한 글로우 + 그라데이션 */
 .card-panel {
   background: var(--panel-gradient);
-  border: 1px solid rgba(57,208,216,.08);
+  border: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
   box-shadow: var(--shadow-soft);
   transition: border-color .2s, box-shadow .2s;
 }
 .card-panel:hover {
-  border-color: rgba(57,208,216,.2);
+  border-color: color-mix(in srgb, var(--cyan) 20%, transparent);
 }
 .card-panel-header {
   font-size: 11.5px;
   letter-spacing: .08em;
   padding-bottom: 8px;
   margin-bottom: 12px;
-  border-bottom: 1px solid rgba(57,208,216,.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
 }
 
 /* Stat card — 고도화 */
@@ -920,7 +932,7 @@ body::before {
   position: absolute;
   top: 0; right: 0;
   width: 60px; height: 60px;
-  background: radial-gradient(circle at top right, rgba(57,208,216,.12), transparent 70%);
+  background: radial-gradient(circle at top right, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 70%);
   pointer-events: none;
 }
 /* Bootstrap 의 .border-* 는 테두리를 풀 채도로 칠한다. 좌측 3px 일 때는 가는 띠라
@@ -938,10 +950,10 @@ body::before {
 .stat-card.border-primary { --kpi-accent: var(--blue); }
 .stat-card.border-cyan    { --kpi-accent: var(--cyan); }
 
-.stat-card.border-danger::after  { background: radial-gradient(circle at top right, rgba(248,81,73,.15), transparent 70%); }
-.stat-card.border-warning::after { background: radial-gradient(circle at top right, rgba(227,179,65,.15), transparent 70%); }
-.stat-card.border-orange::after  { background: radial-gradient(circle at top right, rgba(247,144,0,.15), transparent 70%); }
-.stat-card.border-purple::after  { background: radial-gradient(circle at top right, rgba(157,121,242,.15), transparent 70%); }
+.stat-card.border-danger::after  { background: radial-gradient(circle at top right, color-mix(in srgb, var(--red) 15%, transparent), transparent 70%); }
+.stat-card.border-warning::after { background: radial-gradient(circle at top right, color-mix(in srgb, var(--yellow) 15%, transparent), transparent 70%); }
+.stat-card.border-orange::after  { background: radial-gradient(circle at top right, color-mix(in srgb, var(--orange) 15%, transparent), transparent 70%); }
+.stat-card.border-purple::after  { background: radial-gradient(circle at top right, color-mix(in srgb, var(--purple) 15%, transparent), transparent 70%); }
 
 .stat-value {
   font-family: 'Cascadia Code', 'Consolas', monospace;
@@ -958,28 +970,28 @@ body::before {
   background: rgba(10,15,23,.6);
   font-size: 10.5px;
   letter-spacing: .08em;
-  border-bottom: 1px solid rgba(57,208,216,.15) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 15%, transparent) !important;
   padding: 10px 12px;
 }
 .table-dark tbody tr {
   transition: background .1s;
 }
 .table-dark tbody tr:hover td {
-  background: rgba(57,208,216,.05) !important;
+  background: color-mix(in srgb, var(--cyan) 5%, transparent) !important;
 }
 
 /* 버튼 업그레이드 */
 .btn-outline-cyan {
-  background: rgba(57,208,216,.06);
+  background: color-mix(in srgb, var(--cyan) 6%, transparent);
   transition: all .15s;
 }
 .btn-outline-cyan:hover {
-  box-shadow: 0 0 14px rgba(57,208,216,.4);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 40%, transparent);
 }
 
 /* 심각도 배지 글로우 */
 .sev-CRITICAL {
-  box-shadow: 0 0 8px rgba(248,81,73,.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--red) 50%, transparent);
 }
 
 /* ── 내 정보 패널 ── */
@@ -990,9 +1002,9 @@ body::before {
   padding: 18px 22px;
   border-radius: 10px;
   background:
-    radial-gradient(circle at top left, rgba(57,208,216,.12), transparent 45%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 45%),
     linear-gradient(135deg, #10202d 0%, #0f1720 100%);
-  border: 1px solid rgba(57,208,216,.2);
+  border: 1px solid color-mix(in srgb, var(--cyan) 20%, transparent);
   box-shadow: var(--accent-glow), var(--shadow-soft);
   position: relative;
   overflow: hidden;
@@ -1002,14 +1014,14 @@ body::before {
   position: absolute;
   top: -30px; right: -30px;
   width: 180px; height: 180px;
-  background: radial-gradient(circle, rgba(57,208,216,.1), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--cyan) 10%, transparent), transparent 70%);
   pointer-events: none;
 }
 .myinfo-hero-left {
   display: flex; flex-direction: column; justify-content: center;
   gap: 6px;
   padding-right: 16px;
-  border-right: 1px solid rgba(57,208,216,.12);
+  border-right: 1px solid color-mix(in srgb, var(--cyan) 12%, transparent);
 }
 .myinfo-hero-label {
   color: #8fe5ec;
@@ -1021,7 +1033,7 @@ body::before {
   font-size: 36px;
   font-weight: 800;
   color: var(--cyan);
-  text-shadow: 0 0 18px rgba(57,208,216,.45);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--cyan) 45%, transparent);
   line-height: 1.1;
   letter-spacing: .02em;
 }
@@ -1037,7 +1049,7 @@ body::before {
   align-items: stretch;
 }
 .myinfo-hero-mini {
-  background: rgba(13,19,28,.6);
+  background: color-mix(in srgb, var(--bg-card) 60%, transparent);
   border: 1px solid rgba(255,255,255,.05);
   border-radius: 8px;
   padding: 10px 12px;
@@ -1078,10 +1090,10 @@ body::before {
   grid-template-columns: 140px 1fr;
   gap: 8px;
   padding: 9px 12px;
-  background: rgba(13,19,28,.55);
+  background: color-mix(in srgb, var(--bg-card) 55%, transparent);
   transition: background .12s;
 }
-.kv-row:hover { background: rgba(57,208,216,.06); }
+.kv-row:hover { background: color-mix(in srgb, var(--cyan) 6%, transparent); }
 .kv-key {
   color: var(--text-dim);
   font-size: 11.5px;
@@ -1120,13 +1132,13 @@ body::before {
   /* transition 을 걸어 뒀었지만 01-core.js 가 매 렌더마다 이 노드를 새로 만든다.
      새 노드에는 전이할 이전 값이 없으므로 애니메이션은 한 번도 동작한 적이 없고,
      width 전이라 레이아웃 비용만 냈다. */
-  box-shadow: 0 0 8px rgba(57,208,216,.3);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 30%, transparent);
 }
 .res-fill.bar-low  { background: linear-gradient(90deg, var(--green), var(--cyan)); }
 .res-fill.bar-mid  { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
 .res-fill.bar-high {
   background: linear-gradient(90deg, var(--orange), var(--red));
-  box-shadow: 0 0 12px rgba(248,81,73,.5);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--red) 50%, transparent);
 }
 .res-foot {
   font-size: 10.5px; color: var(--text-dim);
@@ -1140,7 +1152,7 @@ body::before {
   gap: 10px;
 }
 .iface-card {
-  background: rgba(13,19,28,.7);
+  background: color-mix(in srgb, var(--bg-card) 70%, transparent);
   border: 1px solid rgba(255,255,255,.06);
   border-radius: 8px;
   padding: 10px 12px;
@@ -1149,7 +1161,7 @@ body::before {
   transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 .iface-card:hover {
-  border-color: rgba(57,208,216,.25);
+  border-color: color-mix(in srgb, var(--cyan) 25%, transparent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-soft);
 }
@@ -1186,7 +1198,7 @@ body::before {
   border-radius: 10px;
   letter-spacing: .05em;
 }
-.iface-card.up   .iface-status { background: rgba(63,185,80,.18);  color: var(--green); }
+.iface-card.up   .iface-status { background: color-mix(in srgb, var(--green) 18%, transparent);  color: var(--green); }
 .iface-card.down .iface-status { background: rgba(139,148,158,.2); color: var(--text-dim); }
 .iface-row {
   display: grid;
@@ -1255,16 +1267,16 @@ body::before {
 .live-item .lv-kind { font-size: 9.5px; font-weight: 700; text-align: center; padding: 2px 4px; border-radius: 4px; white-space: nowrap; }
 .live-item .lv-text { color: var(--text-primary); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .live-item .lv-text .lv-ip { font-family: monospace; color: var(--cyan); }
-.lv-kind.k-alert { background: rgba(248,81,73,.18); color: var(--red); }
-.lv-kind.k-siem  { background: rgba(57,208,216,.15); color: var(--cyan); }
-.lv-kind.k-soar  { background: rgba(88,166,255,.18); color: var(--blue); }
-.lv-kind.k-incident { background: rgba(157,121,242,.18); color: var(--purple); }
-.lv-kind.k-ti    { background: rgba(247,144,0,.18); color: var(--orange); }
-.lv-kind.k-auth  { background: rgba(88,166,255,.15); color: var(--blue); }
-.lv-kind.k-rep   { background: rgba(247,144,0,.22); color: var(--orange); }
-.lv-kind.k-edr   { background: rgba(88,166,255,.22); color: var(--info, var(--blue)); }
-.lv-kind.k-net   { background: rgba(57,208,216,.15); color: var(--cyan); }
-.lv-kind.k-sigma { background: rgba(157,121,242,.18); color: var(--purple); }
+.lv-kind.k-alert { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+.lv-kind.k-siem  { background: color-mix(in srgb, var(--cyan) 15%, transparent); color: var(--cyan); }
+.lv-kind.k-soar  { background: color-mix(in srgb, var(--blue) 18%, transparent); color: var(--blue); }
+.lv-kind.k-incident { background: color-mix(in srgb, var(--purple) 18%, transparent); color: var(--purple); }
+.lv-kind.k-ti    { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
+.lv-kind.k-auth  { background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
+.lv-kind.k-rep   { background: color-mix(in srgb, var(--orange) 22%, transparent); color: var(--orange); }
+.lv-kind.k-edr   { background: color-mix(in srgb, var(--blue) 22%, transparent); color: var(--info, var(--blue)); }
+.lv-kind.k-net   { background: color-mix(in srgb, var(--cyan) 15%, transparent); color: var(--cyan); }
+.lv-kind.k-sigma { background: color-mix(in srgb, var(--purple) 18%, transparent); color: var(--purple); }
 .lv-bar.b-critical { background: var(--red); }
 .lv-bar.b-high     { background: var(--orange); }
 .lv-bar.b-medium   { background: var(--yellow); }
@@ -1375,8 +1387,8 @@ body::before {
   font-size: 10px;
   font-weight: 700;
   color: var(--cyan);
-  background: rgba(57,208,216,.14);
-  border: 1px solid rgba(57,208,216,.35);
+  background: color-mix(in srgb, var(--cyan) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 35%, transparent);
   border-radius: 4px;
   padding: 1px 6px;
   white-space: nowrap;
@@ -1483,7 +1495,7 @@ body::before {
   padding: 1px 8px;
   line-height: 1.6;
 }
-.tp-toggle:hover { background: rgba(63,185,80,.12); color: var(--green); }
+.tp-toggle:hover { background: color-mix(in srgb, var(--green) 12%, transparent); color: var(--green); }
 .tp-toggle.active { background: var(--green); color: #041; font-weight: 700; }
 
 /* 실시간 갱신 시 숫자 폭이 흔들려 레이아웃이 덜컹대는 것 방지 — 등폭 숫자 */
@@ -1611,7 +1623,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 }
 .spl-event:hover { background: var(--bg-secondary); }
 .spl-event-susp {
-  background: rgba(248,81,73,.07);
+  background: color-mix(in srgb, var(--red) 7%, transparent);
   box-shadow: inset 2px 0 0 var(--red);
 }
 .spl-event-top { display: flex; align-items: baseline; gap: 10px; }
@@ -1636,13 +1648,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 /* 탐지 커버리지 자가 진단 (docs/AUDIT.md 3단계 제안 A) */
 .cov-legend { display:inline-block; width:16px; height:10px; vertical-align:middle;
               border-radius:2px; margin-right:3px; border:1px solid rgba(255,255,255,.15); }
-.cov-legend.cov-validated { background:rgba(63,185,80,.55); }
-.cov-legend.cov-rule      { background:rgba(210,153,34,.45); }
-.cov-legend.cov-gap       { background:rgba(248,81,73,.30); }
+.cov-legend.cov-validated { background:color-mix(in srgb, var(--green) 55%, transparent); }
+.cov-legend.cov-rule      { background:color-mix(in srgb, var(--warning) 45%, transparent); }
+.cov-legend.cov-gap       { background:color-mix(in srgb, var(--red) 30%, transparent); }
 /* 매트릭스 셀에 커버리지 상태를 덧입힌다 (히트 색과 배타적으로 적용) */
-.mitre-technique.cov-validated { background:rgba(63,185,80,.18)  !important; border-color:var(--green) !important; }
-.mitre-technique.cov-rule      { background:rgba(210,153,34,.16) !important; border-color:var(--warning) !important; }
-.mitre-technique.cov-gap       { background:rgba(248,81,73,.10)  !important; border-color:rgba(248,81,73,.45) !important;
+.mitre-technique.cov-validated { background:color-mix(in srgb, var(--green) 18%, transparent)  !important; border-color:var(--green) !important; }
+.mitre-technique.cov-rule      { background:color-mix(in srgb, var(--warning) 16%, transparent) !important; border-color:var(--warning) !important; }
+.mitre-technique.cov-gap       { background:color-mix(in srgb, var(--red) 10%, transparent)  !important; border-color:color-mix(in srgb, var(--red) 45%, transparent) !important;
                                  border-style:dashed !important; opacity:.75; }
 .cov-gap-row { display:flex; gap:8px; padding:3px 6px; border-bottom:1px solid var(--border); }
 .cov-gap-row .tac  { min-width:92px; color:var(--text-dim); }
@@ -1652,15 +1664,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 /* 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) */
 .bd-gate { display:inline-block; padding:1px 6px; margin:1px 2px 1px 0; border-radius:3px;
            font-size:10px; border:1px solid transparent; }
-.bd-gate.pass { background:rgba(63,185,80,.15);  border-color:var(--green); color:#b7e4c1; }
-.bd-gate.fail { background:rgba(248,81,73,.15);  border-color:var(--red); color:#ffb3ad; }
+.bd-gate.pass { background:color-mix(in srgb, var(--green) 15%, transparent);  border-color:var(--green); color:#b7e4c1; }
+.bd-gate.fail { background:color-mix(in srgb, var(--red) 15%, transparent);  border-color:var(--red); color:#ffb3ad; }
 .bd-replay { border:1px solid var(--border); border-radius:6px; padding:8px; margin-top:6px; }
 .bd-replay .flip { color:var(--warning); font-weight:700; }
 
 /* 자기 관측성 (docs/AUDIT.md 3단계 제안 B) */
 .tel-probe { display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; border-radius:4px;
              border:1px solid var(--border); font-size:11px; color:var(--text-primary); }
-.tel-probe.warn { border-color:var(--warning); background:rgba(210,153,34,.12); color:#f0c674; }
+.tel-probe.warn { border-color:var(--warning); background:color-mix(in srgb, var(--warning) 12%, transparent); color:#f0c674; }
 .tel-probe .v { font-family:monospace; font-weight:700; margin-left:4px; }
 .tel-slow { color:var(--warning); font-weight:700; }
 .tel-fail { color:var(--red); font-weight:700; }
