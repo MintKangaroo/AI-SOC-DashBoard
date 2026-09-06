@@ -1,0 +1,25 @@
+# 데모 모드 기동: docker compose up --build  →  http://localhost:5055
+# 실운영 값은 .env 로 덮어쓴다(ANTHROPIC_API_KEY·DASH_PASSWORD 등). .env 가 없어도 뜬다.
+services:
+  soc:
+    build: .
+    image: soc-dashboard:local
+    ports:
+      - "5055:5055"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEMO_MODE: "True"
+      # 컨테이너 안에서 ufw 를 만질 수 없다 — 실차단은 반드시 simulate
+      SOAR_BLOCK_MODE: simulate
+      SOAR_AUTO_BLOCK: "False"
+      PATCH_APPLY_ENABLED: "False"
+    volumes:
+      - soc-data:/app/data
+      - soc-logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  soc-data:
+  soc-logs:
