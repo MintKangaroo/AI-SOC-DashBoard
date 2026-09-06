@@ -252,7 +252,14 @@
   function renderSoarExecutions(runs) {
     const box = document.getElementById('soar-executions');
     if (!box) return;
-    box.innerHTML = runs.length ? runs.slice(0, 12).map(run => `
+    if (!runs.length) {
+      box.innerHTML = '<div class="text-muted p-3 text-center small">실행 이력 없음</div>';
+      return;
+    }
+    // 실행 id 가 키. 상태·시도 횟수·단계 상태가 바뀐 실행만 다시 그린다 —
+    // 승인 버튼을 누르려는 순간 목록이 통째로 갈리면 클릭이 빗나간다.
+    const sig = run => `${run.status}|${run.attempt || 1}|${(run.steps || []).map(st => st.status).join(',')}`;
+    reconcileList(box, runs.slice(0, 12), run => run.id, run => `
       <div class="soar-run">
         <div class="d-flex align-items-center gap-2 small">
           <span class="pb-tag">${escapeHtml(run.playbook)}</span>
@@ -269,7 +276,7 @@
             <span>${escapeHtml(step.label)}</span>
             ${step.detail ? `<div class="text-truncate mt-1">${escapeHtml(step.detail)}</div>` : ''}
           </div>`).join('')}</div>
-      </div>`).join('') : '<div class="text-muted p-3 text-center small">실행 이력 없음</div>';
+      </div>`, { sig });
   }
 
   function reviewSoarApproval(id, decision) {

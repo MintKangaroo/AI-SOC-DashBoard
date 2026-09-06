@@ -167,6 +167,9 @@ _ESCAPE_EXEMPT = {
     ("03-detection.js", "DEFENDER.label"):   "클라이언트 상수(방어 지점 라벨)",
     ("08-response-init.js", "k.ko"):         "클라이언트 플레이북 단계 종류 맵",
     ("03-detection.js", "alert.severity"):   "item.className 대입 — HTML 파싱 아님",
+    ("02-overview.js", "r.info.type"):      "reconcileList 서명 문자열 — el.dataset.sig 대입(HTML 파싱 아님)",
+    ("06-sources.js", "e.source"):          "reconcileList 키 문자열 — el.dataset.key 대입(HTML 파싱 아님)",
+    ("08-response-init.js", "run.status"):  "reconcileList 서명 문자열 — el.dataset.sig 대입(HTML 파싱 아님)",
     ("02-overview.js", "alert.src_ip"):      "보조기기 안내 문구 — announce()/alarm() 이 "
                                              "textContent 로 넣는다(HTML 파싱 아님)",
     ("05-svg-intel.js", "entry.tactic_id"):  "querySelector 선택자 — HTML sink 아님",

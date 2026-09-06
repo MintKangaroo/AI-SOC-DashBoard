@@ -222,9 +222,12 @@
   };
 
   let _liveRenderTimer = null;
+  let _liveSeq = 0;   // 항목마다 고유 키 — 같은 내용이 반복돼도 노드를 구분한다
+
   function pushLive(kind, severity, html, meta) {
     const now = new Date().toTimeString().slice(0, 8);
     _liveBuffer.unshift({
+      id: ++_liveSeq,
       kind, severity: (severity || 'info').toLowerCase(), html, time: now,
       lowConf: !!(meta && meta.lowConf),   // 오탐 의심 알림 표시
     });
@@ -248,7 +251,9 @@
       box.innerHTML = '<div class="text-muted p-3 small text-center">이벤트 수신 대기 중…</div>';
       return;
     }
-    box.innerHTML = items.slice(0, 60).map(e => {
+    // 통째로 다시 만들지 않는다 — 300ms 마다 60개를 갈아끼우면 분석가가 읽던
+    // 행·드래그한 텍스트가 매번 사라진다. 새 항목만 위에 끼우고 밀려난 것만 뺀다.
+    reconcileList(box, items.slice(0, 60), e => e.id, e => {
       const meta = LIVE_KIND_META[e.kind] || { cls: '', label: e.kind };
       return `<div class="live-item">
         <div class="lv-bar b-${escapeHtml(e.severity)}"></div>
@@ -256,7 +261,7 @@
         <div class="lv-kind ${meta.cls}">${meta.label}</div>
         <div class="lv-text">${e.html}</div>
       </div>`;
-    }).join('');
+    });
   }
 
   function setLiveFilter(f, btn) {
@@ -325,13 +330,15 @@
       el.innerHTML = '<div class="text-muted p-2">데이터 없음</div>';
       return;
     }
-    el.innerHTML = sorted.map(([ip, info], i) => `
+    // IP 가 키다. 순위·건수가 바뀐 행만 다시 그리고 나머지는 자리만 옮긴다.
+    const rows = sorted.map(([ip, info], i) => ({ ip, info, rank: i + 1 }));
+    reconcileList(el, rows, r => r.ip, r => `
       <div class="top-attacker-row">
-        <span class="rnk">#${i+1}</span>
-        <span class="ip">${escapeHtml(ip)}</span>
-        <span class="ttype">${escapeHtml(info.type)}</span>
-        <span class="cnt">${info.count}</span>
-      </div>`).join('');
+        <span class="rnk">#${r.rank}</span>
+        <span class="ip">${escapeHtml(r.ip)}</span>
+        <span class="ttype">${escapeHtml(r.info.type)}</span>
+        <span class="cnt">${r.info.count}</span>
+      </div>`, { sig: r => `${r.rank}:${r.info.count}:${r.info.type}` });
   }
 
   function renderThreatTypeChart() {

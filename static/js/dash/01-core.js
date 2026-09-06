@@ -5,6 +5,66 @@
      SOC Dashboard — Main JS
   ══════════════════════════════════════════ */
 
+  /* ── 키 기반 목록 조정(reconcile) ──
+     실시간 목록(라이브 스트림·TOP 공격자·SIEM 이벤트·SOAR 이력)은 갱신마다
+     innerHTML 로 통째로 다시 만들고 있었다. 분석가가 한 행을 읽거나 텍스트를
+     드래그하는 중에 알림이 오면 그 노드가 버려져 **선택·포커스·스크롤이
+     날아간다.** 관제 도구에서 매일 겪는 짜증이다.
+
+     여기서는 항목마다 키를 두고, 이미 있는 노드는 **그대로 두고 자리만 옮긴다.**
+     새 항목만 만들고, 사라진 항목만 지운다. 바뀌지 않은 노드는 정체성을 유지
+     하므로 그 안의 선택·포커스가 살아남는다.
+
+     items:  렌더할 배열(원하는 순서)
+     keyOf:  item → 안정적인 문자열 키
+     render: item → HTML 문자열 (새 항목·내용이 바뀐 항목에만 호출)
+     opts.sig: item → 내용 서명. 같은 키라도 서명이 바뀌면 다시 그린다(기본: 키만). */
+  function reconcileList(container, items, keyOf, render, opts) {
+    if (!container) return;
+    const sigOf = (opts && opts.sig) || (() => '');
+    const byKey = new Map();
+    for (const el of container.children) {
+      if (el.dataset && el.dataset.key !== undefined) byKey.set(el.dataset.key, el);
+    }
+    const wanted = new Set();
+    const build = item => {
+      const tmp = document.createElement('template');
+      tmp.innerHTML = render(item).trim();
+      return tmp.content.firstElementChild;
+    };
+    // cursor = "다음 항목이 놓여야 할 자리 앞의 노드". 불변식: 항목을 놓은 뒤에는
+    // 항상 cursor = el.nextElementSibling. 이전 구현은 내용 교체(replaceWith) 뒤
+    // cursor 가 떨어져 나간 옛 노드를 가리킨 채 남아 insertBefore 가
+    // NotFoundError 를 냈다 — 브라우저 테스트가 잡았다.
+    let cursor = container.firstElementChild;
+    for (const item of items) {
+      const key = String(keyOf(item));
+      const sig = String(sigOf(item));
+      wanted.add(key);
+      let el = byKey.get(key);
+      if (el && el.dataset.sig !== sig) {
+        // 내용이 바뀐 항목: 그 노드만 교체(이웃은 살린다)
+        const fresh = build(item);
+        if (fresh) {
+          fresh.dataset.key = key; fresh.dataset.sig = sig;
+          if (cursor === el) cursor = fresh;
+          el.replaceWith(fresh); el = fresh; byKey.set(key, el);
+        }
+      } else if (!el) {
+        el = build(item);
+        if (!el) continue;
+        el.dataset.key = key; el.dataset.sig = sig;
+      }
+      // 원하는 순서대로 커서 앞에 놓는다. 이미 제자리면 아무것도 안 한다.
+      if (el !== cursor) container.insertBefore(el, cursor);
+      cursor = el.nextElementSibling;
+    }
+    // 원하지 않는 나머지(오래된 항목·플레이스홀더) 제거
+    for (const el of Array.from(container.children)) {
+      if (!wanted.has(el.dataset.key)) el.remove();
+    }
+  }
+
   /* ── 토큰 값 읽기 ──
      Chart.js 는 캔버스에 그리고 SVG 속성은 문자열을 받으므로 `var(--x)` 를
      그대로 넘길 수 없다. 그래서 색을 하드코딩해 두었더니 팔레트를 블랙으로
@@ -603,7 +663,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    alarm, announce, cssVar, ensureTableLibs, loadScript,
+    alarm, announce, cssVar, ensureTableLibs, loadScript, reconcileList,
     closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, protoColor, sevBadge, showPanel,
     socket, threatColor, toggleGroup, toggleSidebar,
   });

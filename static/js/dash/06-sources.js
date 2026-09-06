@@ -62,9 +62,20 @@
     set('siem-unique-ips', new Set(evs.map(e => e.ip)).size);
     set('siem-sources-ok', _siemSources.filter(s => s.exists).length);
 
-    box.innerHTML = evs.length
-      ? evs.slice(0, 200).map(siemRawEvent).join('')
-      : '<div class="text-muted p-4 text-center small">일치하는 이벤트가 없습니다.</div>';
+    if (!evs.length) {
+      box.innerHTML = '<div class="text-muted p-4 text-center small">일치하는 이벤트가 없습니다.</div>';
+    } else {
+      // 200행을 800ms 마다 통째로 갈아끼우면 펼쳐 둔 필드·드래그한 텍스트가 사라진다.
+      // 이벤트는 기록된 뒤 바뀌지 않으므로 (출처·IP·시각·요청) 조합이 키가 된다.
+      // 완전히 같은 줄이 두 번 오면 출현 순번을 붙여 구분한다.
+      const seen = new Map();
+      const rows = evs.slice(0, 200).map((e, i) => {
+        const base = `${e.source}|${e.ip}|${e.timestamp}|${e.request}|${e.status}`;
+        const n = (seen.get(base) || 0) + 1; seen.set(base, n);
+        return { e, i, key: n > 1 ? `${base}#${n}` : base };
+      });
+      reconcileList(box, rows, r => r.key, r => siemRawEvent(r.e, r.i));
+    }
 
     renderSiemTimeline(evs);
     renderSiemFields(evs);
@@ -73,8 +84,8 @@
   // Splunk raw event (행 클릭 시 필드 펼침)
   function siemRawEvent(e, idx) {
     const sev = e.severity || 'INFO';
-    const sevColor = sev === 'CRITICAL' ? '#f85149' : sev === 'HIGH' ? '#f0a500'
-                   : sev === 'MEDIUM' ? '#d29922' : e.suspicious ? '#f0a500' : '#3fb950';
+    const sevColor = sev === 'CRITICAL' ? cssVar('--red', '#f85249') : sev === 'HIGH' ? cssVar('--orange', '#f08c19')
+                   : sev === 'MEDIUM' ? cssVar('--warning', '#d29922') : e.suspicious ? cssVar('--orange', '#f08c19') : cssVar('--green', '#30cf65');
     const raw = `${e.ip} - - [${e.timestamp}] "${e.request}" ${e.status}`;
     const fields = [
       ['host', e.source], ['src_ip', e.ip], ['status', e.status],
