@@ -83,7 +83,7 @@
       <td><span style="color:${threatColor(alert.threat_type)}">${escapeHtml(alert.threat_label)}</span>${dedupBadge(alert)}${confBadge(alert)}${demoBadge(alert.details)}</td>
       <td>${alert.origin === 'demo' ? '<span class="badge demo-badge">데모</span>' : alert.origin === 'real' ? '<span class="badge bg-primary">실데이터</span>' : '<span class="badge bg-secondary">기존</span>'}</td>
       <td class="font-monospace">${escapeHtml(alert.src_ip)}</td>
-      <td class="font-monospace">${escapeHtml(alert.dst_ip)}</td>
+      <td class="font-monospace">${escapeHtml(alert.dst_ip ?? '-')}</td>
       <td>${escapeHtml(alert.description)}</td>
       <td><span class="badge bg-${statusColors[alert.status]}">${statusLabels[alert.status]}</span></td>
       <td>${verdictBadge(alert)}</td>
@@ -265,7 +265,7 @@
       <div>${sevBadge(alert.severity)}</div>
       <div class="flex-fill">
         <span style="color:${threatColor(alert.threat_type)};font-weight:600">${escapeHtml(alert.threat_label)}</span>${demoBadge(alert.details)}
-        <span class="text-muted ms-2">${escapeHtml(alert.src_ip)} → ${escapeHtml(alert.dst_ip)}</span>
+        <span class="text-muted ms-2">${escapeHtml(alert.src_ip ?? '-')} → ${escapeHtml(alert.dst_ip ?? '-')}</span>
         <div class="text-muted" style="font-size:var(--fs-label)">${escapeHtml(alert.description)}</div>
       </div>
       <div class="text-muted" style="font-size:var(--fs-meta);white-space:nowrap">${alert.timestamp.split(' ')[1]||alert.timestamp}</div>`;

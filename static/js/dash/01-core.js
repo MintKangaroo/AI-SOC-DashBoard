@@ -240,6 +240,8 @@
   /* HTML 이스케이프 — 여러 파일이 공유하는 공용 헬퍼다.
      원래 04-ml-mitre.js 에 있었으나 01 부터 쓰이므로 여기로 옮겼다. */
   function escapeHtml(s) {
+    // null/undefined 는 화면에 'null' 로 찍히지 않게 빈 문자열로(목적지 없는 알림이 26%).
+    if (s == null) return '';
     return String(s).replace(/[&<>"']/g,
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
