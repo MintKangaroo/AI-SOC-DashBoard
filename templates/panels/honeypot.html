@@ -17,7 +17,7 @@
           여기에 붙는 연결은 사실상 전부 정찰·공격 시도 — <strong>고신뢰 침해 지표</strong>입니다.
           연결만 해도 HIGH, 자격증명·명령 입력이 있으면 CRITICAL 로 위협 탐지 →
           AI 트리아지 → SOAR 차단 파이프라인에 자동 투입됩니다.
-          <div class="mt-2" id="honeypot-bind-hint" style="color:#9fb4c4"></div>
+          <div class="mt-2 text-soft" id="honeypot-bind-hint"></div>
         </div>
       </div>
 
@@ -54,7 +54,7 @@
           </div>
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-user-secret text-danger me-2"></i>TOP 공격자 IP</h3>
-            <div id="honeypot-top-ips" style="max-height:240px; overflow-y:auto">
+            <div class="scroll-y scroll-y-md" id="honeypot-top-ips">
               <div class="text-muted p-2">데이터 없음</div>
             </div>
           </div>
@@ -63,8 +63,8 @@
         <div class="col-lg-8">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>유인 접촉 로그</h3>
-            <div class="table-responsive" style="max-height:560px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-xl">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>시각</th><th>공격자 IP</th><th>서비스</th><th>입력(자격증명/명령)</th><th>심각도</th></tr></thead>
                 <tbody id="honeypot-events-tbody">
                   <tr><td colspan="5" class="text-muted text-center p-3">로딩 중...</td></tr>

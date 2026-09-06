@@ -10,7 +10,7 @@ import re
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 CSS = (REPO / "static/css/style.css").read_text(encoding="utf-8")
-_PX = re.compile(r"font-size:\s*[0-9.]+px")
+_PX = re.compile(r"font-size:\s*[0-9.]+(px|rem|em)")   # rem/em 드리프트도 잡는다
 _DEF = re.compile(r"^\s*--fs-[a-z0-9-]+\s*:\s*([0-9.]+)px", re.M)
 
 

@@ -2,7 +2,7 @@
     <div id="panel-network" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-diagram-project me-2 text-cyan"></i>네트워크 모니터링 관제
-        <span class="badge ms-2" id="net-mode-badge" style="background:var(--border)">-</span>
+        <span class="badge ms-2 badge-neutral" id="net-mode-badge">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadNetwork()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
@@ -40,9 +40,9 @@
             <div class="card-panel-header d-flex align-items-center">
               <i class="fa fa-diagram-project text-cyan me-2"></i>네트워크 토폴로지 (실시간 연결)
               <span class="ms-auto small text-muted">
-                <i class="fa fa-circle" style="color:var(--green);font-size:var(--fs-micro)"></i> 내부·Tailscale
-                <i class="fa fa-circle ms-2" style="color:var(--orange);font-size:var(--fs-micro)"></i> 외부
-                <i class="fa fa-circle ms-2" style="color:var(--red);font-size:var(--fs-micro)"></i> 악성
+                <i class="fa fa-circle text-green fs-micro"></i> 내부·Tailscale
+                <i class="fa fa-circle ms-2 text-orange fs-micro"></i> 외부
+                <i class="fa fa-circle ms-2 text-red fs-micro"></i> 악성
               </span>
             </div>
             <div style="overflow:auto"><svg id="net-topology" width="100%" height="360" style="min-width:520px; display:block"></svg></div>
@@ -62,8 +62,8 @@
         <div class="col-lg-7">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-plug text-cyan me-2"></i>활성 연결</h3>
-            <div class="table-responsive" style="max-height:420px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-lg">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>로컬</th><th>원격</th><th>상태</th><th>프로세스</th></tr></thead>
                 <tbody id="net-conns-tbody">
                   <tr><td colspan="4" class="text-muted text-center p-3">로딩 중...</td></tr>
@@ -75,8 +75,8 @@
         <div class="col-lg-5">
           <div class="card-panel mb-3">
             <h3 class="card-panel-header"><i class="fa fa-door-open text-orange me-2"></i>리스닝(오픈) 포트</h3>
-            <div class="table-responsive" style="max-height:180px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-sm">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>포트</th><th>주소</th><th>프로세스</th></tr></thead>
                 <tbody id="net-listen-tbody">
                   <tr><td colspan="3" class="text-muted text-center p-3">로딩 중...</td></tr>
@@ -86,7 +86,7 @@
           </div>
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-bell text-danger me-2"></i>네트워크 이벤트</h3>
-            <div id="net-events" style="max-height:200px; overflow-y:auto">
+            <div class="scroll-y scroll-y-sm" id="net-events">
               <div class="text-muted p-2">이벤트 없음</div>
             </div>
           </div>

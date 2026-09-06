@@ -30,13 +30,13 @@
         </div>
         <div class="col-sm-3">
           <div class="stat-card border-warning">
-            <div class="stat-value text-warning" style="font-size:var(--fs-h2)" id="ml-trained-on">합성(미검증)</div>
+            <div class="stat-value text-warning fs-h2" id="ml-trained-on">합성(미검증)</div>
             <div class="stat-label">학습 데이터</div>
           </div>
         </div>
         <div class="col-sm-3">
           <div class="stat-card border-cyan">
-            <div class="stat-value text-cyan" style="font-size:var(--fs-h2)" id="ml-feedback-count">정탐 0 · 오탐 0</div>
+            <div class="stat-value text-cyan fs-h2" id="ml-feedback-count">정탐 0 · 오탐 0</div>
             <div class="stat-label">누적 라벨</div>
           </div>
         </div>
@@ -60,7 +60,7 @@
                 오염률(contamination): 8% | 트리: 200개<br/>
                 입력: 8개 트래픽 피처 (pps·bps·프로토콜 비율·고유 출발지/포트·평균 패킷 크기)</span>
               </div>
-              <div class="mt-2 small" style="color:var(--text-dim);font-size:var(--fs-label)">
+              <div class="mt-2 small text-dim fs-label">
                 라벨 없이 실트래픽으로 재학습할 수 있는 유일한 모델이라 남겼습니다.
               </div>
             </div>
@@ -74,15 +74,15 @@
               <i class="fa fa-flask text-muted me-2"></i>격리된 실험 모델
               <span class="badge bg-secondary ms-2">비활성</span>
             </h3>
-            <div class="small px-2 pb-2" style="color:var(--text-dim);font-size:var(--fs-label)">
+            <div class="small px-2 pb-2 text-dim fs-label">
               아래 3종은 실데이터로 학습·검증된 적이 없고 출력이 어떤 판단 경로에도
               연결되어 있지 않아 <code>experimental/</code> 로 격리했습니다.
               격리 사유와 복귀 조건은 <code>experimental/README.md</code>.
             </div>
             <div class="table-responsive">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>모델</th><th>격리 사유</th><th>복귀 조건</th></tr></thead>
-                <tbody style="color:var(--text-primary)">
+                <tbody class="text-fg">
                   <tr>
                     <td><strong class="text-purple">Random Forest</strong><br/><span class="text-muted">지도 분류 6클래스</span></td>
                     <td>사람 판정 라벨 1건 — 학습·검증 불가.<br/>학습 분포 밖에서 자신 있게 오분류.</td>
@@ -123,7 +123,7 @@
               <button class="btn btn-xs btn-outline-secondary ms-2" onclick="sendFeedback(false)">정탐</button>
               <button class="btn btn-xs btn-outline-warning ms-1" onclick="sendFeedback(true)">오탐</button>
             </h3>
-            <div id="ml-log" style="max-height:250px;overflow-y:auto;font-size:var(--fs-sm);"></div>
+            <div class="fs-sm scroll-y scroll-y-md" id="ml-log"></div>
           </div>
         </div>
 
@@ -138,12 +138,12 @@
                 <i class="fa fa-sync me-1"></i>새로고침
               </button>
             </h3>
-            <div class="small text-muted px-2 pb-1" style="font-size:var(--fs-label)">
+            <div class="small text-muted px-2 pb-1 fs-label">
               동일 (위협유형 × 출발지 /24) 그룹의 AI/규칙 판정을 학습해 정탐률을 추정하고,
               그 결과가 신규 알림의 신뢰도에 자동 반영됩니다. 오탐이 반복되는 그룹은 자동으로 조용해집니다.
             </div>
-            <div class="table-responsive" style="max-height:320px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-md">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr>
                   <th>위협 그룹</th><th>출발지 대역</th><th>건수</th><th>IP수</th>
                   <th>심각도</th><th>정탐/오탐</th><th>정탐률</th><th>자동 추론 권고</th>

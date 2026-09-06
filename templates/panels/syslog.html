@@ -16,18 +16,18 @@
           여기서 실시간 수신합니다. 파일 tail 방식과 달리 로그 위치가 바뀌어도 끊기지 않습니다.
           인증 실패·프로브·SQLi/XSS·포트 스캔 등 <strong>의심 이벤트는 자동 분류</strong>되어
           위협 탐지 → AI 트리아지 → SOAR 파이프라인, 공격 지도, MITRE ATT&amp;CK 에 반영됩니다.
-          <div class="mt-2" id="syslog-bind-hint" style="color:#9fb4c4"></div>
+          <div class="mt-2 text-soft" id="syslog-bind-hint"></div>
         </div>
       </div>
 
       <!-- 전송 설정 안내 (KR/USA 쪽) -->
       <div class="card-panel mb-3">
         <h3 class="card-panel-header"><i class="fa fa-plug text-info me-2"></i>KR/USA 프로젝트에서 이렇게 연결하세요</h3>
-        <div class="small" style="color:var(--text-soft); line-height:1.7">
+        <div class="small text-soft" style="line-height:1.7">
           각 프로젝트에 아래를 추가하면 접속 로그가 이 대시보드로 전송됩니다
           (<code>&lt;bind&gt;</code>는 위 수신 주소).
         </div>
-<pre class="mb-0 mt-2" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:var(--fs-sm); color:var(--text-primary); overflow-x:auto"><code>import logging, logging.handlers
+<pre class="mb-0 mt-2 fs-sm text-fg" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto"><code>import logging, logging.handlers
 h = logging.handlers.SysLogHandler(address=(&quot;127.0.0.1&quot;, 5514),
                                    socktype=socket.SOCK_DGRAM)   # 또는 SOCK_STREAM(TCP)
 logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC 로 전송</code></pre>
@@ -62,13 +62,13 @@ logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC �
         <div class="col-lg-4">
           <div class="card-panel mb-3">
             <h3 class="card-panel-header"><i class="fa fa-server text-info me-2"></i>전송 호스트</h3>
-            <div id="syslog-top-hosts" style="max-height:200px; overflow-y:auto">
+            <div class="scroll-y scroll-y-sm" id="syslog-top-hosts">
               <div class="text-muted p-2">데이터 없음</div>
             </div>
           </div>
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 출발지 IP</h3>
-            <div id="syslog-top-ips" style="max-height:260px; overflow-y:auto">
+            <div class="scroll-y scroll-y-md" id="syslog-top-ips">
               <div class="text-muted p-2">데이터 없음</div>
             </div>
           </div>
@@ -84,8 +84,8 @@ logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC �
                 <label class="form-check-label small" for="syslog-suspicious-only">의심만 보기</label>
               </div>
             </div>
-            <div class="table-responsive" style="max-height:560px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-xl">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>시각</th><th>호스트</th><th>IP</th><th>메시지</th><th>분류</th></tr></thead>
                 <tbody id="syslog-events-tbody">
                   <tr><td colspan="5" class="text-muted text-center p-3">로딩 중...</td></tr>

@@ -1962,3 +1962,38 @@ td, .alert-item, .stream-item, .desc {
 code, pre, .mono, .table-monospace td {
   overflow-wrap: anywhere;
 }
+
+/* ══════════════════════════════════════════
+   유틸 클래스 — 템플릿 인라인 style 을 걷어낸 자리.
+   인라인은 246곳 → 180곳까지 줄인 뒤에도 같은 값이 수십 번 반복됐다(글자크기
+   53·스크롤 상자 42·모드 뱃지 14·색 11). 값이 한 곳에 있어야 바꿀 때 한 번에
+   움직인다.
+══════════════════════════════════════════ */
+.fs-micro   { font-size: var(--fs-micro); }
+.fs-meta    { font-size: var(--fs-meta); }
+.fs-label   { font-size: var(--fs-label); }
+.fs-sm      { font-size: var(--fs-sm); }
+.fs-body    { font-size: var(--fs-body); }
+.fs-lg      { font-size: var(--fs-lg); }
+.fs-h3      { font-size: var(--fs-h3); }
+.fs-h2      { font-size: var(--fs-h2); }
+.fs-kpi-sm  { font-size: var(--fs-kpi-sm); }
+.fs-kpi     { font-size: var(--fs-kpi); }
+
+.text-fg    { color: var(--text-primary) !important; }   /* 부트스트랩 .text-* 와 같은 층위 */
+.text-dim   { color: var(--text-dim) !important; }
+.text-soft  { color: var(--text-soft) !important; }
+.text-green { color: var(--green) !important; }
+
+/* 데모/실측 모드 표시 뱃지 — 상태가 없을 때의 중립 배경. JS 가 모드에 따라
+   bg-* 유틸을 덧씌우므로 !important 를 쓰지 않는다. */
+.badge-neutral { background: var(--border); color: var(--text-primary); }
+
+/* 스크롤 상자 — 높이가 150~640px 사이 17종으로 흩어져 있어 패널마다 보이는
+   행 수가 제각각이었다. 네 단계로 맞춘다. 관제 화면에서 "한 화면에 몇 행" 은
+   일관돼야 눈이 위치를 기억한다. */
+.scroll-y    { overflow-y: auto; max-height: var(--scroll-max, 460px); }
+.scroll-y-sm { --scroll-max: 200px; }
+.scroll-y-md { --scroll-max: 320px; }
+.scroll-y-lg { --scroll-max: 460px; }
+.scroll-y-xl { --scroll-max: 560px; }

@@ -18,7 +18,7 @@
           차단 모드 <code id="soar-mode-label">simulate</code> — 시뮬레이션은 기록만 하며,
           홈서버 실차단은 <code>.env</code>에 <code>SOAR_BLOCK_MODE=ufw</code> 설정 (sudo 필요).
         </div>
-        <div class="small mt-2 pt-2" style="color:var(--text-primary); border-top:1px solid var(--border)">
+        <div class="small mt-2 pt-2 text-fg" style="border-top:1px solid var(--border)">
           <i class="fa fa-shield-halved text-success me-1"></i><strong>안전장치</strong>:
           사설·<span class="text-cyan">Tailscale(100.64.0.0/10)</span>·서버 자신은 <u>절대 차단 안 함</u>(자가 락아웃 방지).
           <span id="soar-safety-extra"></span>
@@ -64,12 +64,12 @@
             <div class="card-panel-header d-flex align-items-center">
               <i class="fa fa-ban text-danger me-2"></i>차단 IP 목록
               <div class="ms-auto d-flex gap-1">
-                <input type="text" id="soar-block-ip-input" aria-label="수동 차단할 IP" class="form-control form-control-sm font-monospace"
-                       placeholder="IP 수동 차단" style="width:150px; font-size:var(--fs-label)">
+                <input type="text" id="soar-block-ip-input" aria-label="수동 차단할 IP" class="form-control form-control-sm font-monospace fs-label"
+                       placeholder="IP 수동 차단" style="width:150px">
                 <button class="btn btn-xs btn-outline-danger" onclick="soarManualBlock()">차단</button>
               </div>
             </div>
-            <div id="soar-blocklist" style="max-height:300px; overflow-y:auto">
+            <div class="scroll-y scroll-y-md" id="soar-blocklist">
               <div class="text-muted p-2">차단된 IP 없음</div>
             </div>
           </div>
@@ -108,8 +108,8 @@
               </button>
             </h3>
             <div id="bd-summary" class="small mb-2 text-muted">불러오는 중...</div>
-            <div class="table-responsive" style="max-height:320px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-md">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>시각</th><th>출발지</th><th>결과</th><th>막은 게이트</th><th>신뢰도</th><th></th></tr></thead>
                 <tbody id="bd-tbody">
                   <tr><td colspan="6" class="text-muted text-center p-3">아직 결정 기록 없음</td></tr>
@@ -121,8 +121,8 @@
 
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-timeline text-warning me-2"></i>자동 대응 타임라인</h3>
-            <div class="table-responsive" style="max-height:640px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-xl">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>시각</th><th>플레이북</th><th>액션</th><th>대상</th><th>결과</th><th>상세</th></tr></thead>
                 <tbody id="soar-actions-tbody">
                   <tr><td colspan="6" class="text-muted text-center p-3">아직 대응 이력 없음</td></tr>

@@ -194,7 +194,7 @@
               <i class="fa fa-list text-danger me-2"></i>공격 로그 (지도 궤적)
               <span class="ms-auto small text-muted">실시간</span>
             </h3>
-            <div id="attack-log" class="attack-log-list" style="max-height:150px; overflow-y:auto"></div>
+            <div id="attack-log" class="attack-log-list scroll-y scroll-y-sm"></div>
           </div>
         </div>
       </div>
@@ -251,13 +251,13 @@
         <div class="col-lg-4">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 공격자 IP</h3>
-            <div id="top-attackers-list" class="small" style="color:var(--text-primary);"><div class="text-muted p-2">데이터 없음</div></div>
+            <div id="top-attackers-list" class="small text-fg"><div class="text-muted p-2">데이터 없음</div></div>
           </div>
         </div>
         <div class="col-lg-4">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-brain text-cyan me-2"></i>ML 모델 상태</h3>
-            <div class="ml-status-overview small p-2" style="color:var(--text-primary);">
+            <div class="ml-status-overview small p-2 text-fg">
               <div class="d-flex justify-content-between py-1">
                 <span>Isolation Forest</span>
                 <span><span class="badge bg-success me-1" id="ov-if-badge">●</span><span id="ov-if-anom">0</span>건 이상</span>
@@ -301,21 +301,21 @@
               <i class="fa fa-virus text-danger me-2"></i>위협 인텔리전스 (IoC 매칭)
               <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('threat-intel')">전체 보기</button>
             </h3>
-            <div class="row g-2 small mb-2" style="color:var(--text-primary)">
+            <div class="row g-2 small mb-2 text-fg">
               <div class="col-4 text-center">
-                <div class="text-danger fw-bold" style="font-size:1.2rem" id="ov-ti-bad-ip">0</div>
+                <div class="text-danger fw-bold fs-h3" id="ov-ti-bad-ip">0</div>
                 <div class="text-muted">악성 IP</div>
               </div>
               <div class="col-4 text-center">
-                <div class="text-orange fw-bold" style="font-size:1.2rem" id="ov-ti-bad-url">0</div>
+                <div class="text-orange fw-bold fs-h3" id="ov-ti-bad-url">0</div>
                 <div class="text-muted">악성 URL</div>
               </div>
               <div class="col-4 text-center">
-                <div class="text-warning fw-bold" style="font-size:1.2rem" id="ov-ti-match">0</div>
+                <div class="text-warning fw-bold fs-h3" id="ov-ti-match">0</div>
                 <div class="text-muted">매칭</div>
               </div>
             </div>
-            <div id="ov-ti-recent" class="small" style="max-height:180px;overflow-y:auto">
+            <div id="ov-ti-recent" class="small scroll-y scroll-y-sm">
               <div class="text-muted p-2">매칭 대기 중...</div>
             </div>
           </div>

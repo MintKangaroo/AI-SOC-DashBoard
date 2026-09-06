@@ -59,24 +59,24 @@
         </h3>
         <div class="row g-2 text-center mb-2">
           <div class="col-6 col-md-3">
-            <div class="stat-value" id="cov-rule-pct" style="font-size:var(--fs-kpi-sm)">-</div>
+            <div class="stat-value fs-kpi-sm" id="cov-rule-pct">-</div>
             <div class="stat-label">룰 보유 기법</div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="stat-value text-purple" id="cov-validated-pct" style="font-size:var(--fs-kpi-sm)">-</div>
+            <div class="stat-value text-purple fs-kpi-sm" id="cov-validated-pct">-</div>
             <div class="stat-label">퍼플팀 검증</div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="stat-value text-danger" id="cov-gaps" style="font-size:var(--fs-kpi-sm)">-</div>
+            <div class="stat-value text-danger fs-kpi-sm" id="cov-gaps">-</div>
             <div class="stat-label">커버리지 공백</div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="stat-value text-warning" id="cov-seen" style="font-size:var(--fs-kpi-sm)">-</div>
+            <div class="stat-value text-warning fs-kpi-sm" id="cov-seen">-</div>
             <div class="stat-label">실제 히트 기법</div>
           </div>
         </div>
         <div id="cov-untracked" class="small mb-2"></div>
-        <div class="small" style="color:var(--text-dim)">
+        <div class="small text-dim">
           <span class="cov-legend cov-validated"></span> 룰 + 퍼플팀 검증 &nbsp;
           <span class="cov-legend cov-rule"></span> 룰만 있음(미검증) &nbsp;
           <span class="cov-legend cov-gap"></span> 공백 — 룰 자체가 없다
@@ -107,7 +107,7 @@
           <i class="fa fa-list-check text-danger me-2"></i>커버리지 공백 — 다음에 써야 할 룰
           <span class="badge bg-dark ms-2" id="cov-gap-badge">-</span>
         </h3>
-        <div id="cov-gap-list" class="small" style="max-height:260px;overflow-y:auto">진단 중...</div>
+        <div id="cov-gap-list" class="small scroll-y scroll-y-md">진단 중...</div>
       </div>
 
       <!-- 상세 로그 (확장된 테이블) -->
@@ -125,7 +125,7 @@
             <input id="mitre-log-filter" aria-label="IP 또는 기법 검색" type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="IP/기법 검색" style="width:180px"/>
           </div>
         </h3>
-        <div style="max-height:420px; overflow-y:auto">
+        <div class="scroll-y scroll-y-lg">
           <table class="table table-dark table-hover table-sm mb-0">
             <thead class="table-dark" style="position:sticky;top:0;z-index:2">
               <tr>
@@ -160,7 +160,7 @@
             <h3 class="card-panel-header">
               <i class="fa fa-rss text-info me-2"></i>최근 이벤트 스트림
             </h3>
-            <div id="mitre-recent-list" class="small" style="max-height:300px;overflow-y:auto">데이터 수집 중...</div>
+            <div id="mitre-recent-list" class="small scroll-y scroll-y-md">데이터 수집 중...</div>
           </div>
         </div>
       </div>

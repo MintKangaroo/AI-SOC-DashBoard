@@ -2,8 +2,8 @@
     <div id="panel-vulnscan" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-magnifying-glass-chart me-2 text-danger"></i>취약점 스캔 — 포트 · 서비스 · CVE
-        <span class="badge ms-2" id="vuln-mode-badge" style="background:var(--border)">-</span>
-        <span class="badge ms-1" id="vuln-engine-badge" style="background:var(--border)">-</span>
+        <span class="badge ms-2 badge-neutral" id="vuln-mode-badge">-</span>
+        <span class="badge ms-1 badge-neutral" id="vuln-engine-badge">-</span>
       </h2>
 
       <div class="panel-note mb-3 panel-note--cyan">
@@ -45,7 +45,7 @@
           <button class="btn btn-sm btn-outline-danger" id="vuln-scan-btn" onclick="vulnScan()">
             <i class="fa fa-radar me-1"></i>선택 서버 스캔</button>
           <span class="small text-muted" id="vuln-scan-status"></span>
-          <span class="small text-muted ms-auto" style="font-size:var(--fs-label)">
+          <span class="small text-muted ms-auto fs-label">
             대상은 <code>ANSIBLE_TARGETS</code> 공유 · 포트셋은 <code>VULN_SCAN_PORTS</code>로 조정</span>
         </div>
       </div>
@@ -54,7 +54,7 @@
         <div class="col-lg-8">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list-check text-danger me-2"></i>스캔 결과 (서버별 열린 포트 · CVE)</h3>
-            <div id="vuln-results" style="max-height:520px; overflow-y:auto">
+            <div class="scroll-y scroll-y-xl" id="vuln-results">
               <div class="text-muted p-3 text-center">아직 스캔하지 않았습니다. 대상 선택 후 <strong>스캔</strong>을 누르세요.</div>
             </div>
           </div>
@@ -66,7 +66,7 @@
           </div>
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>스캔 이력</h3>
-            <div id="vuln-history" style="max-height:220px; overflow-y:auto">
+            <div class="scroll-y scroll-y-sm" id="vuln-history">
               <div class="text-muted p-2">이력 없음</div>
             </div>
           </div>

@@ -38,7 +38,7 @@
         </div></div>
         <div class="col-md-3"><div class="stat-card border-cyan">
           <div class="stat-icon text-cyan"><i class="fa fa-clock"></i></div>
-          <div class="stat-value text-cyan" style="font-size:1rem" id="ti-last-refresh">-</div>
+          <div class="stat-value text-cyan fs-h3" id="ti-last-refresh">-</div>
           <div class="stat-label">최종 갱신</div>
         </div></div>
       </div>
@@ -74,7 +74,7 @@
               <i class="fa fa-triangle-exclamation text-danger me-2"></i>실시간 매칭 이벤트
               <span class="ms-auto small text-muted">CRITICAL</span>
             </h3>
-            <div id="ti-match-list" class="small" style="max-height:380px;overflow-y:auto">
+            <div id="ti-match-list" class="small scroll-y scroll-y-lg">
               <div class="text-muted text-center p-3">매칭 대기 중...</div>
             </div>
           </div>
@@ -83,13 +83,13 @@
         <div class="col-lg-6">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list text-danger me-2"></i>악성 IP 샘플 (TOP 20)</h3>
-            <div id="ti-sample-ips" class="small text-monospace" style="color:var(--text-primary);max-height:200px;overflow-y:auto"></div>
+            <div id="ti-sample-ips" class="small text-monospace text-fg scroll-y scroll-y-sm"></div>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-link text-orange me-2"></i>악성 URL 샘플 (TOP 20)</h3>
-            <div id="ti-sample-urls" class="small text-monospace" style="color:var(--text-primary);max-height:200px;overflow-y:auto;word-break:break-all"></div>
+            <div id="ti-sample-urls" class="small text-monospace text-fg" style="max-height:200px; overflow-y:auto; word-break:break-all"></div>
           </div>
         </div>
         <!-- IoC 직접 조회 -->

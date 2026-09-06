@@ -2,7 +2,7 @@
     <div id="panel-sigma" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-file-shield me-2 text-cyan"></i>Sigma 룰 엔진 — 업계 표준 탐지룰
-        <span class="badge ms-2" id="sigma-mode-badge" style="background:var(--border)">-</span>
+        <span class="badge ms-2 badge-neutral" id="sigma-mode-badge">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="reloadSigma()">
           <i class="fa fa-sync me-1"></i>룰 재로드
         </button>
@@ -40,8 +40,8 @@
         <div class="col-lg-5">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list-ul text-cyan me-2"></i>로드된 룰</h3>
-            <div class="table-responsive" style="max-height:460px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-lg">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>레벨</th><th>룰</th><th>MITRE</th><th>사용</th></tr></thead>
                 <tbody id="sigma-rules-tbody">
                   <tr><td colspan="4" class="text-muted text-center p-3">로딩 중...</td></tr>
@@ -53,8 +53,8 @@
         <div class="col-lg-7">
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-bullseye text-danger me-2"></i>룰 매치 (탐지)</h3>
-            <div class="table-responsive" style="max-height:460px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
+            <div class="table-responsive scroll-y scroll-y-lg">
+              <table class="table table-dark table-sm mb-0 fs-sm">
                 <thead><tr><th>시각</th><th>레벨</th><th>룰</th><th>프로세스/명령</th><th>MITRE</th></tr></thead>
                 <tbody id="sigma-matches-tbody">
                   <tr><td colspan="5" class="text-muted text-center p-3">매치 없음</td></tr>
