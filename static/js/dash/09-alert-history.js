@@ -140,7 +140,7 @@
   }
 
   /* Enter 키로 검색 */
-  document.addEventListener('DOMContentLoaded', () => {
+  onPanelReady('alert-history', () => {
     ['ah-ip', 'ah-text'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('keydown', e => {

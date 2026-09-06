@@ -78,7 +78,7 @@
   }
 
   socket.on('daily_report', () => {
-    if (!document.getElementById('panel-report')?.classList.contains('d-none')) loadReport();
+    if (isPanelVisible('report')) loadReport();
   });
 
   /* ════════════════════ Sigma 룰 엔진 ════════════════════ */
@@ -179,7 +179,7 @@
     pushLive('sigma', (m.severity || 'medium').toLowerCase(),
       `<b>Sigma: ${escapeHtml(m.rule)}</b> ` +
       `<span class="font-monospace">${escapeHtml((m.cmdline || m.image || '').slice(0, 50))}</span>`);
-    if (!document.getElementById('panel-sigma')?.classList.contains('d-none')) renderSigmaMatches();
+    if (isPanelVisible('sigma')) renderSigmaMatches();
   });
 
   /* ════════════════════ 취약점 패치 (Ansible) ════════════════════ */
@@ -664,7 +664,7 @@
   }
 
   socket.on('patch_job', j => {
-    if (document.getElementById('panel-patch')?.classList.contains('d-none')) return;
+    if (!isPanelVisible('patch')) return;
     loadPatch();
     showPatchLog(j);
   });
@@ -727,7 +727,7 @@
   }
 
   socket.on('notify_event', e => {
-    if (document.getElementById('panel-notify')?.classList.contains('d-none')) return;
+    if (!isPanelVisible('notify')) return;
     loadNotify();
   });
 

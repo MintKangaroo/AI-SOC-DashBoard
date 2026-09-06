@@ -93,8 +93,14 @@ scripts/loadtest.py     — 부하 시험(사람이 실행). 실데이터 사본
 1. `modules/` 에 새 파서 모듈 추가 (`start()`, `stop()`, `get_events()` 구현)
 2. `wiring.py` 의 `build_services()` 에서 서비스 생성 + `app.{name}` 등록, `start_services()` 에 `.start()` 추가
 3. 알맞은 `api/{도메인}_routes.py` 에 `/api/integrations/{name}` 엔드포인트 추가 (`from api._common import api_bp, get_services`)
-4. `templates/panels/{name}.html` 패널 추가 + `dashboard.html` 에 `{% include %}` 및 사이드바 링크
-5. `static/js/dash/` 에 패널 JS 추가(스크립트 태그 등록) + `showPanel()` 훅에 `load{Name}()` 연결
+4. `templates/panels/{name}.html` 패널 추가(루트는 `id="panel-{name}" class="panel-section d-none"`)
+   + `dashboard.html` 에 **`<template data-panel="{name}">{% include %}</template>`** 로 넣고 사이드바 링크.
+   개요만 상주하고 나머지는 처음 열 때 `materializePanel()` 이 꺼낸다(DOM 7,000 노드 → 첫 화면 약 850).
+   맨 include 로 넣으면 테스트가 막는다(`test_lazy_panels.py`)
+5. `static/js/dash/` 에 패널 JS 추가(스크립트 태그 등록) + `showPanel()` 훅에 `load{Name}()` 연결.
+   **패널 안 요소에 리스너를 달 때는 `DOMContentLoaded` 가 아니라 `onPanelReady('{name}', fn)`**
+   (실체화 전엔 요소가 없다). 소켓 핸들러의 가시성 판단은 `isPanelVisible('{name}')` 만 쓴다 —
+   `getElementById('panel-x')?.classList` 는 없는 패널을 '보인다'로 오판한다(테스트가 막는다)
    — 파일 전체를 `(function () { ... })();` 로 감싸고, 밖에서 부를 이름만 파일 끝
      `Object.assign(window, { load{Name} })` 에 넣는다. **인라인 `onclick` 이 부르는 함수도
      반드시 여기 넣어야 한다** (안 넣으면 클릭이 조용히 죽는다 — 테스트가 잡는다)

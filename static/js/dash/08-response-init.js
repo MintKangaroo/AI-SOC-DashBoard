@@ -522,7 +522,7 @@
   }
 
   socket.on('decision_update', d => {
-    if (!document.getElementById('panel-ml')?.classList.contains('d-none')) {
+    if (isPanelVisible('ml')) {
       renderDecisionSupport(d);
     }
   });
@@ -675,7 +675,7 @@
     const badge = document.getElementById('sidebar-inc-count');
     if (badge && d.stats) badge.textContent = (d.stats.active || 0).toLocaleString();
     if (d.stats) setPipe('pipe-inc-active', d.stats.active);
-    if (!document.getElementById('panel-incidents')?.classList.contains('d-none')) {
+    if (isPanelVisible('incidents')) {
       renderIncidents(d);
     }
     schedulePriorityReload();
@@ -705,7 +705,7 @@
         `<span class="pb-tag">${escapeHtml(a.playbook)}</span>`);
     }
     const tbody = document.getElementById('soar-actions-tbody');
-    if (tbody && !document.getElementById('panel-soar').classList.contains('d-none')) {
+    if (tbody && isPanelVisible('soar')) {
       loadSoar();   // 패널 열려 있을 때만 전체 갱신 (KPI/차단목록 동기화)
     }
   });

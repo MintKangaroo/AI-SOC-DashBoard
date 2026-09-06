@@ -286,7 +286,7 @@
       const badge = document.getElementById('sidebar-auth-count');
       if (badge) badge.textContent = ((parseInt(badge.textContent.replace(/,/g,''))||0)+1).toLocaleString();
     }
-    if (!document.getElementById('panel-authlog')?.classList.contains('d-none')) {
+    if (isPanelVisible('authlog')) {
       renderAuthEvents();
     }
   });
@@ -412,7 +412,7 @@
         `<b>악성 IP 평판</b> <span class="lv-ip">${escapeHtml(r.ip)}</span> ` +
         `신뢰점수 ${r.score}/100 · 신고 ${(r.total_reports||0).toLocaleString()}건`);
     }
-    if (!document.getElementById('panel-reputation')?.classList.contains('d-none')) {
+    if (isPanelVisible('reputation')) {
       renderRepEvents();
     }
   });
@@ -562,14 +562,14 @@
     pushLive('edr', (det.severity || 'high').toLowerCase(),
       `<b>EDR ${escapeHtml(det.description)}</b> ` +
       `<span class="font-monospace">${escapeHtml(det.process)}(${det.pid})</span> · 위험 ${det.risk}`);
-    if (!document.getElementById('panel-edr')?.classList.contains('d-none')) {
+    if (isPanelVisible('edr')) {
       renderEdrDetections();
       drawEdrFlow({ detections: edrDetBuffer });
     }
   });
 
   socket.on('edr_status', s => {
-    if (document.getElementById('panel-edr')?.classList.contains('d-none')) return;
+    if (!isPanelVisible('edr')) return;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? 0).toLocaleString(); };
     set('edr-proc-count', (s.stats || {}).process_count);
   });
@@ -722,11 +722,11 @@
     const badge = document.getElementById('sidebar-net-count');
     if (badge) badge.textContent = ((parseInt(badge.textContent.replace(/,/g,''))||0)+1).toLocaleString();
     pushLive('net', (e.severity || 'medium').toLowerCase(), `<b>네트워크</b> ${escapeHtml(e.description)}${demoBadge(e.details)}`);
-    if (!document.getElementById('panel-network')?.classList.contains('d-none')) loadNetwork();
+    if (isPanelVisible('network')) loadNetwork();
   });
 
   socket.on('net_status', s => {
-    if (document.getElementById('panel-network')?.classList.contains('d-none')) return;
+    if (!isPanelVisible('network')) return;
     const stats = s.stats || {};
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = (v ?? 0).toLocaleString(); };
     set('net-established', stats.established);
@@ -833,7 +833,7 @@
   }
 
   socket.on('purple_run', () => {
-    if (!document.getElementById('panel-purple')?.classList.contains('d-none')) loadPurple();
+    if (isPanelVisible('purple')) loadPurple();
   });
 
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.

@@ -72,7 +72,7 @@
       pushLive('rep', 'high',
         `<b>워치리스트 히트</b> 주시 중인 IOC <span class="lv-ip">${escapeHtml(d.value)}</span> 등장`);
     }
-    if (!document.getElementById('panel-watchlist')?.classList.contains('d-none')) loadWatchlist();
+    if (isPanelVisible('watchlist')) loadWatchlist();
   });
 
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.

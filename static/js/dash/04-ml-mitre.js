@@ -30,7 +30,8 @@
 
   /* Socket 이벤트: ML 모델 준비 완료 */
   socket.on('ml_model_ready', data => {
-    document.getElementById('ml-status-badge').textContent = '운영 중';
+    const badge = document.getElementById('ml-status-badge');   // ML 패널 안 — 미실체화면 없다
+    if (badge) badge.textContent = '운영 중';
   });
 
   /* Socket 이벤트: ML 분석 결과 */
@@ -210,7 +211,7 @@
     </tr>`;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onPanelReady('mitre', () => {
     const sf = document.getElementById('mitre-log-sev-filter');
     const kf = document.getElementById('mitre-log-filter');
     if (sf) sf.addEventListener('change', renderMitreLog);

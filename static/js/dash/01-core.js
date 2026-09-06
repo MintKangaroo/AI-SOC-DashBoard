@@ -418,8 +418,38 @@
   }
   setInterval(updateGroupBadges, 3000);
 
+  /* ─────────────────── 패널 지연 실체화 ───────────────────
+     dashboard.html 은 개요만 실제 DOM 으로 내리고, 나머지 35개 패널은
+     <template data-panel="이름"> 안에 담아 보낸다. template 내용은 문서 트리에
+     속하지 않아(inert) 스타일 계산·레이아웃·getElementById 에 잡히지 않는다.
+     처음 열 때 여기서 꺼내 놓으면 그 뒤로는 상주 패널과 똑같이 동작한다.
+
+     패널 안 요소에 리스너를 달아야 하는 코드는 DOMContentLoaded 가 아니라
+     onPanelReady(이름, fn) 을 쓴다 — 실체화 시점에 한 번 불러 준다.
+     소켓 핸들러는 isPanelVisible() 이 "없는 패널 = 안 보임" 으로 답하므로
+     실체화 여부를 알 필요가 없다. */
+  const _panelReadyHooks = {};   // name -> [fn]
+
+  function materializePanel(name) {
+    if (document.getElementById('panel-' + name)) return true;
+    const tpl = document.querySelector(`template[data-panel="${name}"]`);
+    if (!tpl) return false;
+    tpl.replaceWith(tpl.content);
+    (_panelReadyHooks[name] || []).forEach(fn => {
+      try { fn(); } catch (e) { console.error('panel hook 실패:', name, e); }
+    });
+    delete _panelReadyHooks[name];
+    return true;
+  }
+
+  function onPanelReady(name, fn) {
+    if (document.getElementById('panel-' + name)) { fn(); return; }
+    (_panelReadyHooks[name] = _panelReadyHooks[name] || []).push(fn);
+  }
+
   /* ─────────────────── 패널 전환 ─────────────────── */
   function showPanel(name) {
+    materializePanel(name);
     document.querySelectorAll('.panel-section').forEach(p => p.classList.add('d-none'));
     const target = document.getElementById('panel-' + name);
     if (target) target.classList.remove('d-none');
@@ -617,7 +647,9 @@
      대시보드를 통째로 벗어났다. 관제는 인수인계로 굴러가는 일이라 화면을
      가리키는 주소가 있어야 한다. */
   function panelExists(name) {
-    return !!(name && document.getElementById('panel-' + name));
+    if (!name || !/^[a-z-]+$/.test(name)) return false;
+    return !!(document.getElementById('panel-' + name) ||
+              document.querySelector(`template[data-panel="${name}"]`));
   }
 
   function panelFromHash() {
@@ -664,7 +696,8 @@
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
     alarm, announce, cssVar, ensureTableLibs, loadScript, reconcileList,
-    closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, protoColor, sevBadge, showPanel,
+    closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, materializePanel, onPanelReady,
+    protoColor, sevBadge, showPanel,
     socket, threatColor, toggleGroup, toggleSidebar,
   });
 })();

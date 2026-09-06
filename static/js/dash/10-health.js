@@ -156,7 +156,7 @@
     if (_healthTimer) { clearInterval(_healthTimer); _healthTimer = null; }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  onPanelReady('health', () => {
     const chk = document.getElementById('health-auto');
     if (chk) chk.addEventListener('change', startHealthAuto);
   });

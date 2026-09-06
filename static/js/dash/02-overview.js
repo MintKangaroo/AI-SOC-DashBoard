@@ -384,10 +384,12 @@
   /* ─────────── Socket: Sysmon ─────────── */
   socket.on('sysmon_update', data => {
     const s = data.stats;
-    document.getElementById('stat-sysmon-events').textContent = s.total_events.toLocaleString();
-    document.getElementById('sys-total').textContent = s.total_events.toLocaleString();
-    document.getElementById('sys-suspicious').textContent = s.suspicious_events;
-    document.getElementById('sys-critical').textContent = s.critical_events;
+    // sys-* 는 Sysmon 패널 안 — 패널이 아직 실체화되지 않았으면 없다.
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('stat-sysmon-events', s.total_events.toLocaleString());
+    setText('sys-total', s.total_events.toLocaleString());
+    setText('sys-suspicious', s.suspicious_events);
+    setText('sys-critical', s.critical_events);
     if (isPanelVisible('sysmon')) updateSysmonTable(data.recent_events || []);
     if (isPanelVisible('overview')) renderOverviewSysmon(data.recent_events || []);
   });

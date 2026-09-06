@@ -235,41 +235,46 @@
   <main id="main-content" class="main-content flex-fill overflow-auto p-3" tabindex="-1">
 
     {% include "panels/overview.html" %}
-    {% include "panels/traffic.html" %}
-    {% include "panels/alerts.html" %}
-    {% include "panels/alert-history.html" %}
-    {% include "panels/packets.html" %}
-    {% include "panels/sysmon.html" %}
-    {% include "panels/ml.html" %}
-    {% include "panels/mitre.html" %}
-    {% include "panels/campaigns.html" %}
-    {% include "panels/siem-correlation.html" %}
-    {% include "panels/threat-intel.html" %}
-    {% include "panels/edr.html" %}
-    {% include "panels/network.html" %}
-    {% include "panels/purple.html" %}
-    {% include "panels/metrics.html" %}
-    {% include "panels/health.html" %}
-    {% include "panels/audit.html" %}
-    {% include "panels/report.html" %}
-    {% include "panels/sigma.html" %}
-    {% include "panels/yara.html" %}
-    {% include "panels/hunt.html" %}
-    {% include "panels/labeling.html" %}
-    {% include "panels/vulnscan.html" %}
-    {% include "panels/fuzz.html" %}
-    {% include "panels/patch.html" %}
-    {% include "panels/notify.html" %}
-    {% include "panels/myinfo.html" %}
-    {% include "panels/siem.html" %}
-    {% include "panels/syslog.html" %}
-    {% include "panels/honeypot.html" %}
-    {% include "panels/snort.html" %}
-    {% include "panels/authlog.html" %}
-    {% include "panels/reputation.html" %}
-    {% include "panels/watchlist.html" %}
-    {% include "panels/soar.html" %}
-    {% include "panels/incidents.html" %}
+    {# 개요만 상주한다. 나머지 35개 패널은 <template> 안에 담겨 문서 DOM 에 들어가지
+       않다가(inert) 처음 열릴 때 01-core.js materializePanel() 이 꺼내 놓는다.
+       이유: 36개 패널이 전부 상주하면 첫 화면 DOM 이 7,000 노드를 넘어 파싱·스타일
+       계산·메모리를 한 번도 안 볼 화면에 쓴다. 딥링크(#패널명)·사이드바·소켓 핸들러는
+       isPanelVisible()/panelExists() 를 통해 실체화 여부를 모른 채 동작한다. #}
+    <template data-panel="traffic">{% include "panels/traffic.html" %}</template>
+    <template data-panel="alerts">{% include "panels/alerts.html" %}</template>
+    <template data-panel="alert-history">{% include "panels/alert-history.html" %}</template>
+    <template data-panel="packets">{% include "panels/packets.html" %}</template>
+    <template data-panel="sysmon">{% include "panels/sysmon.html" %}</template>
+    <template data-panel="ml">{% include "panels/ml.html" %}</template>
+    <template data-panel="mitre">{% include "panels/mitre.html" %}</template>
+    <template data-panel="campaigns">{% include "panels/campaigns.html" %}</template>
+    <template data-panel="siem-correlation">{% include "panels/siem-correlation.html" %}</template>
+    <template data-panel="threat-intel">{% include "panels/threat-intel.html" %}</template>
+    <template data-panel="edr">{% include "panels/edr.html" %}</template>
+    <template data-panel="network">{% include "panels/network.html" %}</template>
+    <template data-panel="purple">{% include "panels/purple.html" %}</template>
+    <template data-panel="metrics">{% include "panels/metrics.html" %}</template>
+    <template data-panel="health">{% include "panels/health.html" %}</template>
+    <template data-panel="audit">{% include "panels/audit.html" %}</template>
+    <template data-panel="report">{% include "panels/report.html" %}</template>
+    <template data-panel="sigma">{% include "panels/sigma.html" %}</template>
+    <template data-panel="yara">{% include "panels/yara.html" %}</template>
+    <template data-panel="hunt">{% include "panels/hunt.html" %}</template>
+    <template data-panel="labeling">{% include "panels/labeling.html" %}</template>
+    <template data-panel="vulnscan">{% include "panels/vulnscan.html" %}</template>
+    <template data-panel="fuzz">{% include "panels/fuzz.html" %}</template>
+    <template data-panel="patch">{% include "panels/patch.html" %}</template>
+    <template data-panel="notify">{% include "panels/notify.html" %}</template>
+    <template data-panel="myinfo">{% include "panels/myinfo.html" %}</template>
+    <template data-panel="siem">{% include "panels/siem.html" %}</template>
+    <template data-panel="syslog">{% include "panels/syslog.html" %}</template>
+    <template data-panel="honeypot">{% include "panels/honeypot.html" %}</template>
+    <template data-panel="snort">{% include "panels/snort.html" %}</template>
+    <template data-panel="authlog">{% include "panels/authlog.html" %}</template>
+    <template data-panel="reputation">{% include "panels/reputation.html" %}</template>
+    <template data-panel="watchlist">{% include "panels/watchlist.html" %}</template>
+    <template data-panel="soar">{% include "panels/soar.html" %}</template>
+    <template data-panel="incidents">{% include "panels/incidents.html" %}</template>
 
   </main>
 </div><!-- /layout -->
