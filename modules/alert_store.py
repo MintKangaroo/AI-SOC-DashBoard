@@ -495,7 +495,13 @@ class AlertStore:
                  "severity": sev.get(r[6], "INFO")} for r in rows]
 
     def snort_sid_stats(self, limit=30, scope="all"):
-        """분석가 확정 판정을 기준으로 SID별 정·오탐 품질을 집계한다."""
+        """분석가 확정 판정을 기준으로 Snort SID별 정·오탐 품질을 집계한다."""
+        return self.sid_stats("SNORT_ALERT", limit=limit, scope=scope)
+
+    def sid_stats(self, threat_type, limit=30, scope="all"):
+        """IDS(Snort/Suricata) 시그니처별 정·오탐 품질. threat_type 으로 센서를 고른다."""
+        if threat_type not in ("SNORT_ALERT", "SURICATA_ALERT"):
+            raise ValueError(f"IDS 위협 유형이 아니다: {threat_type}")
         src = self._source(scope)
         rows = self._reader().execute(
             f"""SELECT CAST(json_extract(details, '$.signature_id') AS INTEGER) sid,
@@ -503,10 +509,10 @@ class AlertStore:
                       SUM(CASE WHEN verdict='TRUE_POSITIVE' THEN 1 ELSE 0 END) tp,
                       SUM(CASE WHEN verdict='FALSE_POSITIVE' THEN 1 ELSE 0 END) fp,
                       MAX(timestamp) last_seen
-               FROM {src} WHERE threat_type='SNORT_ALERT'
+               FROM {src} WHERE threat_type=?
                      AND json_extract(details, '$.signature_id') IS NOT NULL
                GROUP BY sid ORDER BY total DESC, last_seen DESC LIMIT ?""",
-            (max(1, min(200, int(limit))),)).fetchall()
+            (threat_type, max(1, min(200, int(limit))))).fetchall()
         return [{"sid": r[0], "total": r[1], "tp": r[2], "fp": r[3],
                  "unreviewed": r[1] - r[2] - r[3],
                  "accuracy": round(r[2] * 100 / (r[2] + r[3]), 1)

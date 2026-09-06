@@ -44,6 +44,7 @@ THREAT_TYPES = {
     "HONEYPOT": "허니팟 유인 탐지",
     "CORRELATED": "SIEM 상관관계 탐지",
     "SNORT_ALERT": "Snort IDS 탐지",
+    "SURICATA_ALERT": "Suricata IDS 탐지",
 }
 
 
@@ -487,6 +488,9 @@ class ThreatDetector:
             evidence.add("snort_signature")
             # 룰 우선순위는 강한 탐지 근거지만 단독 정탐 확정은 아니다.
             score += 0.10 if alert.details.get("priority") == 1 else 0.05
+        elif alert.details.get("source") == "suricata":
+            evidence.add("suricata_signature")
+            score += 0.10 if alert.details.get("severity_raw") == 1 else 0.05
 
         # 위협 인텔 IoC 일치 → 사실상 정탐
         if self.threat_intel and alert.src_ip:

@@ -5,7 +5,7 @@
 > 탐지 → 자동대응(SOAR) → 취약점 관리까지 SOC 업무 흐름 전체를 하나의 대시보드로 구현했습니다.
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **50개 모듈 / 약 15,000 LOC**로 구현한
+Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 15,000 LOC**로 구현한
 개인 학습·포트폴리오 프로젝트입니다.
 
 - **기간**: 2026.07 ~ (지속 개발)

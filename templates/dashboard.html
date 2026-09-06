@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8"/>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+  <!-- 홈 화면 바로가기(iOS Safari 는 apple-touch-icon PNG 만 쓴다 — SVG·manifest 아이콘은 무시) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png"/>
+  <link rel="manifest" href="/static/site.webmanifest"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="SOC"/>
+  <meta name="theme-color" content="#0b0f13"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SOC 보안관제 대시보드</title>
 
@@ -88,6 +95,10 @@
       <a href="#snort" class="sidebar-link" data-panel="snort">
         <i class="fa fa-shield-virus"></i><span>Snort · UFW</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-snort-count">0</span>
+      </a>
+      <a href="#suricata" class="sidebar-link" data-panel="suricata">
+        <i class="fa fa-eye"></i><span>Suricata IDS</span>
+        <span class="badge bg-secondary ms-auto" id="sidebar-suricata-count">0</span>
       </a>
       <a href="#traffic" class="sidebar-link" data-panel="traffic">
         <i class="fa fa-chart-line"></i><span>네트워크 트래픽</span>
@@ -271,6 +282,7 @@
     <template data-panel="syslog">{% include "panels/syslog.html" %}</template>
     <template data-panel="honeypot">{% include "panels/honeypot.html" %}</template>
     <template data-panel="snort">{% include "panels/snort.html" %}</template>
+    <template data-panel="suricata">{% include "panels/suricata.html" %}</template>
     <template data-panel="authlog">{% include "panels/authlog.html" %}</template>
     <template data-panel="reputation">{% include "panels/reputation.html" %}</template>
     <template data-panel="watchlist">{% include "panels/watchlist.html" %}</template>
@@ -313,5 +325,6 @@
 <script defer src="/static/js/dash/19-yara.js"></script>
 <script defer src="/static/js/dash/20-hunt.js"></script>
 <script defer src="/static/js/dash/21-labeling.js"></script>
+<script defer src="/static/js/dash/22-suricata.js"></script>
 </body>
 </html>

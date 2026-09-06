@@ -200,29 +200,43 @@ sudo -n /usr/local/sbin/soc-ufw status
 승인해야 한다.
 
 ### 지원 예정 시스템
-- Suricata
 - Zeek (Bro)
 
-### Suricata EVE JSON 파싱
+### Suricata EVE JSON — 연동됨 (2026-09-07)
 
-```python
-# Suricata의 eve.json 파일 tail
-import json, time
+`modules/suricata_monitor.py` 가 `eve.json` 을 tail 한다. Snort 연동과 같은 자리에
+있고 같은 원칙을 따른다 — **IDS 는 탐지 근거 하나를 줄 뿐 차단하지 않는다.**
 
-def tail_eve_json(path="/var/log/suricata/eve.json"):
-    with open(path, 'r') as f:
-        f.seek(0, 2)  # 파일 끝으로
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(0.1)
-                continue
-            event = json.loads(line)
-            if event.get('event_type') == 'alert':
-                yield event
+| 항목 | 값 |
+|---|---|
+| 설정 | `SURICATA_ENABLED` · `SURICATA_EVE_PATH`(기본 `/var/log/suricata/eve.json`) · `SURICATA_POLL_INTERVAL` · `SURICATA_BLOCK_EXCLUDED_SIDS` |
+| 알림 | `SURICATA_ALERT` — severity 1→CRITICAL, 2→HIGH, 3→MEDIUM. `details.source="suricata"`, `signature_id`, `category`, `app_proto`, `http_host/url`, `dns_query` |
+| 차단 근거 | `suricata_signature` (Snort 의 `snort_signature` 와 같은 무게 — 단독으로는 차단 불가, 평판·IoC 등 독립 근거와 합쳐야 함) |
+| 중복 제거 | 핑거프린트의 룰ID 가 `signature_id` 를 읽는다 — 같은 SID 반복은 ×N 으로 병합 |
+| API · 패널 | `/api/integrations/suricata` · 사이드바 "Suricata IDS" · 소켓 `suricata_alert` |
+| 헬스 | 모듈 헬스에 `Suricata IDS` — eve.json 이 실제로 붙었을 때만 `real`, 없으면 `off`(waiting) |
+
+**alert 이벤트만 알림이 된다.** EVE 에는 flow·dns·http·tls·stats·fileinfo 가 alert 보다
+수십 배 많이 섞여 있다. 그걸 전부 올리면 알림 파이프라인이 트래픽 로그가 되므로
+종류별로 세기만 하고 패널 "EVE 이벤트 구성" 에 비율로 보여준다.
+
+**Snort 대비 얻는 것**: fast-alert 는 SID·메시지·주소만 남기지만 EVE 는 분류·앱
+프로토콜·HTTP 호스트/URL·DNS 질의가 함께 온다. 알림 설명에 `— shop.example/wp-login.php`
+처럼 맥락이 붙어 분석가가 SID 를 찾아보지 않아도 무슨 요청인지 안다.
+
+**MITRE 매핑은 하지 않는다**(Snort 도 같다). IDS 시그니처의 분류는 수십 종이라
+대표 기법 하나로 뭉뚱그리면 커버리지 매트릭스에 거짓 히트를 만든다. 카테고리별
+매핑표를 검증한 뒤에 붙이는 것이 맞다.
+
+설치(Ubuntu):
+```bash
+sudo apt install suricata
+sudo suricata-update                       # ET Open 룰셋
+sudo systemctl enable --now suricata
+sudo usermod -aG suricata $USER            # eve.json 읽기 권한 — 재로그인 필요
 ```
-
----
+Suricata 가 없으면 수집기는 `waiting` 으로 있다가 파일이 생기면 자동으로 붙는다.
+합성 이벤트는 만들지 않는다.
 
 ## 백신 서버 연동
 

@@ -1,0 +1,59 @@
+    <div id="panel-suricata" class="panel-section d-none">
+      <h2 class="panel-title d-flex align-items-center">
+        <i class="fa fa-eye me-2 text-cyan"></i>Suricata IDS · EVE JSON
+        <span id="suricata-live-badge" class="badge bg-secondary ms-3">확인 중</span>
+        <button class="btn btn-xs btn-outline-info ms-auto" data-action="loadSuricata" data-args='[true]'>
+          <i class="fa fa-rotate me-1"></i>새로고침
+        </button>
+      </h2>
+
+      <div class="panel-note mb-3 panel-note--cyan">
+        <div class="small p-2" style="line-height:1.7">
+          Suricata 의 <code>eve.json</code> 을 tail 해 <strong>alert 이벤트만</strong> 알림으로 올립니다.
+          flow·dns·http·stats 는 종류별로 세기만 합니다(전부 올리면 알림 파이프라인이 트래픽 로그가 됩니다).
+          Snort 와 같이 <strong>IDS 단독 탐지는 차단하지 않으며</strong> SOAR 의 복수 근거·승인 게이트를 거칩니다.
+          EVE 는 시그니처 외에 <em>분류·앱 프로토콜·HTTP 호스트/URL·DNS 질의</em> 를 함께 주어 맥락이 붙습니다.
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="stat-card border-cyan h-100">
+          <div id="suricata-service" class="stat-value text-cyan">—</div><div class="stat-label">Suricata 서비스</div>
+        </div></div>
+        <div class="col-md-3"><div class="stat-card border-warning h-100">
+          <div id="suricata-alert-count" class="stat-value text-warning">0</div><div class="stat-label">수집된 alert</div>
+        </div></div>
+        <div class="col-md-3"><div class="stat-card border-success h-100">
+          <div id="suricata-skipped-count" class="stat-value text-success">0</div><div class="stat-label">비-alert 이벤트(카운트만)</div>
+        </div></div>
+        <div class="col-md-3"><div class="stat-card border-purple h-100">
+          <div id="suricata-invalid-count" class="stat-value text-purple">0</div><div class="stat-label">파싱 제외</div>
+        </div></div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6"><div class="card-panel h-100">
+          <h3 class="card-panel-header"><i class="fa fa-microchip text-cyan me-2"></i>센서 구성</h3>
+          <div id="suricata-config" class="p-3 small text-muted">불러오는 중…</div>
+        </div></div>
+        <div class="col-lg-6"><div class="card-panel h-100">
+          <h3 class="card-panel-header"><i class="fa fa-layer-group text-success me-2"></i>EVE 이벤트 구성</h3>
+          <div id="suricata-skipped" class="p-3 small text-muted">아직 수신 없음</div>
+        </div></div>
+      </div>
+
+      <div class="card-panel p-0">
+        <h3 class="card-panel-header px-3"><i class="fa fa-list text-warning me-2"></i>최근 Suricata alert</h3>
+        <div class="table-responsive"><table class="table table-dark table-hover table-sm mb-0">
+          <thead><tr><th>시각</th><th>심각도</th><th>SID</th><th>시그니처</th><th>분류</th><th>출발지</th><th>목적지</th><th>프로토콜</th><th>맥락</th></tr></thead>
+          <tbody id="suricata-events"><tr><td colspan="9" class="text-center text-muted py-3">새 탐지 대기 중</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="card-panel p-0 mt-3">
+        <h3 class="card-panel-header px-3"><i class="fa fa-chart-column text-cyan me-2"></i>SID별 분석가 확정 품질</h3>
+        <div class="table-responsive"><table class="table table-dark table-sm mb-0">
+          <thead><tr><th>SID</th><th>총 탐지</th><th>정탐</th><th>오탐</th><th>미판정</th><th>정탐률</th><th>차단 근거</th></tr></thead>
+          <tbody id="suricata-sid-quality"><tr><td colspan="7" class="text-center text-muted py-3">확정 판정 데이터 없음</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#121a20"/><stop offset="1" stop-color="#07090c"/>
+    </linearGradient>
+    <linearGradient id="sh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2830"/><stop offset="1" stop-color="#0d1419"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.35"/><stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- 관제 격자 -->
+  <g stroke="#2dd4bf" stroke-opacity="0.07" stroke-width="2">
+    <path d="M0 128H512M0 256H512M0 384H512M128 0V512M256 0V512M384 0V512"/>
+  </g>
+  <circle cx="256" cy="230" r="230" fill="url(#glow)"/>
+  <!-- 방패 -->
+  <path d="M256 64 116 116v122c0 108 60 191 140 216 80-25 140-108 140-216V116L256 64z"
+        fill="url(#sh)" stroke="#2dd4bf" stroke-width="16" stroke-linejoin="round"/>
+  <!-- 심박·트래픽 선 -->
+  <path d="M158 262h44l22-52 30 104 30-78 22 26h48" fill="none" stroke="#2dd4bf" stroke-width="18"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 레이더 점 -->
+  <circle cx="354" cy="262" r="11" fill="#f85149"/>
+  <!-- 라벨 -->
+  <text x="256" y="466" text-anchor="middle" font-family="-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+        font-weight="700" font-size="74" letter-spacing="6" fill="#e6edf3">SOC</text>
+</svg>

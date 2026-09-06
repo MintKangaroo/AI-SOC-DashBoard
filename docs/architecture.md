@@ -12,8 +12,8 @@ flowchart TB
     WS["Flask-SocketIO (threading)<br/>실시간 이벤트 push"]
     AUTH["before_request 인증 가드<br/>(auth.py)"]
   end
-  subgraph Services["서비스 레이어 (50 모듈, 독립 데몬 스레드)"]
-    COLLECT["수집: packet_analyzer · sysmon_parser · access_log_parser<br/>authlog_parser · net_monitor · syslog_receiver · honeypot · snort_monitor"]
+  subgraph Services["서비스 레이어 (51 모듈, 독립 데몬 스레드)"]
+    COLLECT["수집: packet_analyzer · sysmon_parser · access_log_parser<br/>authlog_parser · net_monitor · syslog_receiver · honeypot<br/>snort_monitor · suricata_monitor"]
     DETECT["탐지: threat_detector · sigma_engine · yara_scanner<br/>edr · hash_checker · mitre_attack · coverage · siem_correlation"]
     INTEL["인텔·분석: ip_reputation · threat_intel · watchlist<br/>correlation · ml_analyst · labeling · ai_analyst · decision_support"]
     RESPOND["대응: soar · block_decision · incidents<br/>notifier · daily_report · virustotal"]
@@ -40,10 +40,10 @@ Flask 앱 팩토리(`create_app`)는 SocketIO 이벤트만 담당하고, 서비�
 
 **프런트엔드**: 외부 CDN 을 쓰지 않는다. 관제 대시보드가 CDN 가용성에 의존하면
 사고 대응 중에 화면이 깨지고, 격리망에서는 아예 뜨지 않는다. `static/vendor/` 에
-자체 호스팅하고 CSP 를 `'self'` 로 좁혔다. JS 21개 파일은 각각 IIFE 로 감싸
+자체 호스팅하고 CSP 를 `'self'` 로 좁혔다. JS 22개 파일은 각각 IIFE 로 감싸
 공개 이름만 명시 노출한다(전역 335 → 137개).
 
-**패널은 지연 실체화된다.** 36개 패널 중 개요만 실제 DOM 으로 내리고, 나머지 35개는
+**패널은 지연 실체화된다.** 37개 패널 중 개요만 실제 DOM 으로 내리고, 나머지 35개는
 `<template data-panel="이름">` 에 담아 보낸다. template 내용은 문서 트리에 속하지
 않아(inert) 파싱만 되고 스타일·레이아웃·요소 조회 비용이 없다. 처음 열 때
 `materializePanel()` 이 꺼내 놓고, 그 뒤로는 상주 패널과 같다. 서버가 내리는 HTML
@@ -195,7 +195,7 @@ alert_store.aggregate(days) + incidents 타임라인 → soc_metrics.compute()
 pytest (800여 건)         — 대부분 test_client. 빠르고 결정적. `-m "not live"` 로 실서버분 제외
 tests/test_live_server.py — 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 로 검증
 scripts/loadtest.py       — 부하 시험(사람이 실행). 실데이터 사본으로 지연·텔레메트리 측정
-실제 크롬               — test_reconcile_list.py(노드 정체성) · 패널 36개 딥링크 스윕(콘솔 오류)
+실제 크롬               — test_reconcile_list.py(노드 정체성) · 패널 37개 딥링크 스윕(콘솔 오류)
 ```
 
 `test_client` 는 프로세스·소켓·백그라운드 스레드가 없고 작업 디렉터리가 항상

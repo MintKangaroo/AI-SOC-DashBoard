@@ -45,6 +45,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
 | `modules/honeypot.py` | 유인 서비스 리스너(SSH/Telnet/Redis 등) — 접촉=고신뢰 침해지표 |
+| `modules/suricata_monitor.py` | Suricata EVE JSON tail — **alert 만** 알림(`SURICATA_ALERT`), 나머지 이벤트는 카운트. Snort 와 같은 원칙: IDS 는 근거만, 차단은 SOAR. MITRE 매핑 없음(거짓 히트 방지) |
 | `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브. 조회는 `scope`(all/live/archive)로 활성+아카이브 통합 |
 | `modules/alert_dedup.py` | 중복제거·억제 레이어 — 핑거프린트 병합·규칙 억제·스톰 요약 |
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
@@ -63,8 +64,8 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 36개) |
-| `static/js/dash/01~21-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 37개) |
+| `static/js/dash/01~22-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 검증 계층

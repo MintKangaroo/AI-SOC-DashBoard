@@ -23,6 +23,8 @@ SPECS = [
     ("syslog_receiver", "Syslog 수신기",    "수집·탐지"),
     ("honeypot",        "허니팟",           "수집·탐지"),
     ("authlog",         "SSH 인증 로그",    "수집·탐지"),
+    ("snort",           "Snort IDS",        "수집·탐지"),
+    ("suricata",        "Suricata IDS",     "수집·탐지"),
     # 위협 분석
     ("ml_analyst",      "ML 분석 엔진",     "위협 분석"),
     ("ai_analyst",      "Claude AI 분석",   "위협 분석"),
@@ -82,6 +84,10 @@ def _extract_mode(key, svc, eff, status, demo_default):
         return "real" if (status or {}).get("available") else "demo"
     if key == "notifier":
         return "real" if (status or {}).get("active") else "off"
+    if key in ("snort", "suricata"):
+        # IDS 는 합성 이벤트를 만들지 않는다 — 로그가 실제로 붙었을 때만 real
+        st = (status or {}).get("status")
+        return "real" if st == "active" else "off"
     if key == "siem_collector":
         # 실제 접근 로그 소스가 하나라도 존재하면 실모드
         srcs = (status or {}).get("sources") or []

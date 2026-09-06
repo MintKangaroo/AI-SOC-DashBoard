@@ -37,6 +37,13 @@ class Config:
     SNORT_HOME_NET = os.getenv("SNORT_HOME_NET", "172.23.160.0/20")
     SNORT_BLOCK_EXCLUDED_SIDS = os.getenv("SNORT_BLOCK_EXCLUDED_SIDS", "254")
 
+    # Suricata IDS EVE JSON 연동 (Snort 와 같은 자리 — 탐지 근거만, 차단은 SOAR)
+    SURICATA_ENABLED = os.getenv("SURICATA_ENABLED", "True")
+    SURICATA_EVE_PATH = os.getenv("SURICATA_EVE_PATH", "/var/log/suricata/eve.json")
+    SURICATA_POLL_INTERVAL = float(os.getenv("SURICATA_POLL_INTERVAL", 0.5))
+    SURICATA_INTERFACE = os.getenv("SURICATA_INTERFACE", "eth0")
+    SURICATA_BLOCK_EXCLUDED_SIDS = os.getenv("SURICATA_BLOCK_EXCLUDED_SIDS", "")
+
     # Sysmon log path (Windows)
     SYSMON_LOG_CHANNEL = os.getenv("SYSMON_LOG_CHANNEL", "Microsoft-Windows-Sysmon/Operational")
 

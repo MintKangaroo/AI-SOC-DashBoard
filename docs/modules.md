@@ -15,6 +15,7 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 | `syslog_receiver` | SyslogReceiver | RFC3164/5424 수신(UDP+TCP 5514) — KR/USA 원격 침해시도 수집 | `syslog_event` |
 | `honeypot` | Honeypot | 유인 서비스 리스너(SSH/Telnet/Redis 등). 접촉 자체가 고신뢰 침해지표 | `honeypot_hit` |
 | `snort_monitor` | SnortMonitor | Snort fast-alert tail, SID별 정·오탐 품질 집계 | `/api/integrations/snort` |
+| `suricata_monitor` | SuricataMonitor | Suricata `eve.json` tail — **alert 만** 알림으로(flow/dns/http 는 카운트만). 분류·앱프로토콜·HTTP 호스트/URL 맥락이 설명에 붙음 | `suricata_alert` · `/api/integrations/suricata` |
 
 ## ② 탐지 · Detection Engineering
 
