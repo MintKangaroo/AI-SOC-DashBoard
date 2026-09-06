@@ -870,7 +870,7 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 코드를 복사해두고 검증하는 게 아니다. 변이 주입으로 상한 무력화·순수 LRU 전환·
 스로틀 제거 모두 실패 확인. node 가 없으면 동작 검사는 skip 하고 정적 검사만 돈다.
 
-### E-4. DOM 성능 — 이미 상당히 방어되어 있다 ✅
+### E-4. DOM 성능 — 이미 상당히 방어되어 있다 ✅ (DOM 크기는 E-6 에서 처리)
 
 의뢰의 우려와 달리 폭주 대비가 되어 있다:
 
@@ -884,6 +884,25 @@ if (isPanelVisible('overview') && !document.hidden) renderTopAttackers();
 ### E-5. SocketIO 핸들러 — 중복 등록 없음 ✅
 
 `socket.on(...)` 등록을 이벤트명으로 집계한 결과 **전부 1회**. 핸들러가 패널 전환 시점이 아니라 파일 로드 시점에 한 번만 등록되는 구조라 누수가 없다. 이 부분은 설계가 옳다.
+
+### E-6. [신규 · **완료**] UI/UX 감사 20항목 (2026-09-06)
+
+코드 감사와 별개로 화면을 `impeccable` 기준으로 점검했다. 처음 12/20 에서 시작해 20/20 으로 마감.
+
+| 영역 | 무엇이 문제였나 | 어떻게 고쳤나 |
+|---|---|---|
+| 접근성 | 문서 전체에 h1 하나뿐 — 스크린리더가 36개 패널을 훑을 수 없음. 클릭 가능한 div 14곳 키보드 불가. 미라벨 컨트롤 45곳 | 패널 제목 h2·카드 헤더 h3 승격, role/tabindex/Enter·Space, `<label for>`·aria-label, 스킵 링크. CRITICAL 은 assertive·HIGH 는 polite 로 보조기기 안내 |
+| 대비 | CRITICAL 뱃지 3.35:1, LOW 2.53:1 (AA 미달). HIGH/MEDIUM 색상 7° 차이 | 색상환 간격 20°, 채도·명도 폭 축소, 전부 AA. rgba 78곳 → `color-mix(var(--token))`. `test_contrast.py` |
+| 성능 | 첫 화면 스크립트·스타일 1,407KB, 글리프 2개짜리 웹폰트 116KB, 알림마다 차트 2회 재그리기 | -298KB(-17.5%), 표 라이브러리는 표 패널 첫 진입 시 로드, 차트 갱신 300ms 배치 |
+| DOM | **7,079 노드(36패널 상주)** — E-4 시점엔 "손대지 않음" 으로 남겼던 항목 | 개요만 상주, 35패널은 `<template data-panel>` 지연 실체화(`materializePanel`/`onPanelReady`). 서버 HTML 요소 2,906→467. 소켓 핸들러 15곳의 가시성 판단을 `isPanelVisible()` 로 통일(옛 패턴은 없는 패널을 '보인다'로 오판). 실제 크롬으로 36개 딥링크 전부 열어 콘솔 오류 0. `test_lazy_panels.py` |
+| 목록 갱신 | 실시간 목록 4종이 갱신마다 innerHTML 전량 재생성 — 읽던 행의 선택·포커스 유실 | `reconcileList` 키 기반 조정. 실제 크롬으로 노드 정체성 검증(`test_reconcile_list.py`) — 첫 구현의 진짜 버그를 잡았다 |
+| 타이포 | px 크기 29종 난립 | 12단계 역할 토큰, 260곳 치환. `test_typography.py` 가 드리프트를 잡는다 |
+| 테마 | 인라인 style 180곳, 스크롤 상자 높이 17종 | 유틸 클래스로 60곳까지(남은 60은 일회성 치수), 높이 4단계 |
+| 색 언어 | GitHub 다크 팔레트가 네이비로 읽혀 심각도 색과 경쟁. 좌측 3px 띠 48곳 | 중립 블랙 팔레트, 명도로 층 구분. 띠 제거(안내는 `.panel-note`, MITRE 셀은 농도 램프) |
+
+교훈 하나: `login.html` 은 `style.css` 를 쓰지 않는 독립 페이지인데 토큰 회수 때
+함께 편집돼 깨졌다. `test_css_tokens.py` 가 **페이지가 실제로 로드하는 스타일시트
+기준**으로 `var()` 정의를 대조하게 만들어 재발을 막았다.
 
 ---
 

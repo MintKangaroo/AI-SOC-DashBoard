@@ -156,6 +156,20 @@ SID별 표에는 분석가가 확정한 정탐·오탐 건수와 정탐률을 �
 인시던트 운영 저장소는 `data/incidents.db`다. 최초 실행 시 기존
 `data/incidents.json`을 자동 이관하며 원본 JSON과 `.bak`은 삭제하지 않는다.
 
+### 라벨링 큐 — 판정을 한 건씩 하지 않는다
+
+알림이 11만 건이면 개별 판정은 불가능하다. `라벨링` 패널(`/api/labeling/queue`)은
+알림을 (위협유형·룰ID·정규화된 설명)으로 묶는다 — 실측상 **서로 다른 그룹이 67개**
+다. 한 판정이 덮는 건수순으로 정렬되고, 그룹 판정은 `scope=group` 으로 저장되어
+개별 판정(`scope=single`)과 **따로 집계**된다(그룹 라벨은 약한 증거다).
+
+그룹마다 **합성/실측 구성**을 먼저 보여준다. 데모 허니팟·퍼플팀 TEST-NET·데모 평판·
+시뮬레이터 로그·데모 카탈로그로 만들어진 알림에 판정을 붙이면 생성기의 의도를
+확인하는 라벨이 정답지가 된다. '합성 제외' 토글로 실측만 볼 수 있다.
+
+라벨은 `data/labels.db` 에 따로 둔다 — 아카이브 테이블은 조회 전용이라 verdict 를
+쓸 수 없고, 라벨은 이벤트가 아니라 분석가의 산출물이므로 원본과 분리하는 편이 옳다.
+
 ## 제한된 UFW SOAR helper
 
 대시보드 사용자에게 일반 `ufw` sudo 권한을 주지 않는다. 아래 설치기는
@@ -296,14 +310,14 @@ curl -k -u admin:password \
 
 ## 연동 패널 활성화 방법
 
-1. `modules/` 에 파서 모듈 생성 (`start()`, `stop()`, `get_events()` 구현)
-2. `app.py` 에 서비스 등록:
-   ```python
-   from modules.firewall_parser import FirewallParser
-   app.firewall = FirewallParser(socketio)
-   app.firewall.start()
-   ```
-3. `api/routes.py` 에 엔드포인트 추가
-4. `templates/dashboard.html` 의 빈 패널 교체:
-   - `panel-firewall` 안의 `.empty-panel` 을 실제 테이블로 교체
-5. `static/js/dashboard.js` 에 SocketIO 이벤트 핸들러 추가
+절차는 [modules.md — 확장 방법](modules.md#확장-방법-새-시스템-연동) 이 기준이다. 요약:
+
+1. `modules/` 에 파서 모듈 생성 (`start()`, `stop()`, `get_events()` + 데모 fallback)
+2. `wiring.build_services()` 에서 생성해 `app.<name>` 등록, `wiring.start_services()` 에서 시작
+   (`app.py` 가 아니다 — 앱 팩토리는 SocketIO 이벤트만 담당한다)
+3. 알맞은 `api/{도메인}_routes.py` 에 `/api/integrations/<name>` 엔드포인트 추가
+4. `templates/panels/<name>.html` 을 만들고 `dashboard.html` 에
+   `<template data-panel="<name>">{% include %}</template>` 로 넣는다(패널은 처음 열 때 실체화된다)
+5. `static/js/dash/` 에 IIFE 파일 추가, `showPanel()` 훅 배선, 공개 이름은 `Object.assign(window, {...})`.
+   패널 안 요소에 리스너를 달 때는 `onPanelReady('<name>', fn)`
+6. `system_health.SPECS` 에 한 줄 추가하면 모듈 헬스에 뜬다

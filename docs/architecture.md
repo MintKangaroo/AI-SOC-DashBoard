@@ -12,10 +12,10 @@ flowchart TB
     WS["Flask-SocketIO (threading)<br/>실시간 이벤트 push"]
     AUTH["before_request 인증 가드<br/>(auth.py)"]
   end
-  subgraph Services["서비스 레이어 (49 모듈, 독립 데몬 스레드)"]
+  subgraph Services["서비스 레이어 (50 모듈, 독립 데몬 스레드)"]
     COLLECT["수집: packet_analyzer · sysmon_parser · access_log_parser<br/>authlog_parser · net_monitor · syslog_receiver · honeypot · snort_monitor"]
     DETECT["탐지: threat_detector · sigma_engine · yara_scanner<br/>edr · hash_checker · mitre_attack · coverage · siem_correlation"]
-    INTEL["인텔·분석: ip_reputation · threat_intel · watchlist<br/>correlation · ml_analyst · ai_analyst · decision_support"]
+    INTEL["인텔·분석: ip_reputation · threat_intel · watchlist<br/>correlation · ml_analyst · labeling · ai_analyst · decision_support"]
     RESPOND["대응: soar · block_decision · incidents<br/>notifier · daily_report · virustotal"]
     VULN["취약점·검증: vuln_scanner · web_fuzzer<br/>patch_manager · purple_team"]
     OPS["운영: soc_metrics · audit_log · system_health · telemetry<br/>alert_store · hunt · retention · ocsf_export"]
@@ -40,8 +40,22 @@ Flask 앱 팩토리(`create_app`)는 SocketIO 이벤트만 담당하고, 서비�
 
 **프런트엔드**: 외부 CDN 을 쓰지 않는다. 관제 대시보드가 CDN 가용성에 의존하면
 사고 대응 중에 화면이 깨지고, 격리망에서는 아예 뜨지 않는다. `static/vendor/` 에
-자체 호스팅하고 CSP 를 `'self'` 로 좁혔다. JS 18개 파일은 각각 IIFE 로 감싸
+자체 호스팅하고 CSP 를 `'self'` 로 좁혔다. JS 21개 파일은 각각 IIFE 로 감싸
 공개 이름만 명시 노출한다(전역 335 → 137개).
+
+**패널은 지연 실체화된다.** 36개 패널 중 개요만 실제 DOM 으로 내리고, 나머지 35개는
+`<template data-panel="이름">` 에 담아 보낸다. template 내용은 문서 트리에 속하지
+않아(inert) 파싱만 되고 스타일·레이아웃·요소 조회 비용이 없다. 처음 열 때
+`materializePanel()` 이 꺼내 놓고, 그 뒤로는 상주 패널과 같다. 서버가 내리는 HTML
+요소 2,906 → 문서 트리에 들어가는 것은 467. 소켓 핸들러는 `isPanelVisible()` 이
+"없는 패널 = 안 보임" 으로 답하므로 실체화 여부를 알 필요가 없고, 패널 안 요소에
+리스너를 달 코드는 `onPanelReady()` 를 쓴다. 이 규약은 `test_lazy_panels.py` 가 지킨다.
+
+**접근성·표시 규약**(2026-09 UI/UX 감사 20항목): 패널 제목 h2·카드 헤더 h3 로
+헤딩 트리 구성, CRITICAL 알림은 스크린리더에 끊어 읽기(assertive)·HIGH 는 틈에
+읽기(polite), 클릭 가능한 요소는 전부 키보드 도달, 색 대비 AA(`test_contrast.py`),
+글자 크기는 12단계 역할 토큰(`test_typography.py`), 실시간 목록은 통째 재렌더가
+아니라 키 기반 조정(`reconcileList` — 읽는 중인 행의 선택·포커스가 살아남는다).
 
 **자기 관측성**: `system_health` 가 '모듈이 살아 있는가'를 답한다면 `telemetry` 는
 '얼마나 느리고 얼마나 실패하는가'를 답한다. 문제가 실제로 숨었던 경로
@@ -86,8 +100,21 @@ sequenceDiagram
 ```
 packet_analyzer.get_stats() → ml_analyst.feed_traffic()(3초)
   ├→ ml_feature_store.record() → data/ml_features.db (real/demo 구분)
+  │    ※ origin 은 stats["source_mode"](실제 캡처 경로)에서 온다 — DEMO_MODE 가 아니다.
+  │      실모드로 띄워도 PyShark·Scapy 가 없으면 합성 루프로 도는데, 그걸 real 로
+  │      세면 데모 생성기를 학습하게 된다(실제로 207건이 그렇게 기록돼 재라벨했다)
   └→ Isolation Forest → emit("ml_analysis")   ※ 참고용, 탐지 경로 미연결
 RF·LSTM·Q-Learning 은 experimental/ 로 격리됨
+```
+
+**라벨링 큐 (ML 평가의 전제인 사람 라벨)**
+```
+alert_store(all scope) → labeling.build_queue()
+  → (위협유형·룰ID·정규화 설명) 그룹 67개, 한 판정이 덮는 건수순 정렬
+  → classify_provenance(): details.demo · TEST-NET · Demo ISP · 허니넷 SIMULATED ·
+    데모 카탈로그 · EDR 데모 cmdline → 그룹마다 합성/실측 구성 표시
+  → /api/labeling/label (scope=group|single) → data/labels.db (아카이브는 조회 전용)
+  → scripts/eval_ml.py 가 그룹 라벨과 개별 라벨을 나눠 센다
 ```
 
 **MITRE ATT&CK 매핑**
@@ -149,6 +176,7 @@ alert_store.aggregate(days) + incidents 타임라인 → soc_metrics.compute()
 |--------|------|
 | 쓰기 | 저장소마다 단일 커넥션 + `threading.Lock` |
 | 조회(`alert_store`) | **스레드마다 별도 커넥션**(`query_only`) — 락 없음 |
+| 라벨(`labels.db`) | 알림 원본과 분리된 별도 파일 — 아카이브가 조회 전용이라 verdict 를 못 쓰고, 라벨은 분석가 산출물이라 원본과 나누는 편이 옳다 |
 | 전 저장소 | WAL + `synchronous=NORMAL` + `busy_timeout=10s` |
 
 조회를 스레드별로 나누는 이유: 커넥션 하나를 락으로 공유하면 WAL 의 동시 읽기가
@@ -160,6 +188,21 @@ alert_store.aggregate(days) + incidents 타임라인 → soc_metrics.compute()
 > 커밋의 원자성을 보장하지 않으므로, 복사와 삭제를 한 트랜잭션에 두면 크래시 시
 > 삭제만 반영돼 알림이 유실될 수 있다. 복사를 먼저 커밋해 최악을 '중복'으로 만들고,
 > 기동 시 `_recover_interrupted_archive()` 가 잔재를 정리한다.
+
+## 검증 계층
+
+```
+pytest (800여 건)         — 대부분 test_client. 빠르고 결정적. `-m "not live"` 로 실서버분 제외
+tests/test_live_server.py — 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 로 검증
+scripts/loadtest.py       — 부하 시험(사람이 실행). 실데이터 사본으로 지연·텔레메트리 측정
+실제 크롬               — test_reconcile_list.py(노드 정체성) · 패널 36개 딥링크 스윕(콘솔 오류)
+```
+
+`test_client` 는 프로세스·소켓·백그라운드 스레드가 없고 작업 디렉터리가 항상
+저장소다. 그래서 "YARA 룰 디렉터리가 없으면 탐지가 통째로 죽는" 문제를 테스트
+700여 개가 전부 놓쳤다. 실서버 계층은 그 종류를 잡고, CI 는 그것을 전체 테스트보다
+**먼저** 돌려 원인을 분리한다. 성능 기준선(11만 건·동시 8): `alert_store.search`
+p95 약 400ms, `/api/metrics/soc` 1회차 약 1.1초·2회차 캐시로 수 ms.
 
 ## 온디맨드 vs 상시
 

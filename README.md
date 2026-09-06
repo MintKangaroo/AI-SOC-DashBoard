@@ -180,8 +180,8 @@ flowchart LR
 - **탐지·분석** — PyShark · Scapy · nmap/vulners · Sigma · psutil · scikit-learn · (선택)TensorFlow
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
-- **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · Leaflet · Socket.IO
-- **테스트** — pytest **758개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · globe.gl · Socket.IO(전부 자체 호스팅)
+- **테스트** — pytest **821개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -248,12 +248,12 @@ SOC_DashBoard/
 │   ├── 취약점  vuln_scanner · web_fuzzer · patch_manager · purple_team
 │   ├── 운영    soc_metrics · audit_log · system_health
 │   └── 플랫폼  auth · geoip · alert_store · system_info
-├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 108개)
+├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 115개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (36개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~21, 순서대로 로드)
-├── tests/                    # pytest 758개
+├── tests/                    # pytest 821개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
@@ -273,7 +273,7 @@ SOC_DashBoard/
 
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
-| 단위·통합 | 758건 (대부분 Flask `test_client`) | `pytest` |
+| 단위·통합 | 821건 (대부분 Flask `test_client`) | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
 | **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
 

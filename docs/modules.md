@@ -7,7 +7,7 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 
 | 모듈 | 클래스 | 역할 | 핵심 이벤트/API |
 |------|--------|------|-----------------|
-| `packet_analyzer` | PacketAnalyzer | PyShark/Scapy 패킷 캡처, pps/bps·Top Talkers 통계 | `packet_update` |
+| `packet_analyzer` | PacketAnalyzer | PyShark/Scapy 패킷 캡처, pps/bps·Top Talkers 통계. `source_mode` 가 **실제로 선택된 경로**(real/demo)를 말한다 — 백엔드가 없어 폴백하면 설정이 실모드여도 demo | `packet_update` |
 | `sysmon_parser` | SysmonParser | Windows Sysmon 이벤트 파싱, Metasploit 탐지 | `sysmon_update` · `sysmon_alert` |
 | `access_log_parser` | AccessLogCollector | 자동매매 봇 access log 수집·정규화, 침해 프로브 분류 | `classify_request()` |
 | `authlog_parser` | AuthLogMonitor | `/var/log/auth.log` tail, SSH 브루트포스 탐지 | `report_alert("BRUTE_FORCE")` |
@@ -42,8 +42,9 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 | `watchlist` | Watchlist | IOC(IP/도메인/해시) 워치리스트, 알림 대조 히트 집계(능동 헌팅) | `match_alert()` · `watchlist_hit` |
 | `correlation` | — | 같은 출발지 알림을 시간 윈도우로 묶어 MITRE 전술 순서 캠페인 구성 | `build_campaigns()` · `compute()` |
 | `ml_analyst` | MLAnalyst | Isolation Forest 이상탐지(참고용, 탐지 경로 미연결) | `ml_analysis` |
-| `ml_feature_store` | MLFeatureStore | 트래픽 피처 영속화 — 재학습·평가의 전제 | — |
+| `ml_feature_store` | MLFeatureStore | 트래픽 피처 영속화 — 재학습·평가의 전제. origin 은 `DEMO_MODE` 가 아니라 `packet_analyzer.source_mode` 에서 온다(합성이 real 로 둔갑하지 않게) | — |
 | `alert_dedup` | AlertDeduplicator | 핑거프린트 중복 병합·규칙 억제·스톰 요약 | `alert_dedup` |
+| `labeling` | LabelStore | **라벨링 큐** — 알림 11만 건을 (유형·룰·설명패턴) 그룹 67개로 묶어 한 번에 판정. 그룹 라벨과 개별 라벨을 **나눠 센다**(그룹은 약한 증거). `classify_provenance()` 가 합성/실측을 가른다 — 실측상 합성 표지 없는 알림은 **183건(0.17%)** | `/api/labeling/{queue,label,stats}` · `data/labels.db` |
 | `ai_analyst` | AIAnalyst | Claude 비동기 분석 큐·대응 권고·챗봇·리포트 텍스트 | `ai_analysis` · `generate_text()` |
 | `decision_support` | DecisionSupport | 위협 그룹핑 + 정오탐 학습 prior | `get_recommendations()` |
 
@@ -55,11 +56,10 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 | `incidents` | IncidentManager | 알림 케이스화·상태 추적 | `get_incidents()` |
 | `notifier` | Notifier | ntfy 푸시(정탐·차단만, 쿨다운) | `notify_true_positive()` · `notify_block()` |
 | `daily_report` | DailyReport | 전 모듈 지표 집계 → Claude 브리핑(규칙 fallback) | `report_status` |
-
 | `block_decision` | BlockDecisionLog | 차단 결정 재현 — 게이트 판정이 곧 실제 차단 결정. **차단 안 한 건도 기록**, 임계값 replay | `evaluate_gates()` · `replay()` |
-| `playbooks` | — | SOAR 플레이북 정의(단계·조건) |
-| `soar_execution_store` | SOARExecutionStore | 플레이북 실행 이력 영속화(재시작 후 복원) |
-| `virustotal` | VirusTotalClient | 해시 평판 조회(파일 업로드 없음), 캐시·재시도 |
+| `playbooks` | — | SOAR 플레이북 정의(단계·조건) | — |
+| `soar_execution_store` | SOARExecutionStore | 플레이북 실행 이력 영속화(재시작 후 복원) | — |
+| `virustotal` | VirusTotalClient | 해시 평판 조회(파일 업로드 없음), 캐시·재시도 | — |
 
 ## ⑤ 취약점 관리 · 검증
 
@@ -100,9 +100,14 @@ SocketIO emit은 `deque`·`Lock`으로 스레드 안전하게 처리한다.
 1. `modules/` 에 새 파서 모듈 추가 — `start()`·`stop()`·`get_*()` 구현 + 데모 fallback
 2. `wiring.build_services()` 에서 초기화 후 `app.<name>` 등록, `wiring.start_services()` 에서 `<name>.start(demo=demo)` 호출
 3. 알맞은 `api/{도메인}_routes.py` 에 `/api/...` 엔드포인트 추가 (`from api._common import api_bp, threat_detector` 등 **이름 접근자** — 위치 언패킹 금지)
-4. `templates/panels/<name>.html` 패널 추가 + `dashboard.html` 에 `{% include %}` 및 사이드바 링크
+4. `templates/panels/<name>.html` 패널 추가(루트는 `id="panel-<name>" class="panel-section d-none"`)
+   + `dashboard.html` 에 **`<template data-panel="<name>">{% include %}</template>`** 로 넣고 사이드바 링크.
+   개요만 상주하고 나머지 패널은 처음 열 때 `materializePanel()` 이 꺼낸다(첫 화면 DOM 을 위해).
+   맨 `include` 로 넣으면 `test_lazy_panels.py` 가 막는다
 5. `static/js/dash/*.js` 에 `socket.on(...)` 수신 + 렌더 함수, `showPanel()` 훅에 `load<Name>()` 배선(스크립트 태그 등록)
    — 파일 전체를 **IIFE** 로 감싸고 밖에서 부를 이름만 파일 끝 `Object.assign(window, {...})` 에 넣는다.
      인라인 `onclick` 이 부르는 함수도 반드시 여기 넣어야 한다(안 넣으면 클릭이 조용히 죽는다 — 테스트가 잡는다)
+   — 패널 안 요소에 리스너를 달 때는 `DOMContentLoaded` 가 아니라 **`onPanelReady('<name>', fn)`**
+     (실체화 전엔 요소가 없다). 소켓 핸들러의 가시성 판단은 `isPanelVisible('<name>')` 만 쓴다
 6. 모듈 헬스에 표시하려면 `system_health.SPECS` 에 `(key, label, category)` 한 줄 추가
 7. `tests/` 에 파싱·판정·안전장치 단위 테스트 추가 (네트워크·외부실행 없이)
