@@ -230,18 +230,58 @@ def capture_backend_status():
                        "실트래픽 피처는 0건에서 늘지 않는다. "
                        "sudo bash scripts/enable_packet_capture.sh")
 
-    backend = "PyShark" if pa.PYSHARK_AVAILABLE else "Scapy"
     # **설치됐다는 것과 캡처할 수 있다는 것은 다르다.** 라이브러리만 보고
     # "가능" 이라고 하면 사람이 서버를 몇 시간 돌린 뒤에야 권한 문제를 안다.
-    # 원시 소켓을 여는 것으로 즉시 확인한다(패킷은 읽지 않는다).
-    if not _can_open_raw_socket():
-        return False, (f"{backend} 는 있으나 캡처 권한이 없다(CAP_NET_RAW) — "
-                       "sudo bash scripts/enable_packet_capture.sh 후 재로그인")
-    return True, f"{backend} 사용 가능 · 캡처 권한 있음"
+    #
+    # 다만 **백엔드마다 필요한 권한이 다르다.** PyShark 는 dumpcap 을 자식
+    # 프로세스로 띄우므로 권한은 dumpcap 에 있으면 되고 파이썬 자신에는 필요
+    # 없다. Scapy 는 파이썬이 직접 원시 소켓을 연다. 이걸 뭉뚱그려 원시 소켓만
+    # 보면, dumpcap 으로 멀쩡히 캡처되는 환경을 "막힘" 이라고 오진한다.
+    if pa.PYSHARK_AVAILABLE:
+        ok, why = _dumpcap_ready()
+        if ok:
+            return True, f"PyShark 사용 가능 · {why}"
+        if pa.SCAPY_AVAILABLE and _can_open_raw_socket():
+            return True, "Scapy 사용 가능 · 원시 소켓 열림"
+        # 그룹만 안 붙은 경우엔 스크립트를 다시 돌릴 일이 아니다 — 재로그인이면 된다.
+        fix = ("" if "재로그인" in why
+               else " — sudo bash scripts/enable_packet_capture.sh")
+        return False, f"PyShark 는 있으나 {why}{fix}"
+
+    if _can_open_raw_socket():
+        return True, "Scapy 사용 가능 · 원시 소켓 열림"
+    return False, ("Scapy 는 있으나 파이썬이 원시 소켓을 못 연다(CAP_NET_RAW) — "
+                   "sudo bash scripts/enable_packet_capture.sh 후 재로그인")
+
+
+def _dumpcap_ready():
+    """dumpcap 이 캡처할 수 있는 상태인가 — PyShark 경로의 실질 조건.
+
+    두 가지가 다 필요하다: 실행 권한(그룹 반영 — 재로그인 전이면 없다)과
+    파일 capability. 어느 쪽이 없는지 구분해 말해야 사람이 다음에 뭘 할지 안다.
+    """
+    import os
+    import shutil
+    import subprocess
+
+    path = shutil.which("dumpcap") or "/usr/bin/dumpcap"
+    if not os.path.exists(path):
+        return False, "dumpcap 이 없다"
+    if not os.access(path, os.X_OK):
+        return False, ("dumpcap 실행 권한이 없다(wireshark 그룹 미반영 — "
+                       "재로그인 또는 wsl --shutdown 필요)")
+    try:
+        out = subprocess.run(["getcap", path], capture_output=True, text=True,
+                             timeout=5).stdout
+    except (OSError, subprocess.SubprocessError):
+        return True, "capability 확인 불가(실행 권한은 있음)"
+    if "cap_net_raw" not in out:
+        return False, "dumpcap 에 cap_net_raw 가 없다"
+    return True, "dumpcap 캡처 권한 있음"
 
 
 def _can_open_raw_socket():
-    """원시 소켓을 열 수 있는가 — 캡처 권한의 실질 조건."""
+    """파이썬이 원시 소켓을 열 수 있는가 — Scapy 경로의 실질 조건."""
     import socket
     if not hasattr(socket, "AF_PACKET"):            # 리눅스가 아니면 판단 보류
         return True

@@ -31,15 +31,24 @@ apt-get install -y -qq tshark >/dev/null
 dumpcap_path="$(command -v dumpcap)"
 echo "     dumpcap: ${dumpcap_path}"
 
-echo "[2/4] dumpcap 에 캡처 권한 부여(cap_net_raw, cap_net_admin)"
-setcap cap_net_raw,cap_net_admin+eip "${dumpcap_path}"
-getcap "${dumpcap_path}"
-
-echo "[3/4] ${user_name} 을 wireshark 그룹에 추가"
+# 순서 주의: chgrp/chmod 를 **먼저** 한다.
+# 소유권이 바뀌면 커널이 security.capability 확장속성을 지운다(권한 상승 방지).
+# setcap 을 먼저 걸면 뒤이은 chgrp 가 그걸 조용히 날려서, 스크립트는 성공한 것처럼
+# 끝나지만 dumpcap 은 여전히 캡처를 못 한다. 실제로 그렇게 한 번 당했다.
+echo "[2/4] ${user_name} 을 wireshark 그룹에 추가"
 groupadd -f wireshark
 chgrp wireshark "${dumpcap_path}"
 chmod 0750 "${dumpcap_path}"
 usermod -aG wireshark "${user_name}"
+
+echo "[3/4] dumpcap 에 캡처 권한 부여(cap_net_raw, cap_net_admin)"
+setcap cap_net_raw,cap_net_admin+eip "${dumpcap_path}"
+# 정말 붙었는지 확인한다 — 빈 출력이면 실패다.
+if ! getcap "${dumpcap_path}" | grep -q cap_net_raw; then
+  echo "오류: dumpcap 에 capability 가 붙지 않았습니다." >&2
+  exit 1
+fi
+getcap "${dumpcap_path}"
 
 echo "[4/4] pyshark 설치(venv)"
 runuser -u "${user_name}" -- "${repo_dir}/venv/bin/pip" install -q pyshark==0.6
