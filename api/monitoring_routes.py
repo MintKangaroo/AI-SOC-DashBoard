@@ -23,7 +23,9 @@ def metrics_soc():
     app = current_app._get_current_object()
     days = min(90, max(1, request.args.get("days", 14, type=int)))
     store = getattr(app.threat_detector, "store", None)
-    incidents = getattr(app.incidents, "incidents", {})
+    # 라이브 딕셔너리를 순회하면 탐지 스레드가 인시던트를 추가하는 순간 터진다.
+    inc_mgr = getattr(app, "incidents", None)
+    incidents = inc_mgr.snapshot() if hasattr(inc_mgr, "snapshot") else dict(getattr(inc_mgr, "incidents", {}) or {})
     soar_stats = (app.soar.get_status() or {}).get("stats") if hasattr(app, "soar") else None
     dedup = getattr(app, "alert_dedup", None)
     dedup_stats = dedup.get_stats() if dedup is not None else None

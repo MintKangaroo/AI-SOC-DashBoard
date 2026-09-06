@@ -115,14 +115,14 @@
         <h3 class="card-panel-header">
           <i class="fa fa-clock-rotate-left text-info me-2"></i>상세 ATT&amp;CK 매핑 로그
           <span class="small text-muted ms-3">최근 200건 · Technique 링크 클릭 시 상세</span>
-          <div class="ms-auto d-flex gap-1">
+          <div class="ms-auto d-flex flex-wrap gap-1">
             <select id="mitre-log-sev-filter" aria-label="심각도로 거르기" class="form-select form-select-sm bg-dark text-white border-secondary" style="width:auto">
               <option value="">전체 심각도</option>
               <option value="CRITICAL">CRITICAL</option>
               <option value="HIGH">HIGH</option>
               <option value="MEDIUM">MEDIUM</option>
             </select>
-            <input id="mitre-log-filter" aria-label="IP 또는 기법 검색" type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="IP/기법 검색" style="width:180px"/>
+            <input id="mitre-log-filter" aria-label="IP 또는 기법 검색" type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="IP/기법 검색" style="width:180px;max-width:100%"/>
           </div>
         </h3>
         <div class="scroll-y scroll-y-lg">

@@ -36,7 +36,7 @@ def _incident_times(incidents, days):
     cutoff = datetime.now() - timedelta(days=days)
     resolve_secs, ack_secs = [], []
     opened = resolved = 0
-    for inc in incidents.values():
+    for inc in list(incidents.values()):   # 호출자가 스냅샷을 안 줬을 때의 마지막 방어
         created = _parse(inc.get("created"))
         if not created or created < cutoff:
             continue

@@ -188,6 +188,17 @@ class IncidentManager:
             inc = self.incidents.get(inc_id)
             return dict(inc) if inc else None
 
+    def snapshot(self):
+        """{id: inc} 의 얕은 복사. 락 밖에서 순회할 때는 반드시 이걸 쓴다.
+
+        `self.incidents` 를 그대로 넘겨 순회하면 그 사이 promote_alert 가 항목을
+        추가해 `RuntimeError: dictionary changed size during iteration` 으로 요청이
+        500 이 된다 — /api/metrics/soc 에서 실제로 났다(간헐적이라 테스트 821건이
+        못 잡았고, 실제 브라우저 순회 중에 잡혔다).
+        """
+        with self._lock:
+            return dict(self.incidents)
+
     def get_stats(self):
         with self._lock:
             counts = {"total": len(self.incidents)}

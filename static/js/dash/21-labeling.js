@@ -77,7 +77,7 @@
         ? `<span class="text-info">출발지 ${Number(g.unique_sources).toLocaleString()}개</span>`
         : `<span class="text-muted">단일 출발지</span>`;
       return `<div class="lab-group">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
           <span class="lab-cover">${Number(g.count).toLocaleString()}건</span>
           <span class="text-muted small">(${g.coverage_pct}%)</span>
           <span class="badge bg-secondary">${escapeHtml(g.threat_type || '-')}</span>

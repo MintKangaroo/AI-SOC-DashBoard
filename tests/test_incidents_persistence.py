@@ -257,3 +257,26 @@ def test_stats_and_listing_still_work(mgr):
     stats = mgr.get_stats()
     assert stats["total"] == 5
     assert len(mgr.get_all(limit=3)) == 3
+
+
+# ─────────── 동시성: 지표 집계 중 인시던트가 추가돼도 죽지 않는다 ───────────
+
+def test_snapshot_is_a_copy_that_survives_concurrent_promotion(mgr):
+    """/api/metrics/soc 가 `RuntimeError: dictionary changed size during iteration`
+    으로 500 을 낸 사건. 라이브 딕셔너리를 락 밖에서 순회하던 것이 원인이다.
+    스냅샷은 별개의 dict 라 순회 중 원본에 항목이 추가돼도 영향이 없어야 한다."""
+    from modules import soc_metrics
+    mgr.promote_alert(_alert(1, src="203.0.113.9"))
+    snap = mgr.snapshot()
+    assert snap is not mgr.incidents and snap == mgr.incidents
+
+    # 순회 도중 원본이 커지는 상황을 재현한다.
+    seen = 0
+    for _inc in snap.values():
+        mgr.promote_alert(_alert(99, threat="PORT_SCAN", src="198.51.100.7"))
+        seen += 1
+    assert seen == 1 and len(mgr.incidents) == 2 and len(snap) == 1
+
+    # 지표 계산도 라이브 딕셔너리 대신 스냅샷을 받아 정상 동작해야 한다.
+    out = soc_metrics.compute(None, mgr.snapshot(), None, days=14)
+    assert out["kpi"]["incidents_opened"] == 2
