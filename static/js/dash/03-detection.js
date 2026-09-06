@@ -12,9 +12,10 @@
   }
 
   function loadAlerts() {
-    fetch('/api/alerts?limit=200')
-      .then(r => r.json())
-      .then(d => {
+    // 표 라이브러리는 이 패널을 처음 열 때 받아온다(01-core.ensureTableLibs).
+    // 데이터 요청과 나란히 기다려 왕복을 겹친다.
+    Promise.all([fetch('/api/alerts?limit=200').then(r => r.json()), ensureTableLibs()])
+      .then(([d]) => {
         const tbody = document.getElementById('alerts-tbody');
         if (alertsDataTable) {
           alertsDataTable.clear();
@@ -272,12 +273,15 @@
     while (list.children.length > 8) list.removeChild(list.lastChild);
   }
 
+  /* 카운터는 즉시 올리고, 다시 그리는 것은 scheduleChartRender() 가 300ms 로
+     묶는다(02-overview.js). 알림마다 update() 를 부르면 스톰 때 굳는다. */
   function updateSeverityChart(sev) {
     const idx = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }[sev];
-    if (idx !== undefined) {
-      sevChart.data.datasets[0].data[idx]++;
-      if (isPanelVisible('overview') && !document.hidden) sevChart.update('none');
-    }
+    if (idx !== undefined) sevChart.data.datasets[0].data[idx]++;
+  }
+
+  function redrawSeverityChart() {
+    if (sevChart) sevChart.update('none');
   }
 
   /* ════════════════════ 패킷 테이블 ════════════════════ */
@@ -285,7 +289,12 @@
   let packetsTable = null;
 
   function initPacketsTable() {
-    if (!packetsInit) {
+    if (packetsInit) return;
+    if (!(window.jQuery && jQuery.fn && jQuery.fn.dataTable)) {
+      ensureTableLibs().then(ok => { if (ok) initPacketsTable(); });
+      return;
+    }
+    {
       packetsTable = $('#packets-table').DataTable({
         order: [[0, 'desc']],
         pageLength: 30,
@@ -406,7 +415,12 @@
   const _seenSysmonOrder = [];
 
   function initSysmonTable() {
-    if (!sysmonInit) {
+    if (sysmonInit) return;
+    if (!(window.jQuery && jQuery.fn && jQuery.fn.dataTable)) {
+      ensureTableLibs().then(ok => { if (ok) initSysmonTable(); });
+      return;
+    }
+    {
       sysmonDT = $('#sysmon-table').DataTable({
         order: [[0, 'desc']],
         pageLength: 25,
@@ -484,16 +498,8 @@
      여러 번 불려도 요청은 한 번만 나가도록 프라미스를 캐시한다. */
   let globeLibPromise = null;
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const tag = document.createElement('script');
-      tag.src = src;
-      tag.onload = () => resolve();
-      tag.onerror = () => reject(new Error(src));
-      document.head.appendChild(tag);
-    });
-  }
-
+  // loadScript 는 01-core.js 가 공개한다(같은 이름을 두 파일이 각자 정의하면
+  // 유지보수 함정이 되고, 프런트 테스트가 최상위 이름 충돌로 잡는다).
   function ensureGlobeLib() {
     if (typeof Globe !== 'undefined') return Promise.resolve(true);
     if (!globeLibPromise) {
@@ -708,6 +714,6 @@
     initMap, initPacketsTable, initSysmonTable, initTrafficCharts, loadAlerts,
     loadSuppressed, prependAlertRow, prependAttackLog, prependOverviewAlert,
     redrawAlertsTable, setAlertVerdict, updateAlertStatus, updateCountryChart,
-    updatePacketsTable, updateSeverityChart, updateSysmonTable, updateTrafficCharts,
+    redrawSeverityChart, updatePacketsTable, updateSeverityChart, updateSysmonTable, updateTrafficCharts,
   });
 })();

@@ -133,6 +133,25 @@
   }
   let _threatTypeChart = null;
 
+  /* 차트 갱신 합치기.
+     알림 하나마다 Chart.js 를 두 번(심각도·위협유형) 다시 그리면, 평시에는
+     티가 안 나지만 스톰 때 화면이 굳는다 — 이 시스템은 초당 수천 건을 처리하는
+     것을 전제로 설계돼 있고, **정작 화면이 필요한 순간이 바로 그때**다.
+     라이브 스트림과 TOP 공격자가 이미 쓰는 300ms 배치와 같은 방식으로 묶는다.
+     데이터는 즉시 반영되고 그리기만 합쳐지므로 수치가 늦지 않는다. */
+  let _chartRenderTimer = null;
+
+  function scheduleChartRender() {
+    if (_chartRenderTimer) return;
+    _chartRenderTimer = setTimeout(() => {
+      _chartRenderTimer = null;
+      if (!(isPanelVisible('overview') && !document.hidden)) return;
+      renderThreatTypeChart();
+      updateThreatLevel();
+      if (typeof redrawSeverityChart === 'function') redrawSeverityChart();
+    }, 300);
+  }
+
   socket.on('new_alert', alert => {
     if (isPanelVisible('alerts') && !document.hidden) prependAlertRow(alert);
     if (isPanelVisible('overview') && !document.hidden) prependOverviewAlert(alert);
@@ -162,12 +181,9 @@
     document.getElementById('kpi-unique-attackers').textContent = uniqueAttackerCount();
     scheduleTopAttackersRender();
 
-    // 위협 유형 차트
+    // 위협 유형 차트 · THREAT LEVEL — 카운터는 즉시, 그리기는 합쳐서.
     _threatTypeCounter[alert.threat_label] = (_threatTypeCounter[alert.threat_label] || 0) + 1;
-    if (isPanelVisible('overview') && !document.hidden) renderThreatTypeChart();
-
-    // THREAT LEVEL 재계산
-    if (isPanelVisible('overview') && !document.hidden) updateThreatLevel();
+    scheduleChartRender();
     if (typeof schedulePriorityReload === 'function') schedulePriorityReload();
 
     // 통합 라이브 스트림
@@ -415,7 +431,7 @@
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
     _threatTypeCounter, adjustOpenAlerts, incEl, pushLive, renderLiveStream,
-    renderThreatTypeChart, renderTopAttackers, setLiveFilter, setOpenAlerts, setPipe,
+    renderThreatTypeChart, renderTopAttackers, scheduleChartRender, setLiveFilter, setOpenAlerts, setPipe,
     sevChart, toggleTpOnly, trackAttacker, uniqueAttackerCount, updateThreatLevel,
   });
 })();

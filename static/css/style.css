@@ -576,7 +576,7 @@ html, body {
   flex-direction: column;
 }
 .mitre-tactic-header {
-  background: #22303f;
+  background: var(--bg-hover);
   color: var(--cyan);
   font-size: 10.5px;
   font-weight: 700;
@@ -861,8 +861,10 @@ body::before {
 }
 
 /* Sidebar — 조금 더 깔끔하게 */
+/* 사이드바는 본문보다 한 단계 눌린 중립 검정. 이전 그라디언트(#0c1118→#0f151d)는
+   파랑 성분이 남아 있어 블랙 팔레트 옆에서 혼자 네이비로 보였다. */
 .sidebar {
-  background: linear-gradient(180deg, #0c1118 0%, #0f151d 100%);
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border-right: 1px solid color-mix(in srgb, var(--cyan) 8%, transparent);
 }
 .sidebar-link {
@@ -1003,7 +1005,7 @@ body::before {
   border-radius: 10px;
   background:
     radial-gradient(circle at top left, color-mix(in srgb, var(--cyan) 12%, transparent), transparent 45%),
-    linear-gradient(135deg, #10202d 0%, #0f1720 100%);
+    linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
   border: 1px solid color-mix(in srgb, var(--cyan) 20%, transparent);
   box-shadow: var(--accent-glow), var(--shadow-soft);
   position: relative;
@@ -1558,7 +1560,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 /* ══════════════ SIEM — Splunk 스타일 검색 UI ══════════════ */
 .spl-searchbar {
   display: flex; align-items: center; gap: 8px;
-  background: var(--bg-primary); border: 1px solid #33333a; border-radius: 6px;
+  background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;
   padding: 8px 12px; margin-bottom: 8px;
 }
 .spl-prompt { color: var(--cyan); font-family: monospace; font-weight: 700; }
@@ -1568,7 +1570,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 }
 .spl-search-input::placeholder { color: #6e7681; }
 .spl-timerange {
-  background: var(--bg-secondary); color: var(--text-soft); border: 1px solid #33333a;
+  background: var(--bg-secondary); color: var(--text-soft); border: 1px solid var(--border);
   border-radius: 5px; font-size: 12px; padding: 4px 8px;
 }
 .spl-search-btn {
@@ -1581,7 +1583,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   font-size: 12px; color: var(--text-muted); padding: 4px 4px 8px; border-bottom: 1px solid var(--border);
 }
 .spl-resultbar b { color: var(--text-primary); }
-.spl-sep { color: #3d444d; }
+.spl-sep { color: var(--disabled); }
 
 .spl-timeline-card {
   background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;

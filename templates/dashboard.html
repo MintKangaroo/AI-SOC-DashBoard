@@ -12,7 +12,7 @@
   <!-- Font Awesome -->
   <link href="/static/vendor/fontawesome/css/all.min.css" rel="stylesheet"/>
   <!-- DataTables -->
-  <link rel="stylesheet" href="/static/vendor/datatables/dataTables.bootstrap5.min.css"/>
+  <!-- DataTables CSS 는 ensureTableLibs() 가 함께 로드한다 -->
 
   <link rel="stylesheet" href="/static/css/style.css"/>
 </head>
@@ -95,7 +95,7 @@
         <i class="fa fa-network-wired"></i><span>패킷 분석</span>
       </a>
       <a href="#sysmon" class="sidebar-link" data-panel="sysmon">
-        <i class="fa-brands fa-windows"></i><span>Sysmon 로그</span>
+        <i class="fa-solid fa-window-restore"></i><span>Sysmon 로그</span>
       </a>
       <a href="#edr" class="sidebar-link" data-panel="edr">
         <i class="fa fa-laptop-code"></i><span>EDR (AI 엔드포인트)</span>
@@ -277,9 +277,9 @@
 <!-- ── 스크립트 ── -->
 <script defer src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script defer src="/static/vendor/chartjs/chart.umd.min.js"></script>
-<script defer src="/static/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script defer src="/static/vendor/datatables/jquery.dataTables.min.js"></script>
-<script defer src="/static/vendor/datatables/dataTables.bootstrap5.min.js"></script>
+<!-- jQuery + DataTables(합 175KB)는 여기서 로드하지 않는다. 쓰는 곳이 표 3개
+     (알림·패킷·Sysmon)뿐이고 첫 화면인 AI 관제 센터에는 표가 없다.
+     ensureTableLibs() 가 해당 패널을 처음 열 때 받아온다. -->
 <script defer src="/static/vendor/socketio/socket.io.min.js"></script>
 <!-- Three.js + Globe.gl (3D 지구본, 합 1.7MB)은 여기서 로드하지 않는다.
      쓰는 곳이 개요 패널의 공격 지도 하나뿐인데 모든 진입에서 받으면, 알림

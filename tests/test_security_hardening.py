@@ -361,11 +361,20 @@ def test_no_external_asset_references():
 
 
 def test_vendored_assets_exist_and_are_referenced():
-    """dashboard.html 이 가리키는 vendor 파일이 실제로 존재해야 한다."""
-    html = (_REPO / "templates" / "dashboard.html").read_text(encoding="utf-8")
-    refs = re.findall(r'["\'](/static/vendor/[^"\']+)["\']', html)
+    """가리키는 vendor 파일이 실제로 존재해야 한다.
+
+    HTML 만 보면 안 된다 — 무거운 라이브러리(jQuery·DataTables·three/globe)는
+    첫 화면에서 값을 못 하므로 필요할 때 JS 가 받아온다. 그 참조도 자체 호스팅
+    경로여야 한다(CDN 금지·격리망 동작). 그래서 HTML 과 JS 를 함께 본다.
+    """
+    sources = [_REPO / "templates" / "dashboard.html"]
+    sources += sorted((_REPO / "static" / "js" / "dash").glob("*.js"))
+    refs = []
+    for path in sources:
+        refs += re.findall(r'["\'](/static/vendor/[^"\']+)["\']',
+                           path.read_text(encoding="utf-8"))
     assert len(refs) >= 8, f"vendor 참조가 너무 적다: {refs}"
-    missing = [r for r in refs if not (_REPO / r.lstrip("/")).is_file()]
+    missing = sorted({r for r in refs if not (_REPO / r.lstrip("/")).is_file()})
     assert missing == [], f"참조하는데 없는 vendor 파일: {missing}"
 
 

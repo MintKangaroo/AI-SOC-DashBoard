@@ -81,6 +81,49 @@
   function announce(text) { _queueAnn('polite', text, 1500); }
   function alarm(text)    { _queueAnn('assertive', text, 800); }
 
+  /* ── 표 라이브러리 지연 로드 ──
+     jQuery + DataTables(합 175KB + CSS 12KB)는 표 3개(알림·패킷·Sysmon)에서만
+     쓰인다. 첫 화면인 AI 관제 센터에는 표가 없으므로, 표 패널을 처음 열 때
+     받아온다. 여러 표가 동시에 요청해도 프라미스를 공유해 한 번만 받는다. */
+  let tableLibsPromise = null;
+
+  function loadCss(href) {
+    return new Promise(resolve => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.onload = link.onerror = () => resolve();   // 실패해도 표는 뜬다
+      document.head.appendChild(link);
+    });
+  }
+
+  function ensureTableLibs() {
+    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) return Promise.resolve(true);
+    if (!tableLibsPromise) {
+      tableLibsPromise = loadScript('/static/vendor/jquery/jquery-3.7.1.min.js')
+        .then(() => loadScript('/static/vendor/datatables/jquery.dataTables.min.js'))
+        .then(() => loadScript('/static/vendor/datatables/dataTables.bootstrap5.min.js'))
+        .then(() => loadCss('/static/vendor/datatables/dataTables.bootstrap5.min.css'))
+        .then(() => { configureDataTables(); return true; })
+        .catch(err => {
+          tableLibsPromise = null;          // 다음에 다시 시도할 수 있게
+          console.warn('[SOC] 표 라이브러리 로드 실패', err);
+          return false;
+        });
+    }
+    return tableLibsPromise;
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement('script');
+      tag.src = src;
+      tag.onload = () => resolve();
+      tag.onerror = () => reject(new Error(src));
+      document.head.appendChild(tag);
+    });
+  }
+
   /* DataTables 공통 설정.
 
      언어: 대시보드는 전부 한국어인데 표 컨트롤만 "Show / entries / Search:" 였다.
@@ -93,7 +136,8 @@
 
      컨트롤에 폼 유틸(.bg-dark 등)을 붙이는 이유: 이 저장소의 다른 폼 요소가
      모두 그 관례를 쓰는데 DT 가 만드는 컨트롤에는 없어서 혼자 달라 보였다. */
-  if (window.jQuery && jQuery.fn.dataTable) {
+  function configureDataTables() {
+    if (!(window.jQuery && jQuery.fn.dataTable)) return;
     jQuery.extend(true, jQuery.fn.dataTable.defaults, {
       /* 기본 길이 메뉴는 [10,25,50,100] 인데 알림 표는 pageLength: 20 을 쓴다.
          현재 값과 일치하는 option 이 없으면 셀렉트는 **아무것도 선택되지 않은
@@ -414,12 +458,12 @@
     const sysRows = [
       ['fa-server',       '호스트명',    host.hostname || '—'],
       ['fa-globe',        'FQDN',         host.fqdn || '—'],
-      ['fa-brands fa-windows', 'OS',     osLine || '—'],
+      ['fa-solid fa-window-restore', 'OS',     osLine || '—'],
       ['fa-tag',          'OS 버전',     host.os_version || '—'],
       ['fa-layer-group',  '플랫폼',      host.platform || '—'],
       ['fa-microchip',    '아키텍처',    host.architecture || '—'],
       ['fa-microchip',    'CPU',         host.processor || '—'],
-      ['fa-brands fa-python', 'Python', host.python_version || '—'],
+      ['fa-solid fa-code', 'Python', host.python_version || '—'],
       ['fa-ethernet',     'MAC',         host.mac || '—'],
     ];
     document.getElementById('myinfo-system-grid').innerHTML = sysRows.map(([ic, k, v]) => `
@@ -559,7 +603,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    alarm, announce, cssVar,
+    alarm, announce, cssVar, ensureTableLibs, loadScript,
     closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, protoColor, sevBadge, showPanel,
     socket, threatColor, toggleGroup, toggleSidebar,
   });
