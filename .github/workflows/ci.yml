@@ -51,6 +51,18 @@ jobs:
           SOAR_AUTO_BLOCK: "False"
         run: python -m pytest tests/test_live_server.py -q
 
+      - name: 브라우저 설치 (Playwright chromium)
+        run: python -m playwright install --with-deps chromium
+
+      - name: 브라우저 순회 (36패널 · 콘솔 오류 · HTTP 실패 · 모바일 넘침)
+        # pytest 821건·ruff·API 스모크가 전부 초록인 날 이 순회만이 결함 3건을
+        # 잡았다(스레드 경합 500 · favicon 404 · 모바일 잘림). test_client 가
+        # 원리적으로 못 보는 종류다. 실서버와 같은 방식으로 빈 디렉터리에서 띄운다.
+        env:
+          SOAR_BLOCK_MODE: simulate
+          SOAR_AUTO_BLOCK: "False"
+        run: python -m pytest tests/test_browser_sweep.py -q
+
       - name: 테스트
         # CI 에는 .env 가 없다 — fresh clone 과 같은 상태에서 통과해야 한다.
         # 차단 경로는 simulate 로 고정해 어떤 경우에도 방화벽을 건드리지 않는다.
@@ -62,7 +74,7 @@ jobs:
           SYSLOG_ENABLED: "False"
           NTFY_ENABLED: "False"
         run: |
-          coverage run --source=modules,api,experimental --omit='*/tests/*' -m pytest
+          coverage run --source=modules,api,experimental --omit='*/tests/*' -m pytest -m "not browser"
           coverage report
 
       - name: 커버리지 하한

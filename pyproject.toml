@@ -29,4 +29,7 @@ addopts = "-q"
 pythonpath = ["."]
 # 실제 프로세스를 띄우는 테스트. 느리지만 test_client 로는 못 잡는 종류를 잡는다
 # (작업 디렉터리 의존·백그라운드 스레드·소켓). 건너뛰려면 `pytest -m "not live"`.
-markers = ["live: 실제 서버 프로세스를 띄우는 통합 테스트"]
+markers = [
+  "live: 실제 서버 프로세스를 띄우는 통합 테스트",
+  "browser: 실제 브라우저(Playwright)로 화면을 순회하는 테스트 — 크롬 없으면 skip",
+]
