@@ -1,13 +1,13 @@
     <!-- ════ 패킷 분석 패널 ════ -->
     <div id="panel-packets" class="panel-section d-none">
-      <div class="panel-title"><i class="fa fa-network-wired me-2 text-cyan"></i>패킷 분석 (PyShark / Scapy)</div>
+      <h2 class="panel-title"><i class="fa fa-network-wired me-2 text-cyan"></i>패킷 분석 (PyShark / Scapy)</h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           캡처된 개별 패킷을 원시(raw) 형태로 확인합니다. <strong class="text-cyan">출발/목적 IP</strong>로 대화 상대를 확인하고, <strong>목적 포트</strong>가 <code>4444 · 5555 · 1337 · 8443</code> 같은 비표준 포트면 <span class="text-danger">Metasploit C2 의심</span>. ICMP/ARP가 짧은 시간 반복되면 스캔/스푸핑 가능성. DataTables의 검색 박스로 특정 IP·포트를 빠르게 필터링하세요.
         </div>
       </div>

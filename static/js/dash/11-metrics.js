@@ -90,7 +90,7 @@
     const W = svg.clientWidth || 800, H = 200;
     const padL = 34, padR = 8, padT = 10, padB = 40;
     if (!days.length) {
-      svg.innerHTML = `<text x="${W/2}" y="100" text-anchor="middle" font-size="12" fill="#8b949e">데이터 없음</text>`;
+      svg.innerHTML = `<text x="${W/2}" y="100" text-anchor="middle" font-size="12" fill="${cssVar('--text-dim', '#94949b')}">데이터 없음</text>`;
       return;
     }
     const max = Math.max(1, ...days.map(d => d.total));
@@ -102,13 +102,13 @@
     // y축 격자 (0, 50%, 100%)
     [0, 0.5, 1].forEach(f => {
       const yy = padT + plotH - f * plotH;
-      out += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="#30363d" stroke-width="1"/>
-              <text x="${padL-4}" y="${yy+3}" text-anchor="end" font-size="9" fill="#8b949e">${Math.round(max*f).toLocaleString()}</text>`;
+      out += `<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="${cssVar('--border', '#2c2c31')}" stroke-width="1"/>
+              <text x="${padL-4}" y="${yy+3}" text-anchor="end" font-size="9" fill="${cssVar('--text-dim', '#94949b')}">${Math.round(max*f).toLocaleString()}</text>`;
     });
     days.forEach((d, i) => {
       const cx = padL + gap * i + (gap - bw) / 2;
       let yb = padT + plotH;
-      [['other', '#8b949e'], ['high', 'var(--orange)'], ['critical', 'var(--red)']].forEach(([key, col]) => {
+      [['other', cssVar('--text-dim', '#94949b')], ['high', 'var(--orange)'], ['critical', 'var(--red)']].forEach(([key, col]) => {
         const v = d[key] || 0;
         if (v <= 0) return;
         const h = v / max * plotH;
@@ -117,7 +117,7 @@
       });
       // 날짜 라벨 (MM-DD, 회전)
       const lab = (d.date || '').slice(5);
-      out += `<text x="${cx + bw/2}" y="${H - padB + 14}" text-anchor="end" font-size="9" fill="#8b949e"
+      out += `<text x="${cx + bw/2}" y="${H - padB + 14}" text-anchor="end" font-size="9" fill="${cssVar('--text-dim', '#94949b')}"
                 transform="rotate(-45 ${cx + bw/2} ${H - padB + 14})">${lab}</text>`;
     });
     svg.innerHTML = out;
@@ -136,10 +136,10 @@
     let out = '';
     // 시간 라벨 (0,6,12,18,23)
     [0, 6, 12, 18, 23].forEach(h => {
-      out += `<text x="${padL + h*cw + cw/2}" y="${padT-3}" text-anchor="middle" font-size="9" fill="#8b949e">${h}</text>`;
+      out += `<text x="${padL + h*cw + cw/2}" y="${padT-3}" text-anchor="middle" font-size="9" fill="${cssVar('--text-dim', '#94949b')}">${h}</text>`;
     });
     for (let dw = 0; dw < 7; dw++) {
-      out += `<text x="${padL-4}" y="${padT + dw*ch + ch/2 + 3}" text-anchor="end" font-size="9" fill="#8b949e">${dows[dw]}</text>`;
+      out += `<text x="${padL-4}" y="${padT + dw*ch + ch/2 + 3}" text-anchor="end" font-size="9" fill="${cssVar('--text-dim', '#94949b')}">${dows[dw]}</text>`;
       for (let h = 0; h < 24; h++) {
         const v = (heat[dw] && heat[dw][h]) || 0;
         const t = v / max;

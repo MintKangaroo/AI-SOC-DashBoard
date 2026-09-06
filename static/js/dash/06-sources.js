@@ -115,8 +115,8 @@
       if (hs > 0) g += `<rect x="${x + 1}" y="${H - 16 - hs}" width="${Math.max(1, bw - 2)}" height="${hs}" fill="#f85149"><title>${k} · 의심 ${b.susp}</title></rect>`;
     });
     // x축 라벨(양끝)
-    g += `<text x="${pad}" y="${H - 3}" fill="#8b949e" font-size="9">${keys[0]}</text>`;
-    g += `<text x="${W - 4}" y="${H - 3}" fill="#8b949e" font-size="9" text-anchor="end">${keys[keys.length - 1]}</text>`;
+    g += `<text x="${pad}" y="${H - 3}" fill="${cssVar('--text-dim', '#94949b')}" font-size="9">${keys[0]}</text>`;
+    g += `<text x="${W - 4}" y="${H - 3}" fill="${cssVar('--text-dim', '#94949b')}" font-size="9" text-anchor="end">${keys[keys.length - 1]}</text>`;
     g += `<text x="${pad - 4}" y="12" fill="#6e7681" font-size="9" text-anchor="end">${max}</text>`;
     svg.innerHTML = g;
   }
@@ -206,8 +206,8 @@
     if (modeBadge) {
       const real = stats.mode === 'real';
       modeBadge.textContent = real ? '실시간 (auth.log)' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      modeBadge.style.background = real ? 'var(--green)' : '#30363d';
-      modeBadge.style.color = real ? '#001417' : '#e6edf3';
+      modeBadge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      modeBadge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (modeNote) modeNote.textContent = stats.mode === 'demo'
       ? '(현재 데모 데이터 — 실서버에선 실제 auth.log를 읽습니다)' : '';
@@ -218,7 +218,7 @@
       topBox.innerHTML = top.length
         ? top.map(([ip, cnt], i) => `
             <div class="d-flex justify-content-between p-1 border-bottom border-secondary small">
-              <span class="font-monospace" style="color:#e6edf3">${i + 1}. ${escapeHtml(ip)}</span>
+              <span class="font-monospace" style="color:var(--text-primary)">${i + 1}. ${escapeHtml(ip)}</span>
               <span class="text-warning">${cnt.toLocaleString()}회</span>
             </div>`).join('')
         : '<div class="text-muted p-2">데이터 없음</div>';
@@ -238,11 +238,11 @@
     const meta = AUTH_TYPE_META[e.type] || { badge: 'bg-secondary', label: e.type };
     return `
       <tr ${e.type !== 'accepted' ? 'style="background:rgba(248,81,73,.06)"' : ''}>
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml(e.timestamp)}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.timestamp)}</td>
         <td class="small"><span class="badge ${meta.badge}" style="font-size:9px">${meta.label}</span></td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(e.user || '-')}</td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(e.ip)}</td>
-        <td class="small" style="color:#e6edf3">${e.port || '-'}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.user || '-')}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip)}</td>
+        <td class="small" style="color:var(--text-primary)">${e.port || '-'}</td>
       </tr>`;
   }
 
@@ -313,8 +313,8 @@
     if (badge) {
       const real = stats.mode === 'abuseipdb';
       badge.textContent = real ? '실조회 (AbuseIPDB)' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      badge.style.background = real ? 'var(--green)' : '#30363d';
-      badge.style.color = real ? '#001417' : '#e6edf3';
+      badge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) note.textContent = stats.mode === 'demo'
       ? '(API 키 없음 — 데모 점수. .env ABUSEIPDB_API_KEY 설정 시 실조회)' : '';
@@ -339,11 +339,11 @@
     const src = r.source === 'abuseipdb' ? 'AbuseIPDB' : (r.source === 'demo' ? '데모' : r.source);
     return `
       <tr ${(r.score || 0) >= repMinScore ? 'style="background:rgba(248,81,73,.08)"' : ''}>
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml((r.checked_at || '').slice(11))}</td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(r.ip)}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml((r.checked_at || '').slice(11))}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(r.ip)}</td>
         <td>${repScoreBadge(r.score)}</td>
-        <td class="small" style="color:#e6edf3">${(r.total_reports || 0).toLocaleString()}</td>
-        <td class="small" style="color:#e6edf3">${escapeHtml(r.country || '-')}</td>
+        <td class="small" style="color:var(--text-primary)">${(r.total_reports || 0).toLocaleString()}</td>
+        <td class="small" style="color:var(--text-primary)">${escapeHtml(r.country || '-')}</td>
         <td class="small text-muted">${escapeHtml(src)}</td>
       </tr>`;
   }
@@ -410,7 +410,7 @@
   let edrDetBuffer = [];
 
   function sevColor(sev) {
-    return { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--yellow, #d29922)', LOW: '#8b949e' }[sev] || '#8b949e';
+    return { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--yellow, #d29922)', LOW: cssVar('--text-dim', '#94949b') }[sev] || cssVar('--text-dim', '#94949b');
   }
   function riskBadge(risk) {
     risk = risk || 0;
@@ -440,8 +440,8 @@
     if (badge) {
       const real = stats.mode === 'real';
       badge.textContent = real ? '실센서 (psutil)' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      badge.style.background = real ? 'var(--green)' : '#30363d';
-      badge.style.color = real ? '#001417' : '#e6edf3';
+      badge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) note.textContent = stats.mode === 'demo'
       ? '(현재 데모 프로세스 — 실서버에선 실제 실행 프로세스를 감시합니다)' : '';
@@ -457,8 +457,8 @@
         ? procs.map(p => `
           <tr>
             <td>${riskBadge(p.risk)}</td>
-            <td class="small font-monospace" style="color:#e6edf3">${p.pid}</td>
-            <td class="small" style="color:#e6edf3" title="${escapeHtml(p.cmdline || '')}">${escapeHtml(p.name)}</td>
+            <td class="small font-monospace" style="color:var(--text-primary)">${p.pid}</td>
+            <td class="small" style="color:var(--text-primary)" title="${escapeHtml(p.cmdline || '')}">${escapeHtml(p.name)}</td>
             <td class="small text-muted">${escapeHtml(p.user || '-')}</td>
           </tr>`).join('')
         : '<tr><td colspan="4" class="text-muted text-center p-3">위험 프로세스 없음 (정상)</td></tr>';
@@ -476,25 +476,25 @@
     svg.setAttribute('height', H);
 
     if (!dets.length) {
-      svg.innerHTML = `<text x="${W / 2}" y="60" text-anchor="middle" font-size="12" fill="#8b949e">탐지된 위협 프로세스가 없습니다 (정상)</text>`;
+      svg.innerHTML = `<text x="${W / 2}" y="60" text-anchor="middle" font-size="12" fill="${cssVar('--text-dim', '#94949b')}">탐지된 위협 프로세스가 없습니다 (정상)</text>`;
       return;
     }
 
-    const riskColor = r => r >= 70 ? '#f85149' : (r >= 40 ? '#f0a500' : '#8b949e');
+    const riskColor = r => r >= 70 ? '#f85149' : (r >= 40 ? '#f0a500' : cssVar('--text-dim', '#94949b'));
     const bw = 150, bh = 34, x0 = 8, x1 = x0 + bw + 60, x2 = x1 + bw + 60;
 
     const box = (x, y, w, title, sub, col) => `
-      <rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="7" fill="#0d1117" stroke="${col}" stroke-width="1.8"/>
-      <text x="${x + 9}" y="${y + 14}" font-size="11" font-weight="700" fill="#e6edf3">${escapeHtml((title || '').slice(0, 22))}</text>
-      <text x="${x + 9}" y="${y + 27}" font-size="9" font-family="monospace" fill="#8b949e">${escapeHtml((sub || '').slice(0, 26))}</text>`;
-    const arrow = (xa, xb, y) => `<line x1="${xa}" y1="${y}" x2="${xb}" y2="${y}" stroke="#484f58" stroke-width="2" marker-end="url(#edr-arw)"/>`;
+      <rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="7" fill="${cssVar('--bg-primary', '#0a0a0b')}" stroke="${col}" stroke-width="1.8"/>
+      <text x="${x + 9}" y="${y + 14}" font-size="11" font-weight="700" fill="${cssVar('--text-primary', '#ececed')}">${escapeHtml((title || '').slice(0, 22))}</text>
+      <text x="${x + 9}" y="${y + 27}" font-size="9" font-family="monospace" fill="${cssVar('--text-dim', '#94949b')}">${escapeHtml((sub || '').slice(0, 26))}</text>`;
+    const arrow = (xa, xb, y) => `<line x1="${xa}" y1="${y}" x2="${xb}" y2="${y}" stroke="${cssVar('--disabled', '#54545c')}" stroke-width="2" marker-end="url(#edr-arw)"/>`;
 
     let rows = '';
     dets.forEach((det, i) => {
       const y = topPad + i * rowH;
       const yc = y + bh / 2;
       const col = riskColor(det.risk);
-      rows += box(x0, y, bw, det.parent || '?', '부모 프로세스', '#484f58');
+      rows += box(x0, y, bw, det.parent || '?', '부모 프로세스', cssVar('--disabled', '#54545c'));
       rows += arrow(x0 + bw, x1, yc);
       rows += box(x1, y, bw, `${det.process} (${det.pid})`, det.cmdline || '', col);
       rows += arrow(x1 + bw, x2, yc);
@@ -503,15 +503,15 @@
         <text x="${x2 + 9}" y="${y + 14}" font-size="10.5" font-weight="700" fill="${col}">${escapeHtml(det.severity)} · 위험 ${det.risk}</text>
         <text x="${x2 + 9}" y="${y + 27}" font-size="9" fill="#c9d1d9">${escapeHtml((det.mitre || '') + ' ' + (det.rule || '').replace('IOA-', ''))}</text>`;
     });
-    svg.innerHTML = `<defs><marker id="edr-arw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#484f58"/></marker></defs>${rows}`;
+    svg.innerHTML = `<defs><marker id="edr-arw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${cssVar('--disabled', '#54545c')}"/></marker></defs>${rows}`;
   }
 
   function edrDetRow(det) {
     return `
       <tr style="background:rgba(248,81,73,${det.severity === 'CRITICAL' ? '.10' : '.05'})">
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml((det.timestamp || '').slice(11))}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml((det.timestamp || '').slice(11))}</td>
         <td>${riskBadge(det.risk)}</td>
-        <td class="small" style="color:#e6edf3" title="${escapeHtml(det.cmdline || '')}">
+        <td class="small" style="color:var(--text-primary)" title="${escapeHtml(det.cmdline || '')}">
           <span class="font-monospace">${escapeHtml(det.process)}</span>
           <span class="text-muted">(${det.pid})</span></td>
         <td class="small" style="color:${sevColor(det.severity)}">${escapeHtml(det.description)}</td>
@@ -582,8 +582,8 @@
     if (badge) {
       const real = stats.mode === 'real';
       badge.textContent = real ? '실측 (psutil)' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      badge.style.background = real ? 'var(--green)' : '#30363d';
-      badge.style.color = real ? '#001417' : '#e6edf3';
+      badge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) note.textContent = stats.mode === 'demo'
       ? '(현재 데모 데이터 — 실서버에선 실제 연결/포트/대역폭을 읽습니다)' : '';
@@ -596,10 +596,10 @@
       ct.innerHTML = conns.length
         ? conns.map(c => `
           <tr ${c.external ? 'style="background:rgba(247,144,0,.06)"' : ''}>
-            <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(c.laddr)}</td>
-            <td class="small font-monospace" style="color:${c.external ? 'var(--orange)' : '#e6edf3'}">${escapeHtml(c.raddr)}</td>
+            <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(c.laddr)}</td>
+            <td class="small font-monospace" style="color:${c.external ? 'var(--orange)' : cssVar('--text-primary', '#ececed')}">${escapeHtml(c.raddr)}</td>
             <td class="small text-muted">${escapeHtml(c.status)}</td>
-            <td class="small" style="color:#e6edf3">${escapeHtml(c.proc || '?')}</td>
+            <td class="small" style="color:var(--text-primary)">${escapeHtml(c.proc || '?')}</td>
           </tr>`).join('')
         : '<tr><td colspan="4" class="text-muted text-center p-3">연결 없음</td></tr>';
     }
@@ -611,8 +611,8 @@
         ? ls.map(l => `
           <tr>
             <td class="small font-monospace text-warning">${l.port}</td>
-            <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(l.addr)}</td>
-            <td class="small" style="color:#e6edf3">${escapeHtml(l.proc || '?')}</td>
+            <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(l.addr)}</td>
+            <td class="small" style="color:var(--text-primary)">${escapeHtml(l.proc || '?')}</td>
           </tr>`).join('')
         : '<tr><td colspan="3" class="text-muted text-center p-3">없음</td></tr>';
     }
@@ -652,10 +652,10 @@
       edges += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-width="${bad ? 2.5 : 1.3}" stroke-opacity="${bad ? 0.9 : 0.45}" ${bad ? 'stroke-dasharray="4 3"' : ''}/>`;
       const r = 7 + Math.min(6, p.count);
       nodes += `<g>
-        <circle cx="${x}" cy="${y}" r="${r}" fill="#0d1117" stroke="${col}" stroke-width="2"/>
+        <circle cx="${x}" cy="${y}" r="${r}" fill="${cssVar('--bg-primary', '#0a0a0b')}" stroke="${col}" stroke-width="2"/>
         ${bad ? `<circle cx="${x}" cy="${y}" r="${r + 4}" fill="none" stroke="${col}" stroke-width="1" stroke-opacity="0.5"><animate attributeName="r" from="${r + 2}" to="${r + 9}" dur="1.2s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" from="0.6" to="0" dur="1.2s" repeatCount="indefinite"/></circle>` : ''}
         <text x="${x}" y="${y - r - 5}" text-anchor="middle" font-size="10" font-family="monospace" fill="${col}">${escapeHtml(p.ip)}</text>
-        <text x="${x}" y="${y + r + 12}" text-anchor="middle" font-size="9" fill="#8b949e">${[...p.procs][0] || ''} ×${p.count}</text>
+        <text x="${x}" y="${y + r + 12}" text-anchor="middle" font-size="9" fill="${cssVar('--text-dim', '#94949b')}">${[...p.procs][0] || ''} ×${p.count}</text>
       </g>`;
     });
 
@@ -665,16 +665,16 @@
       const x = cx + 34 * Math.cos(ang), y = cy + 34 * Math.sin(ang);
       const risky = ![22, 80, 443, 5055].includes(l.port);
       return `<circle cx="${x}" cy="${y}" r="3.5" fill="${risky ? '#f85149' : '#39d0d8'}"/>
-        <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="8" fill="${risky ? '#f85149' : '#8b949e'}">${l.port}</text>`;
+        <text x="${x}" y="${y - 6}" text-anchor="middle" font-size="8" fill="${risky ? '#f85149' : cssVar('--text-dim', '#94949b')}">${l.port}</text>`;
     }).join('');
 
     const host = `<g>
-      <circle cx="${cx}" cy="${cy}" r="26" fill="#161b22" stroke="var(--cyan,#39d0d8)" stroke-width="2.5"/>
+      <circle cx="${cx}" cy="${cy}" r="26" fill="${cssVar('--bg-secondary', '#121214')}" stroke="var(--cyan,#39d0d8)" stroke-width="2.5"/>
       <text x="${cx}" y="${cy - 1}" text-anchor="middle" font-family="Font Awesome 6 Free" font-weight="900" font-size="18" fill="#39d0d8">&#xf233;</text>
-      <text x="${cx}" y="${cy + 42}" text-anchor="middle" font-size="11" font-weight="700" fill="#e6edf3">홈서버</text>
+      <text x="${cx}" y="${cy + 42}" text-anchor="middle" font-size="11" font-weight="700" fill="${cssVar('--text-primary', '#ececed')}">홈서버</text>
     </g>`;
 
-    const empty = peerList.length === 0 ? `<text x="${cx}" y="${cy + 70}" text-anchor="middle" font-size="11" fill="#8b949e">활성 외부 연결 없음</text>` : '';
+    const empty = peerList.length === 0 ? `<text x="${cx}" y="${cy + 70}" text-anchor="middle" font-size="11" fill="${cssVar('--text-dim', '#94949b')}">활성 외부 연결 없음</text>` : '';
     svg.innerHTML = edges + portRing + nodes + host + empty;
   }
 
@@ -684,7 +684,7 @@
     box.innerHTML = targets.length
       ? targets.map(t => `
         <div class="p-2 border rounded" style="border-color:${t.up ? 'var(--green)' : 'var(--red)'}!important; min-width:160px; background:rgba(${t.up ? '63,185,80' : '248,81,73'},.08)">
-          <div class="small" style="color:#e6edf3;font-weight:600">
+          <div class="small" style="color:var(--text-primary);font-weight:600">
             <i class="fa fa-circle me-1" style="font-size:8px;color:${t.up ? 'var(--green)' : 'var(--red)'}"></i>${escapeHtml(t.name)}</div>
           <div class="small font-monospace text-muted">${escapeHtml(t.host)}:${t.port}</div>
           <div class="small" style="color:${t.up ? 'var(--green)' : 'var(--red)'}">${t.up ? 'UP · ' + (t.latency_ms ?? '?') + 'ms' : 'DOWN'}</div>
@@ -699,7 +699,7 @@
       ? events.map(e => `
         <div class="p-1 border-bottom border-secondary small">
           <span class="badge" style="background:${sevColor(e.severity)};font-size:9px">${escapeHtml(e.severity)}</span>
-          <span style="color:#e6edf3" class="ms-1">${escapeHtml(e.description)}</span>${demoBadge(e.details)}
+          <span style="color:var(--text-primary)" class="ms-1">${escapeHtml(e.description)}</span>${demoBadge(e.details)}
           <div class="text-muted" style="font-size:10px">${escapeHtml(e.timestamp)}</div>
         </div>`).join('')
       : '<div class="text-muted p-2">이벤트 없음</div>';
@@ -759,9 +759,9 @@
     const badge = document.getElementById('purple-cov-badge');
     if (badge) {
       badge.textContent = '커버리지 ' + (cov == null ? '-' : cov + '%');
-      const c = cov == null ? '#30363d' : (cov >= 90 ? 'var(--green)' : cov >= 60 ? 'var(--orange)' : 'var(--red)');
+      const c = cov == null ? cssVar('--border', '#2c2c31') : (cov >= 90 ? 'var(--green)' : cov >= 60 ? 'var(--orange)' : 'var(--red)');
       badge.style.background = c;
-      badge.style.color = (cov != null && cov >= 90) ? '#001417' : '#e6edf3';
+      badge.style.color = (cov != null && cov >= 90) ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     const sb = document.getElementById('sidebar-purple-cov');
     if (sb) sb.textContent = cov == null ? '-' : cov + '%';
@@ -775,10 +775,10 @@
                         : '<span class="badge bg-danger" style="font-size:10px">FAIL</span>');
         return `<tr style="${r && !r.detected ? 'background:rgba(248,81,73,.08)' : ''}">
           <td>${verdict}</td>
-          <td class="small" style="color:#e6edf3">${escapeHtml(s.name)}</td>
+          <td class="small" style="color:var(--text-primary)">${escapeHtml(s.name)}</td>
           <td><span class="badge bg-dark" style="font-size:9px">${escapeHtml(s.mitre)}</span></td>
           <td class="small text-muted">${escapeHtml(s.expect)}</td>
-          <td class="small" style="color:#e6edf3">${r ? escapeHtml(r.detail) : '-'}</td>
+          <td class="small" style="color:var(--text-primary)">${r ? escapeHtml(r.detail) : '-'}</td>
           <td><button class="btn btn-xs btn-outline-purple" onclick="runPurpleOne('${s.id}')" title="이 시나리오만 실행"><i class="fa fa-play"></i></button></td>
         </tr>`;
       }).join('');
@@ -794,10 +794,10 @@
     const okColor = cov != null && cov >= 90 ? '#3fb950' : (cov >= 60 ? '#f0a500' : '#f85149');
     const stages = [
       { icon: '', label: '모의 공격', sub: ran ? ran + '개 시나리오' : '대기', color: '#9d79f2' },
-      { icon: '', label: '탐지 엔진', sub: 'Sigma·EDR·평판', color: active ? okColor : '#30363d' },
-      { icon: '', label: 'AI 트리아지', sub: '정탐/오탐', color: active ? '#58a6ff' : '#30363d' },
-      { icon: '', label: 'SOAR 대응', sub: '차단/종결', color: active ? '#39d0d8' : '#30363d' },
-      { icon: '', label: '알림/인시던트', sub: '폰 푸시', color: active ? '#f0a500' : '#30363d' },
+      { icon: '', label: '탐지 엔진', sub: 'Sigma·EDR·평판', color: active ? okColor : cssVar('--border', '#2c2c31') },
+      { icon: '', label: 'AI 트리아지', sub: '정탐/오탐', color: active ? '#58a6ff' : cssVar('--border', '#2c2c31') },
+      { icon: '', label: 'SOAR 대응', sub: '차단/종결', color: active ? '#39d0d8' : cssVar('--border', '#2c2c31') },
+      { icon: '', label: '알림/인시던트', sub: '폰 푸시', color: active ? '#f0a500' : cssVar('--border', '#2c2c31') },
     ];
     const W = svg.clientWidth || 720, n = stages.length;
     const boxW = 118, gap = (W - boxW * n) / (n - 1), y = 30, h = 74;
@@ -806,19 +806,19 @@
       const x = i * (boxW + gap);
       if (i < n - 1) {
         const ax = x + boxW, ax2 = x + boxW + gap;
-        parts += `<line x1="${ax}" y1="${y + h / 2}" x2="${ax2}" y2="${y + h / 2}" stroke="${active ? okColor : '#30363d'}" stroke-width="2.5" marker-end="url(#pt-arrow)"/>`;
+        parts += `<line x1="${ax}" y1="${y + h / 2}" x2="${ax2}" y2="${y + h / 2}" stroke="${active ? okColor : cssVar('--border', '#2c2c31')}" stroke-width="2.5" marker-end="url(#pt-arrow)"/>`;
       }
       parts += `<g>
-        <rect x="${x}" y="${y}" width="${boxW}" height="${h}" rx="9" fill="#0d1117" stroke="${s.color}" stroke-width="2"/>
+        <rect x="${x}" y="${y}" width="${boxW}" height="${h}" rx="9" fill="${cssVar('--bg-primary', '#0a0a0b')}" stroke="${s.color}" stroke-width="2"/>
         <text x="${x + boxW / 2}" y="${y + 26}" text-anchor="middle" font-family="Font Awesome 6 Free" font-weight="900" font-size="18" fill="${s.color}">${s.icon}</text>
-        <text x="${x + boxW / 2}" y="${y + 46}" text-anchor="middle" font-size="12" font-weight="700" fill="#e6edf3">${s.label}</text>
-        <text x="${x + boxW / 2}" y="${y + 62}" text-anchor="middle" font-size="10" fill="#8b949e">${s.sub}</text>
+        <text x="${x + boxW / 2}" y="${y + 46}" text-anchor="middle" font-size="12" font-weight="700" fill="${cssVar('--text-primary', '#ececed')}">${s.label}</text>
+        <text x="${x + boxW / 2}" y="${y + 62}" text-anchor="middle" font-size="10" fill="${cssVar('--text-dim', '#94949b')}">${s.sub}</text>
       </g>`;
     });
     const covText = cov == null ? '' :
       `<text x="${W / 2}" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="${okColor}">탐지 커버리지 ${cov}% (${passed}/${ran} PASS)</text>`;
     svg.innerHTML = `<defs><marker id="pt-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L6,3 L0,6 Z" fill="${active ? okColor : '#30363d'}"/></marker></defs>${covText}${parts}`;
+        <path d="M0,0 L6,3 L0,6 Z" fill="${active ? okColor : cssVar('--border', '#2c2c31')}"/></marker></defs>${covText}${parts}`;
   }
 
   socket.on('purple_run', () => {

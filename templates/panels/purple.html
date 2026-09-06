@@ -1,18 +1,18 @@
     <!-- ════ 퍼플팀 검증 패널 ════ -->
     <div id="panel-purple" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-flask-vial me-2 text-purple"></i>퍼플팀 공격 시뮬레이션 — 탐지 검증
-        <span class="badge ms-2" id="purple-cov-badge" style="background:#30363d">커버리지 -</span>
+        <span class="badge ms-2" id="purple-cov-badge" style="background:var(--border)">커버리지 -</span>
         <button class="btn btn-xs btn-outline-purple ms-auto" onclick="runPurpleAll()">
           <i class="fa fa-play me-1"></i>전체 실행
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--purple">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-purple me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           안전한 <strong>모의 공격</strong>(리버스셸·웹셸·마이너·스캐너·브루트포스·악성IP 통신)을 실제 탐지 엔진에 주입해
           <strong>구축한 탐지 파이프라인(Sigma·EDR·auth.log·평판·네트워크)이 정말 잡는지 검증</strong>합니다.
           잡으면 <span class="text-success">PASS</span>, 놓치면 <span class="text-danger">FAIL</span> → 탐지 커버리지(%).
@@ -22,7 +22,7 @@
 
       <!-- 공격 → 탐지 흐름 시각화 -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-diagram-project text-purple me-2"></i>공격 → 탐지 파이프라인 흐름</div>
+        <h3 class="card-panel-header"><i class="fa fa-diagram-project text-purple me-2"></i>공격 → 탐지 파이프라인 흐름</h3>
         <div style="overflow-x:auto"><svg id="purple-flow" width="100%" height="150" style="min-width:720px"></svg></div>
       </div>
 
@@ -38,7 +38,7 @@
       </div>
 
       <div class="card-panel">
-        <div class="card-panel-header"><i class="fa fa-list-check text-purple me-2"></i>시나리오별 결과</div>
+        <h3 class="card-panel-header"><i class="fa fa-list-check text-purple me-2"></i>시나리오별 결과</h3>
         <div class="table-responsive">
           <table class="table table-dark table-sm mb-0" style="font-size:12.5px">
             <thead><tr><th>결과</th><th>공격 시나리오</th><th>MITRE</th><th>기대 탐지기</th><th>탐지 상세</th><th></th></tr></thead>

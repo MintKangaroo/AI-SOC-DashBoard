@@ -2,7 +2,7 @@
     <div id="panel-myinfo" class="panel-section d-none">
       <div class="panel-title d-flex align-items-center">
         <i class="fa fa-id-card me-2 text-cyan"></i>내 정보 (시스템 · 네트워크)
-        <span class="ms-auto small" style="color:#e6edf3" id="myinfo-last-update">최종 조회 —</span>
+        <span class="ms-auto small" style="color:var(--text-primary)" id="myinfo-last-update">최종 조회 —</span>
         <button class="btn btn-sm btn-outline-cyan ms-3" onclick="loadMyInfo(true)">
           <i class="fa fa-rotate-right me-1"></i>새로고침
         </button>
@@ -10,10 +10,10 @@
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           현재 대시보드가 돌아가는 <strong>내 PC</strong>의 식별 정보를 한곳에 모아두는 탭입니다.
           <strong>공인 IP</strong>는 외부에서 나를 보는 주소이고, <strong>사설 IP</strong>는 내부 네트워크 주소입니다.
           로그에 이 IP가 <em>공격자/대상</em>으로 찍힌다면 <span class="text-danger">내 장비에 의심 트래픽</span>이 발생한 것이니 <strong>패킷 분석</strong>·<strong>Sysmon</strong> 탭에서 교차 확인하세요.
@@ -55,7 +55,7 @@
       <div class="row g-3">
         <div class="col-lg-6">
           <div class="card-panel h-100">
-            <div class="card-panel-header"><i class="fa fa-microchip me-2 text-cyan"></i>시스템</div>
+            <h3 class="card-panel-header"><i class="fa fa-microchip me-2 text-cyan"></i>시스템</h3>
             <div class="kv-grid" id="myinfo-system-grid">
               <div class="kv-placeholder">로딩중…</div>
             </div>
@@ -63,7 +63,7 @@
         </div>
         <div class="col-lg-6">
           <div class="card-panel h-100">
-            <div class="card-panel-header"><i class="fa fa-gauge me-2 text-cyan"></i>리소스</div>
+            <h3 class="card-panel-header"><i class="fa fa-gauge me-2 text-cyan"></i>리소스</h3>
             <div id="myinfo-resource-box">
               <div class="kv-placeholder">로딩중…</div>
             </div>
@@ -73,7 +73,7 @@
 
       <!-- 네트워크 인터페이스 -->
       <div class="card-panel mt-3">
-        <div class="card-panel-header"><i class="fa fa-ethernet me-2 text-cyan"></i>네트워크 인터페이스</div>
+        <h3 class="card-panel-header"><i class="fa fa-ethernet me-2 text-cyan"></i>네트워크 인터페이스</h3>
         <div id="myinfo-iface-list">
           <div class="kv-placeholder">로딩중…</div>
         </div>

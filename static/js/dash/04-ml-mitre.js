@@ -19,8 +19,8 @@
         animation:false,
         plugins:{ legend:{ display:false } },
         scales: {
-          x:{ ticks:{color:'#8b949e',font:{size:9},maxTicksLimit:8}, grid:{color:'#21262d'} },
-          y:{ ticks:{color:'#8b949e',font:{size:9}}, grid:{color:'#21262d'} },
+          x:{ ticks:{color:cssVar('--text-dim', '#94949b'),font:{size:9},maxTicksLimit:8}, grid:{color:cssVar('--bg-hover', '#202024')} },
+          y:{ ticks:{color:cssVar('--text-dim', '#94949b'),font:{size:9}}, grid:{color:cssVar('--bg-hover', '#202024')} },
         },
       },
     });
@@ -93,12 +93,12 @@
     const score = data.isolation_forest?.score;
     const div = document.createElement('div');
     div.className = 'd-flex gap-3 py-1 border-bottom border-secondary align-items-center';
-    div.setAttribute('style', 'color:#e6edf3');
+    div.setAttribute('style', 'color:var(--text-primary)');
     div.innerHTML = `
-      <span style="min-width:60px;color:#e6edf3">${escapeHtml(data.timestamp?.split(' ')[1] || '')}</span>
+      <span style="min-width:60px;color:var(--text-primary)">${escapeHtml(data.timestamp?.split(' ')[1] || '')}</span>
       <span>${sevBadge(sev)}</span>
-      <span style="color:#e6edf3">IF 점수: <strong>${score !== undefined ? score : '-'}</strong></span>
-      <span style="color:#e6edf3">탐지: ${escapeHtml(threats)}</span>`;
+      <span style="color:var(--text-primary)">IF 점수: <strong>${score !== undefined ? score : '-'}</strong></span>
+      <span style="color:var(--text-primary)">탐지: ${escapeHtml(threats)}</span>`;
     log.insertBefore(div, log.firstChild);
     while (log.children.length > 30) log.removeChild(log.lastChild);
   }
@@ -195,18 +195,18 @@
                 : sev === 'MEDIUM'   ? 'badge bg-warning text-dark'
                 : 'badge bg-secondary';
     const time = (e.timestamp || '').split(' ')[1] || e.timestamp || '';
-    return `<tr style="color:#e6edf3">
-      <td style="font-size:11px;color:#e6edf3">${time}</td>
+    return `<tr style="color:var(--text-primary)">
+      <td style="font-size:11px;color:var(--text-primary)">${time}</td>
       <td><span class="${sevCls}" style="font-size:10px">${sev}</span></td>
-      <td><span class="small" style="color:#e6edf3">${escapeHtml(e.tactic_ko || e.tactic_id || '')}</span></td>
+      <td><span class="small" style="color:var(--text-primary)">${escapeHtml(e.tactic_ko || e.tactic_id || '')}</span></td>
       <td>
         <a href="javascript:;" onclick="showTechniqueDetail('${escapeHtml(e.technique_id)}')" class="text-info font-monospace me-1">${escapeHtml(e.technique_id)}</a>
-        <span class="small" style="color:#e6edf3">${escapeHtml(e.technique_ko || '')}</span>
+        <span class="small" style="color:var(--text-primary)">${escapeHtml(e.technique_ko || '')}</span>
       </td>
-      <td class="font-monospace small" style="color:#e6edf3">${e.src_ip || '-'}</td>
-      <td class="font-monospace small" style="color:#e6edf3">${e.dst_ip || '-'}</td>
-      <td class="small" style="color:#e6edf3">${e.process || '-'}</td>
-      <td class="small" style="color:#e6edf3">${escapeHtml(e.description || '')}</td>
+      <td class="font-monospace small" style="color:var(--text-primary)">${e.src_ip || '-'}</td>
+      <td class="font-monospace small" style="color:var(--text-primary)">${e.dst_ip || '-'}</td>
+      <td class="small" style="color:var(--text-primary)">${e.process || '-'}</td>
+      <td class="small" style="color:var(--text-primary)">${escapeHtml(e.description || '')}</td>
     </tr>`;
   }
 
@@ -399,15 +399,15 @@
           : '<div class="text-muted">권고사항 없음</div>';
 
         body.innerHTML = `
-          <div class="mb-3" style="color:#e6edf3">${escapeHtml(d.description||'')}</div>
+          <div class="mb-3" style="color:var(--text-primary)">${escapeHtml(d.description||'')}</div>
           <div class="row g-3 mb-3">
             <div class="col-sm-4"><div class="stat-card stat-sm border-danger">
               <div class="stat-value">${(d.total_count||0).toLocaleString()}</div>
               <div class="stat-label">총 탐지 건수</div>
             </div></div>
             <div class="col-sm-8"><div class="p-2" style="background:rgba(255,255,255,.03);border-radius:6px">
-              <div class="small mb-1" style="color:#e6edf3">심각도 분포</div>
-              <div>${sevHtml || '<span style="color:#e6edf3">-</span>'}</div>
+              <div class="small mb-1" style="color:var(--text-primary)">심각도 분포</div>
+              <div>${sevHtml || '<span style="color:var(--text-primary)">-</span>'}</div>
             </div></div>
           </div>
 

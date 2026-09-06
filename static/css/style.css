@@ -9,7 +9,7 @@
      남아 값이 보이지 않았다. 색 규칙보다 먼저 와야 하는 선언이다. */
   color-scheme: dark;
 
-  /* 중립 블랙 계열. 이전 팔레트(GitHub 다크: #0a0a0b/#17171a)는 파랑 성분이
+  /* 중립 블랙 계열. 이전 팔레트(GitHub 다크: var(--bg-primary)/var(--bg-card))는 파랑 성분이
      섞여 있어 네이비로 읽혔다. 색상 성분을 빼고 명도만으로 층을 나눈다 —
      관제 화면은 심각도 색(빨강·주황·노랑)이 정보를 나르므로, 배경이 색을
      띠면 그 신호와 경쟁한다. */
@@ -34,6 +34,18 @@
 
   /* 패널 안내 카드의 강조색. 각 패널이 --note-accent 만 바꿔 쓴다. */
   --note-accent:  var(--cyan);
+
+  /* 아래 넷은 값이 여러 곳에 흩어져 있던 것을 이름으로 모은 것이다. 이름이
+     없으면 다음에 팔레트를 바꿀 때 함께 움직이지 않고 혼자 남는다. */
+  --text-dim:     #94949b;   /* muted 보다 한 단계 더 약한 보조 텍스트 */
+  --text-soft:    #d4d4d6;   /* 본문보다 살짝 눌린 텍스트 */
+  --disabled:     #54545c;   /* 비활성·꺼진 상태 (본문 대비 기준 밖) */
+  --on-accent:    #001417;   /* 청록 버튼 위 글자 — 청록에 검정을 섞은 값 */
+
+  /* var(--muted) 로 쓰이던 이름이 정의된 적이 없어 조용히 상속색으로 떨어졌다.
+     실제 의도는 muted 였으므로 별칭으로 남겨 두되, 새 코드는 --text-muted 를
+     쓴다. */
+  --muted:        var(--text-muted);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -49,7 +61,7 @@ html, body {
 
 /* ── Navbar ── */
 .navbar-soc {
-  background: #0a0a0b;
+  background: var(--bg-primary);
   border-bottom: 1px solid var(--border);
   height: 56px;
   z-index: 1000;
@@ -62,8 +74,9 @@ html, body {
 .text-muted, .text-secondary,
 .text-body-secondary { color: var(--text-muted) !important; }
 .bg-purple   { background: var(--purple) !important; }
-.btn-purple  { background: var(--purple); color: #fff; border: none; }
-.btn-purple:hover { background: #8565e0; color: #fff; }
+.btn-purple  { background: var(--purple); color: var(--bg-primary); border: none; }
+/* 보라 위 흰 글자는 3.26:1 로 미달이었다(검정은 6.08:1). */
+.btn-purple:hover { background: #8565e0; color: var(--bg-primary); }  /* 흰 글자는 4.26:1 로 미달 */
 .btn-outline-cyan {
   border-color: var(--cyan); color: var(--cyan);
 }
@@ -71,9 +84,9 @@ html, body {
   background: var(--cyan); color: #000;
 }
 .btn-cyan {
-  background: var(--cyan); border-color: var(--cyan); color: #001417; font-weight: 600;
+  background: var(--cyan); border-color: var(--cyan); color: var(--on-accent); font-weight: 600;
 }
-.btn-cyan:hover { background: #5ee0e8; border-color: #5ee0e8; color: #001417; }
+.btn-cyan:hover { background: #5ee0e8; border-color: #5ee0e8; color: var(--on-accent); }
 
 /* ── 킬체인 캠페인 진행도 ── */
 .camp-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; }
@@ -155,6 +168,10 @@ html, body {
 
 /* ── Main Content ── */
 .main-content { background: var(--bg-primary); }
+
+/* h2/h3 로 승격했다(스크린리더가 헤딩 목록으로 화면을 훑을 수 있어야 한다).
+   브라우저 기본 헤딩 여백·크기를 여기서 눌러 겉모습은 그대로 둔다. */
+.panel-title, .card-panel-header { margin-top: 0; }
 
 .panel-title {
   font-size: 15px;
@@ -258,7 +275,7 @@ html, body {
 
 /* 최근 위협 알림 — 본문 글씨 밝게 */
 .recent-alerts-white .alert-item,
-.recent-alerts-white .alert-item .text-muted { color: #ececed !important; }
+.recent-alerts-white .alert-item .text-muted { color: var(--text-primary) !important; }
 .recent-alerts-white .alert-item .text-muted { opacity: .75; }
 
 /* ── Alert List (overview) ── */
@@ -298,7 +315,7 @@ html, body {
 
 /* ── Tables ── */
 .table-dark { background: var(--bg-card); color: var(--text-primary); }
-.table-dark th { background: #17171a; color: var(--text-muted); font-size: 11px; text-transform: uppercase; border-color: var(--border) !important; font-weight: 600; }
+.table-dark th { background: var(--bg-card); color: var(--text-muted); font-size: 11px; text-transform: uppercase; border-color: var(--border) !important; font-weight: 600; }
 .table-dark td { border-color: var(--border) !important; vertical-align: middle; font-size: 12px; }
 .table-dark tbody tr:hover td { background: var(--bg-hover) !important; }
 .table-monospace td { font-family: 'Cascadia Code', 'Consolas', monospace; }
@@ -312,12 +329,17 @@ html, body {
 .paginate_button.current { background: var(--cyan) !important; color: #000 !important; border-color: var(--cyan) !important; border-radius: 4px; }
 
 /* ── Badge Severities ── */
-.sev-CRITICAL { background: var(--red);    color: #fff; }
+/* 심각도 뱃지는 색 자체가 정보다. 그래서 색조는 그대로 두고 **글자색만** 맞춘다.
+   측정: 흰 글자 기준 CRITICAL 3.35:1 · LOW 2.53:1 로 AA(4.5:1) 미달이었다.
+   가장 급한 알림의 라벨이 가장 안 읽히는 상태였다. 검정 글자로 바꾸면
+   CRITICAL 5.90 · HIGH 8.43 · MEDIUM 10.17 · LOW 7.83 로 넷 다 통과하고,
+   HIGH·MEDIUM 이 이미 검정이었으므로 네 단계가 같은 규칙을 따르게 된다. */
+.sev-CRITICAL { background: var(--red);    color: var(--bg-primary); }
 .sev-HIGH     { background: var(--orange); color: #000; }
 .sev-MEDIUM   { background: var(--yellow); color: #000; }
-.sev-LOW      { background: var(--blue);   color: #fff; }
+.sev-LOW      { background: var(--blue);   color: var(--bg-primary); }
 .sev-INFO     { background: #4d5562;       color: #fff; }
-.sev-NORMAL   { background: var(--green);  color: #fff; }
+.sev-NORMAL   { background: var(--green);  color: var(--bg-primary); }
 
 /* ── Chat ── */
 .chat-box { background: var(--bg-primary); border-radius: 6px; padding: 10px; }
@@ -404,15 +426,15 @@ html, body {
   letter-spacing: .05em;
 }
 #threat-level-badge.level-critical {
-  background: #f85149 !important;
+  background: var(--red) !important;
   animation: pulseRed 1.5s infinite;
 }
-#threat-level-badge.level-high    { background: #f79000 !important; }
-#threat-level-badge.level-medium  { background: #e3b341 !important; color:#000 !important; }
-#threat-level-badge.level-low     { background: #3fb950 !important; }
+#threat-level-badge.level-high    { background: var(--orange) !important; }
+#threat-level-badge.level-medium  { background: var(--yellow) !important; color:#000 !important; }
+#threat-level-badge.level-low     { background: var(--green) !important; }
 
-.ml-status-overview .badge.bg-success { background: #3fb950 !important; }
-.ml-status-overview .badge.bg-danger  { background: #f85149 !important; }
+.ml-status-overview .badge.bg-success { background: var(--green) !important; }
+.ml-status-overview .badge.bg-danger  { background: var(--red) !important; }
 
 /* 개요: 분석가 우선 처리 큐 */
 .priority-list { max-height: 220px; overflow-y: auto; }
@@ -422,7 +444,7 @@ html, body {
 }
 .priority-item:last-child { border-bottom: 0; }
 .priority-item:hover { background: rgba(57, 208, 216, .06); }
-.priority-item .priority-title { color: #ececed; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.priority-item .priority-title { color: var(--text-primary); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .priority-item .priority-meta { color: var(--muted); font-size: 10px; }
 .priority-item .priority-count { align-self: center; font-size: 12px; color: var(--orange); }
 
@@ -432,8 +454,8 @@ html, body {
 .soar-run:last-child { border-bottom: 0; }
 .soar-run-steps { display: flex; gap: 5px; align-items: stretch; overflow-x: auto; padding-top: 7px; }
 .soar-run-step { min-width: 100px; flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 5px; font-size: 9px; color: var(--muted); }
-.soar-run-step.completed { border-color: #3fb950; color: #b7e4c1; background: rgba(63,185,80,.09); }
-.soar-run-step.running { border-color: var(--cyan); color: #ececed; background: rgba(57,208,216,.13); box-shadow: 0 0 10px rgba(57,208,216,.2); }
+.soar-run-step.completed { border-color: var(--green); color: #b7e4c1; background: rgba(63,185,80,.09); }
+.soar-run-step.running { border-color: var(--cyan); color: var(--text-primary); background: rgba(57,208,216,.13); box-shadow: 0 0 10px rgba(57,208,216,.2); }
 .soar-run-step.failed { border-color: var(--red); color: #ffb3ad; background: rgba(248,81,73,.1); }
 .soar-run-step.skipped { opacity: .55; border-style: dashed; }
 .soar-run-step .step-state { display:block; font-size:8px; text-transform:uppercase; margin-bottom:2px; }
@@ -497,7 +519,21 @@ html, body {
 .connection-info code { color: var(--cyan); }
 
 /* ── Misc ── */
-.btn-xs { font-size: 11px; padding: 2px 8px; }
+/* 조작부 최소 크기.
+   실측: .btn-xs 가 약 20px 높이였다. 알림 표는 **행마다 이 버튼이 4개**라
+   마우스로도 정확히 누르기 어렵다. WCAG 2.5.8(AA)의 최소 24×24 를 지킨다.
+   44px 로 키우지 않는 이유: 관제 표는 밀도가 곧 값어치라 한 화면에 들어오는
+   행 수가 줄면 도구가 나빠진다. 대신 손가락으로 쓰는 기기에서는 아래
+   (pointer: coarse) 블록이 44px 로 키운다 — 입력 수단에 맞춰 나눈다. */
+.btn-xs {
+  font-size: 11px;
+  padding: 3px 8px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
 .panel-section { animation: fadeIn .2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
@@ -505,7 +541,7 @@ html, body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #54545c; }
+::-webkit-scrollbar-thumb:hover { background: var(--disabled); }
 
 /* ── MITRE ATT&CK 매트릭스 ── */
 .mitre-matrix-wrapper {
@@ -551,11 +587,11 @@ html, body {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   font-size: 10.5px;
-  color: #ececed;
+  color: var(--text-primary);
   cursor: default;
   transition: all .1s;
 }
-.mitre-technique .tech-name { color: #ececed; }
+.mitre-technique .tech-name { color: var(--text-primary); }
 .mitre-technique:last-child { border-bottom: none; }
 .mitre-technique:hover { background: var(--bg-hover); color: var(--text-primary); }
 .mitre-technique .tech-id {
@@ -687,11 +723,11 @@ html, body {
 .ti-match-item:last-child { border-bottom: none !important; }
 
 /* 범용 주황색 강조 (theme별) */
-.text-orange   { color: #f79000 !important; }
-.bg-orange     { background-color: #f79000 !important; color: #000; }
-.border-orange { border-color: #f79000 !important; }
+.text-orange   { color: var(--orange) !important; }
+.bg-orange     { background-color: var(--orange) !important; color: #000; }
+.border-orange { border-color: var(--orange) !important; }
 
-.text-red      { color: #f85149 !important; }
+.text-red      { color: var(--red) !important; }
 
 /* MITRE Top / Recent lists */
 .mitre-top-item {
@@ -713,7 +749,7 @@ html, body {
 }
 .mitre-top-item .bar {
   height: 100%;
-  background: linear-gradient(90deg, #f79000, #f85149);
+  background: linear-gradient(90deg, var(--orange), var(--red));
 }
 .mitre-top-item .count { text-align: right; color: var(--red); font-weight: 700; font-size: 11px; }
 
@@ -802,9 +838,9 @@ body::before {
   display: inline-block;
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #3fb950;
+  background: var(--green);
   margin-right: 5px;
-  box-shadow: 0 0 8px #3fb950;
+  box-shadow: 0 0 8px var(--green);
   animation: liveDot 1.5s infinite;
 }
 @keyframes liveDot {
@@ -984,13 +1020,13 @@ body::before {
 .myinfo-hero-ip {
   font-size: 36px;
   font-weight: 800;
-  color: #39d0d8;
+  color: var(--cyan);
   text-shadow: 0 0 18px rgba(57,208,216,.45);
   line-height: 1.1;
   letter-spacing: .02em;
 }
 .myinfo-hero-sub {
-  color: #ececed;
+  color: var(--text-primary);
   font-size: 12px;
   opacity: .9;
 }
@@ -1009,21 +1045,21 @@ body::before {
   min-height: 86px;
 }
 .myinfo-mini-label {
-  color: #94949b;
+  color: var(--text-dim);
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 .myinfo-mini-val {
-  color: #ececed;
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
   word-break: break-all;
 }
 .myinfo-mini-sub {
-  color: #94949b;
+  color: var(--text-dim);
   font-size: 11px;
   margin-top: 2px;
 }
@@ -1047,19 +1083,19 @@ body::before {
 }
 .kv-row:hover { background: rgba(57,208,216,.06); }
 .kv-key {
-  color: #94949b;
+  color: var(--text-dim);
   font-size: 11.5px;
   display: flex; align-items: center; gap: 8px;
 }
 .kv-key i { color: var(--cyan); width: 14px; text-align: center; }
 .kv-val {
-  color: #ececed;
+  color: var(--text-primary);
   font-size: 12.5px;
   word-break: break-all;
 }
 .kv-placeholder {
   text-align: center;
-  color: #94949b;
+  color: var(--text-dim);
   padding: 20px;
   font-size: 12px;
 }
@@ -1069,7 +1105,7 @@ body::before {
 .res-item { display: flex; flex-direction: column; gap: 4px; }
 .res-head {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 12.5px; color: #ececed;
+  font-size: 12.5px; color: var(--text-primary);
 }
 .res-bar {
   height: 8px;
@@ -1086,14 +1122,14 @@ body::before {
      width 전이라 레이아웃 비용만 냈다. */
   box-shadow: 0 0 8px rgba(57,208,216,.3);
 }
-.res-fill.bar-low  { background: linear-gradient(90deg, #3fb950, #39d0d8); }
-.res-fill.bar-mid  { background: linear-gradient(90deg, #e3b341, #f79000); }
+.res-fill.bar-low  { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+.res-fill.bar-mid  { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
 .res-fill.bar-high {
-  background: linear-gradient(90deg, #f79000, #f85149);
+  background: linear-gradient(90deg, var(--orange), var(--red));
   box-shadow: 0 0 12px rgba(248,81,73,.5);
 }
 .res-foot {
-  font-size: 10.5px; color: #94949b;
+  font-size: 10.5px; color: var(--text-dim);
   text-align: right;
 }
 
@@ -1108,16 +1144,19 @@ body::before {
   border: 1px solid rgba(255,255,255,.06);
   border-radius: 8px;
   padding: 10px 12px;
-  transition: all .15s;
-  border-left: 3px solid #54545c;
+  /* transition: all 은 레이아웃 속성까지 전이 대상으로 잡는다 — 바뀌는 것만
+     명시한다(hover 에서 실제로 바뀌는 건 테두리색·그림자·위치다). */
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 .iface-card:hover {
   border-color: rgba(57,208,216,.25);
   transform: translateY(-1px);
   box-shadow: var(--shadow-soft);
 }
-.iface-card.up   { border-left-color: #3fb950; }
-.iface-card.down { border-left-color: #54545c; opacity: .7; }
+/* 상태는 카드 안의 점(.iface-dot)이 이미 말하고 있다. 좌측 띠까지 쓰면 같은
+   정보를 두 번 말하면서 이 화면에서 심각도가 쓰는 언어와 겹친다. */
+.iface-card.up   { border-color: color-mix(in srgb, var(--green) 35%, var(--border)); }
+.iface-card.down { opacity: .7; }
 .iface-head {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 8px;
@@ -1126,16 +1165,16 @@ body::before {
 }
 .iface-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #54545c;
+  background: var(--disabled);
 }
 .iface-card.up .iface-dot {
-  background: #3fb950;
-  box-shadow: 0 0 8px #3fb950;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
   animation: liveDot 2s infinite;
 }
 .iface-name {
   flex: 1;
-  color: #ececed;
+  color: var(--text-primary);
   font-size: 12.5px;
   font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1147,8 +1186,8 @@ body::before {
   border-radius: 10px;
   letter-spacing: .05em;
 }
-.iface-card.up   .iface-status { background: rgba(63,185,80,.18);  color: #3fb950; }
-.iface-card.down .iface-status { background: rgba(139,148,158,.2); color: #94949b; }
+.iface-card.up   .iface-status { background: rgba(63,185,80,.18);  color: var(--green); }
+.iface-card.down .iface-status { background: rgba(139,148,158,.2); color: var(--text-dim); }
 .iface-row {
   display: grid;
   grid-template-columns: 44px 1fr;
@@ -1156,9 +1195,9 @@ body::before {
   padding: 3px 0;
   font-size: 11.5px;
 }
-.iface-k { color: #94949b; font-size: 10.5px; }
+.iface-k { color: var(--text-dim); font-size: 10.5px; }
 .iface-v {
-  color: #ececed;
+  color: var(--text-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -1223,7 +1262,7 @@ body::before {
 .lv-kind.k-ti    { background: rgba(247,144,0,.18); color: var(--orange); }
 .lv-kind.k-auth  { background: rgba(88,166,255,.15); color: var(--blue); }
 .lv-kind.k-rep   { background: rgba(247,144,0,.22); color: var(--orange); }
-.lv-kind.k-edr   { background: rgba(88,166,255,.22); color: var(--info, #58a6ff); }
+.lv-kind.k-edr   { background: rgba(88,166,255,.22); color: var(--info, var(--blue)); }
 .lv-kind.k-net   { background: rgba(57,208,216,.15); color: var(--cyan); }
 .lv-kind.k-sigma { background: rgba(157,121,242,.18); color: var(--purple); }
 .lv-bar.b-critical { background: var(--red); }
@@ -1242,7 +1281,7 @@ body::before {
   border-radius: 5px;
 }
 .live-filter:hover { border-color: var(--cyan); color: var(--cyan); }
-.live-filter.active { background: var(--cyan); border-color: var(--cyan); color: #001417; font-weight: 600; }
+.live-filter.active { background: var(--cyan); border-color: var(--cyan); color: var(--on-accent); font-weight: 600; }
 
 /* ══════════════════════════════════════════
    모바일 반응형 (Tailscale 모바일 접속 대응)
@@ -1496,28 +1535,28 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   overflow: hidden; background: rgba(255,255,255,.02);
 }
 .pb-step-kind {
-  font-size: 8.5px; font-weight: 700; color: #0a0a0b;
+  font-size: 8.5px; font-weight: 700; color: var(--bg-primary);
   padding: 1px 5px; letter-spacing: .5px;
 }
 .pb-step-label {
-  font-size: 10.5px; color: #d4d4d6; padding: 4px 6px; line-height: 1.35;
+  font-size: 10.5px; color: var(--text-soft); padding: 4px 6px; line-height: 1.35;
 }
 .pb-arrow { align-self: center; color: #6e7681; font-weight: 700; padding: 0 1px; }
 
 /* ══════════════ SIEM — Splunk 스타일 검색 UI ══════════════ */
 .spl-searchbar {
   display: flex; align-items: center; gap: 8px;
-  background: #0a0a0b; border: 1px solid #33333a; border-radius: 6px;
+  background: var(--bg-primary); border: 1px solid #33333a; border-radius: 6px;
   padding: 8px 12px; margin-bottom: 8px;
 }
-.spl-prompt { color: #39d0d8; font-family: monospace; font-weight: 700; }
+.spl-prompt { color: var(--cyan); font-family: monospace; font-weight: 700; }
 .spl-search-input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: #ececed; font-family: monospace; font-size: 13px;
+  color: var(--text-primary); font-family: monospace; font-size: 13px;
 }
 .spl-search-input::placeholder { color: #6e7681; }
 .spl-timerange {
-  background: #121214; color: #d4d4d6; border: 1px solid #33333a;
+  background: var(--bg-secondary); color: var(--text-soft); border: 1px solid #33333a;
   border-radius: 5px; font-size: 12px; padding: 4px 8px;
 }
 .spl-search-btn {
@@ -1527,38 +1566,38 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .spl-search-btn:hover { background: #2ea043; }
 .spl-resultbar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 12px; color: #b4b4b8; padding: 4px 4px 8px; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted); padding: 4px 4px 8px; border-bottom: 1px solid var(--border);
 }
-.spl-resultbar b { color: #ececed; }
+.spl-resultbar b { color: var(--text-primary); }
 .spl-sep { color: #3d444d; }
 
 .spl-timeline-card {
-  background: #0a0a0b; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;
   padding: 8px 10px; margin-top: 10px;
 }
-.spl-timeline-head { font-size: 11px; color: #d4d4d6; margin-bottom: 2px; }
+.spl-timeline-head { font-size: 11px; color: var(--text-soft); margin-bottom: 2px; }
 
 /* 필드 사이드바 */
 .spl-fields, .spl-events {
-  background: #0a0a0b; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
 }
 .spl-fields-head, .spl-events-head {
-  display: flex; align-items: center; background: #121214; color: #94949b;
+  display: flex; align-items: center; background: var(--bg-secondary); color: var(--text-dim);
   font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 7px 10px;
   border-bottom: 1px solid var(--border);
 }
 .spl-field { border-bottom: 1px solid var(--border); padding: 6px 10px; }
-.spl-field-name { font-size: 11px; color: #58a6ff; font-weight: 600; margin-bottom: 3px; }
+.spl-field-name { font-size: 11px; color: var(--blue); font-weight: 600; margin-bottom: 3px; }
 .spl-field-distinct {
-  background: #202024; color: #94949b; border-radius: 8px; font-size: 9px;
+  background: var(--bg-hover); color: var(--text-dim); border-radius: 8px; font-size: 9px;
   padding: 0 6px; margin-left: 4px;
 }
 .spl-field-val {
   display: flex; justify-content: space-between; font-size: 11px;
   padding: 2px 4px; cursor: pointer; border-radius: 3px;
 }
-.spl-field-val:hover { background: #121214; }
-.spl-field-v { color: #d4d4d6; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.spl-field-val:hover { background: var(--bg-secondary); }
+.spl-field-v { color: var(--text-soft); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 .spl-field-c { color: #6e7681; }
 
 /* raw 이벤트 스트림 */
@@ -1566,11 +1605,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 /* 행마다 초록 띠가 붙어 있었는데, 정작 의심 이벤트(.spl-event-susp)는 옅은
    배경뿐이라 정상 행이 더 눈에 띄었다. 기본은 조용히, 의심 행만 드러낸다. */
 .spl-event {
-  border-bottom: 1px solid #121214;
+  border-bottom: 1px solid var(--bg-secondary);
   padding: 6px 10px 6px 12px; cursor: pointer;
   position: relative;
 }
-.spl-event:hover { background: #121214; }
+.spl-event:hover { background: var(--bg-secondary); }
 .spl-event-susp {
   background: rgba(248,81,73,.07);
   box-shadow: inset 2px 0 0 var(--red);
@@ -1578,21 +1617,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .spl-event-top { display: flex; align-items: baseline; gap: 10px; }
 .spl-ts { color: #7ee787; font-family: monospace; font-size: 11px; white-space: nowrap; }
 .spl-raw {
-  flex: 1; color: #d4d4d6; font-family: monospace; font-size: 12px;
+  flex: 1; color: var(--text-soft); font-family: monospace; font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.spl-sev { color: #0a0a0b; font-size: 8.5px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.spl-sev { color: var(--bg-primary); font-size: 8.5px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
 .spl-event-fields { display: none; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding-left: 4px; }
 .spl-event.open .spl-event-fields { display: flex; }
 .spl-event.open .spl-raw { white-space: normal; }
 .spl-fv {
-  font-family: monospace; font-size: 10.5px; color: #94949b;
-  background: #121214; border: 1px solid var(--border); border-radius: 3px;
+  font-family: monospace; font-size: 10.5px; color: var(--text-dim);
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 3px;
   padding: 1px 6px; cursor: pointer;
 }
-.spl-fv:hover { border-color: #58a6ff; }
-.spl-fk { color: #58a6ff; }
-.spl-fvv { color: #ececed; }
+.spl-fv:hover { border-color: var(--blue); }
+.spl-fk { color: var(--blue); }
+.spl-fvv { color: var(--text-primary); }
 
 /* 탐지 커버리지 자가 진단 (docs/AUDIT.md 3단계 제안 A) */
 .cov-legend { display:inline-block; width:16px; height:10px; vertical-align:middle;
@@ -1601,39 +1640,39 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .cov-legend.cov-rule      { background:rgba(210,153,34,.45); }
 .cov-legend.cov-gap       { background:rgba(248,81,73,.30); }
 /* 매트릭스 셀에 커버리지 상태를 덧입힌다 (히트 색과 배타적으로 적용) */
-.mitre-technique.cov-validated { background:rgba(63,185,80,.18)  !important; border-color:#3fb950 !important; }
-.mitre-technique.cov-rule      { background:rgba(210,153,34,.16) !important; border-color:#d29922 !important; }
+.mitre-technique.cov-validated { background:rgba(63,185,80,.18)  !important; border-color:var(--green) !important; }
+.mitre-technique.cov-rule      { background:rgba(210,153,34,.16) !important; border-color:var(--warning) !important; }
 .mitre-technique.cov-gap       { background:rgba(248,81,73,.10)  !important; border-color:rgba(248,81,73,.45) !important;
                                  border-style:dashed !important; opacity:.75; }
 .cov-gap-row { display:flex; gap:8px; padding:3px 6px; border-bottom:1px solid var(--border); }
-.cov-gap-row .tac  { min-width:92px; color:#94949b; }
-.cov-gap-row .tid  { min-width:64px; font-family:monospace; color:#f85149; }
-.cov-gap-row .tko  { color:#ececed; }
+.cov-gap-row .tac  { min-width:92px; color:var(--text-dim); }
+.cov-gap-row .tid  { min-width:64px; font-family:monospace; color:var(--red); }
+.cov-gap-row .tko  { color:var(--text-primary); }
 
 /* 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) */
 .bd-gate { display:inline-block; padding:1px 6px; margin:1px 2px 1px 0; border-radius:3px;
            font-size:10px; border:1px solid transparent; }
-.bd-gate.pass { background:rgba(63,185,80,.15);  border-color:#3fb950; color:#b7e4c1; }
-.bd-gate.fail { background:rgba(248,81,73,.15);  border-color:#f85149; color:#ffb3ad; }
+.bd-gate.pass { background:rgba(63,185,80,.15);  border-color:var(--green); color:#b7e4c1; }
+.bd-gate.fail { background:rgba(248,81,73,.15);  border-color:var(--red); color:#ffb3ad; }
 .bd-replay { border:1px solid var(--border); border-radius:6px; padding:8px; margin-top:6px; }
-.bd-replay .flip { color:#d29922; font-weight:700; }
+.bd-replay .flip { color:var(--warning); font-weight:700; }
 
 /* 자기 관측성 (docs/AUDIT.md 3단계 제안 B) */
 .tel-probe { display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; border-radius:4px;
-             border:1px solid var(--border); font-size:11px; color:#ececed; }
-.tel-probe.warn { border-color:#d29922; background:rgba(210,153,34,.12); color:#f0c674; }
+             border:1px solid var(--border); font-size:11px; color:var(--text-primary); }
+.tel-probe.warn { border-color:var(--warning); background:rgba(210,153,34,.12); color:#f0c674; }
 .tel-probe .v { font-family:monospace; font-weight:700; margin-left:4px; }
-.tel-slow { color:#d29922; font-weight:700; }
-.tel-fail { color:#f85149; font-weight:700; }
+.tel-slow { color:var(--warning); font-weight:700; }
+.tel-fail { color:var(--red); font-weight:700; }
 .tel-spark { display:inline-flex; align-items:flex-end; gap:1px; height:16px; }
-.tel-spark i { display:block; width:2px; background:#39d0d8; opacity:.75; }
-.tel-spark.slow i { background:#d29922; }
+.tel-spark i { display:block; width:2px; background:var(--cyan); opacity:.75; }
+.tel-spark.slow i { background:var(--warning); }
 
 /* 라벨링 큐 */
 .lab-group { border:1px solid var(--border); border-radius:6px; padding:10px; margin-bottom:8px; }
-.lab-group .meta { color:#94949b; font-size:11px; }
-.lab-group .desc { color:#ececed; font-family:monospace; font-size:12px; word-break:break-all; }
-.lab-cover { font-size:18px; font-weight:700; color:#d29922; }
+.lab-group .meta { color:var(--text-dim); font-size:11px; }
+.lab-group .desc { color:var(--text-primary); font-family:monospace; font-size:12px; word-break:break-all; }
+.lab-cover { font-size:18px; font-weight:700; color:var(--warning); }
 .lab-actions { display:flex; gap:6px; align-items:center; margin-top:6px; flex-wrap:wrap; }
 .lab-actions input { flex:1; min-width:220px; }
 
@@ -1648,16 +1687,49 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 html { scrollbar-color: var(--border) var(--bg-primary); scrollbar-width: thin; }
 input, textarea, select, [contenteditable] { caret-color: var(--cyan); }
 
-/* 관제 화면은 하루 종일 켜 둔다. 무한 반복 애니메이션(펄스·라이브 점)은
-   주의를 계속 끌어당기므로, 모션을 줄이겠다고 한 사용자에게는 전부 멈춘다.
-   상태는 색과 굵기로 이미 읽히므로 정보가 사라지지는 않는다. */
+/* ══════════════════════════════════════════
+   모션 줄이기 — **끄는 게 아니라 바꾸는 것**이다.
+
+   흔한 구현은 모든 애니메이션을 0.01ms 로 죽이는 것인데, 이 화면에서는 그게
+   정보를 지운다. 초록 점의 맥박은 "스트림이 살아 있다"는 뜻이고, 새 행의
+   섬광은 "이게 방금 들어왔다"는 뜻이다. 전부 멈추면 분석가는 멈춘 화면과
+   조용한 화면을 구분할 수 없다.
+
+   그래서 나눈다:
+     · 이동·확대(전정기관을 자극하는 것) → 제거
+     · 무한 반복(주의를 계속 끌어당기는 것) → 정지 상태로 고정하되, 그 상태가
+       '켜져 있음'을 계속 말하도록 남긴다
+     · 색·불투명도만 바뀌는 짧은 피드백 → 유지. 화면이 움직이지 않으므로
+       모션 민감성과 무관하고, 지우면 정보만 사라진다.
+══════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .001ms !important;
-    scroll-behavior: auto !important;
+  /* 이동·확대가 들어간 등장 효과: 움직임만 빼고 페이드는 남긴다. */
+  .panel-section { animation: fadeInStill .2s ease; }
+  .live-item     { animation: fadeInStill .2s ease; }
+  @keyframes fadeInStill { from { opacity: 0; } to { opacity: 1; } }
+
+  /* 공격 지도의 파문·궤적: 순수한 이동이라 남길 것이 없다.
+     궤적은 그려지는 과정이 곧 애니메이션이므로, 다 그려진 상태로 고정한다. */
+  .impact-ring { animation: none; opacity: 0; }
+  .attack-path.trail { animation: none; stroke-dashoffset: 0; }
+
+  /* 반복 맥박: 멈추되 '살아 있음'은 계속 보이게 — 점은 켜진 채로 둔다. */
+  .live-badge::before, .iface-card.up .iface-dot {
+    animation: none;
+    opacity: 1;
   }
+
+  /* 위협 등급 CRITICAL: 맥박 대신 정지한 테두리로 '평소와 다름'을 유지한다. */
+  #threat-level-badge.level-critical {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--red);
+  }
+
+  /* MITRE 고빈도 셀도 같은 이유로 정지. 농도·굵기가 이미 강도를 말한다. */
+  .mitre-technique.hit-high { animation: none; }
+
+  /* 스크롤은 즉시 이동(긴 목록에서 스크롤 애니메이션은 특히 어지럽다). */
+  * { scroll-behavior: auto !important; }
 }
 
 /* ══════════════════════════════════════════
@@ -1680,7 +1752,7 @@ input, textarea, select, [contenteditable] { caret-color: var(--cyan); }
 }
 .form-control::placeholder { color: var(--text-muted); opacity: 1; }
 .form-control:hover,
-.form-select:hover { border-color: #54545c; }
+.form-select:hover { border-color: var(--disabled); }
 .form-control:focus,
 .form-select:focus {
   background-color: var(--bg-secondary);
@@ -1703,7 +1775,7 @@ input, textarea, select, [contenteditable] { caret-color: var(--cyan); }
 
 .form-check-input {
   background-color: var(--bg-secondary);
-  border-color: #54545c;
+  border-color: var(--disabled);
 }
 .form-check-input:checked {
   background-color: var(--cyan);
@@ -1733,10 +1805,10 @@ input, textarea, select, [contenteditable] { caret-color: var(--cyan); }
   background: var(--bg-secondary); border-color: var(--border); color: var(--text-muted);
 }
 .dataTables_wrapper .page-item.active .page-link {
-  background: var(--cyan); border-color: var(--cyan); color: #001417;
+  background: var(--cyan); border-color: var(--cyan); color: var(--on-accent);
 }
 .dataTables_wrapper .page-link:hover { background: var(--bg-hover); color: var(--text-primary); }
-.dataTables_wrapper .page-item.disabled .page-link { background: var(--bg-primary); color: #54545c; }
+.dataTables_wrapper .page-item.disabled .page-link { background: var(--bg-primary); color: var(--disabled); }
 
 /* DataTables 가 스스로 만들어 넣는 컨트롤. 벤더 CSS 는 폭·정렬만 정하고 색은
    손대지 않으므로 여기서 나머지(여백·모서리·포커스)를 맞춘다.
@@ -1777,5 +1849,82 @@ body,
 /* IP·도메인·해시·명령줄이 들어가는 곳: 어디서든 끊어서라도 넘치지 않게. */
 td, .alert-item, .stream-item, .desc, code, pre, .mono, .table-monospace td {
   word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ══════════════════════════════════════════
+   보조기기 전용 — 화면에는 안 보이지만 스크린리더는 읽는다.
+══════════════════════════════════════════ */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 스킵 링크 — 평소엔 화면 밖, 탭으로 포커스를 받으면 내려온다.
+   사이드바에 링크가 36개라 이게 없으면 키보드로 본문까지 가는 데만 수십 번
+   탭을 눌러야 한다. */
+.skip-link {
+  position: fixed;
+  top: 0; left: 12px;
+  transform: translateY(-120%);
+  z-index: 2000;
+  background: var(--cyan);
+  color: var(--on-accent);
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 0 0 6px 6px;
+  text-decoration: none;
+  transition: transform .15s ease;
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════
+   손가락으로 쓰는 기기 — 정밀도가 낮다. 마우스용 밀도를 그대로 두면 오조작이
+   난다. 화면 폭이 아니라 **입력 수단**으로 나누는 이유: 태블릿은 넓지만
+   손가락으로 쓴다.
+══════════════════════════════════════════ */
+@media (pointer: coarse) {
+  .btn, .btn-xs, .sidebar-link, .nav-toggle, .logout-btn,
+  .live-filter, [role="button"], .page-link {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn-xs { padding: 6px 12px; font-size: 12px; }
+  /* 표 안의 조작 버튼은 44px 로 키우면 행이 뭉개진다 — 세로로 쌓아 폭을 지킨다. */
+  td .btn-xs { min-width: 0; padding: 6px 10px; }
+  .form-control, .form-select { min-height: 44px; }
+  .form-check-input { width: 22px; height: 22px; }
+}
+
+/* 표 행의 조치 버튼 묶음 — 5개가 폭에 따라 4+1 로 어긋나 접히던 것을 격자로 고정.
+   아이콘 버튼(AI 분석)만 첫 칸, 나머지 넷이 2×2 로 떨어진다. */
+.row-actions {
+  display: grid;
+  /* 3열 = 5개가 2줄에 떨어진다. 2열(3줄)은 행 높이를 1.5배로 만들어 한 화면에
+     보이는 알림 수를 줄인다 — 관제 표에서 밀도는 곧 값어치다. */
+  grid-template-columns: repeat(3, minmax(38px, auto));
+  gap: 3px;
+  justify-content: start;
+}
+.row-actions .btn-xs { white-space: nowrap; }
+
+/* 표 셀의 줄바꿈:
+   `overflow-wrap: anywhere` 는 최소폭 계산까지 바꿔 열이 과하게 좁아진다 —
+   그래서 IP 가 "172.23.171.6 / 3" 처럼 중간에서 갈렸다. break-word 는 정말
+   넘칠 때만 끊고 최소폭은 지킨다. */
+td, .alert-item, .stream-item, .desc {
+  overflow-wrap: break-word;
+}
+/* 명령줄·해시·URL 은 통째로 길어 어디서든 끊어야 한다. */
+code, pre, .mono, .table-monospace td {
   overflow-wrap: anywhere;
 }

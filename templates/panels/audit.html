@@ -1,18 +1,18 @@
     <!-- ════ 감사 로그 패널 ════ -->
     <div id="panel-audit" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-clipboard-list me-2 text-cyan"></i>감사 로그 — 분석가 조치 이력
         <span class="badge bg-dark ms-2" id="audit-total-badge">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="searchAudit(1)">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           <strong>누가·언제·무엇을</strong> 했는지 기록하는 책임추적 로그입니다.
           알림 확인/종료, IP 수동 차단·해제, 인시던트 상태변경·담당지정·메모, 워치리스트·아카이브 조치가 남습니다.
           근무 인수인계와 사후 검증(감사)에 사용하세요. (읽기 전용 append-only)
@@ -22,21 +22,21 @@
       <div class="card-panel mb-3">
         <div class="row g-2 align-items-end">
           <div class="col-6 col-md-2">
-            <label class="form-label small text-muted mb-1">시작일</label>
+            <label for="audit-from" class="form-label small text-muted mb-1">시작일</label>
             <input type="date" id="audit-from" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label small text-muted mb-1">종료일</label>
+            <label for="audit-to" class="form-label small text-muted mb-1">종료일</label>
             <input type="date" id="audit-to" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
           <div class="col-6 col-md-3">
-            <label class="form-label small text-muted mb-1">조치 유형</label>
+            <label for="audit-action" class="form-label small text-muted mb-1">조치 유형</label>
             <select id="audit-action" class="form-select form-select-sm bg-dark text-white border-secondary">
               <option value="">전체</option>
             </select>
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label small text-muted mb-1">분석가</label>
+            <label for="audit-actor" class="form-label small text-muted mb-1">분석가</label>
             <input type="text" id="audit-actor" placeholder="사용자명" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
           <div class="col-12 col-md-3 d-flex gap-2">

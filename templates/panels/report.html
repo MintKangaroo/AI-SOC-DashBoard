@@ -1,18 +1,18 @@
     <!-- ════ 일일 AI 리포트 패널 ════ -->
     <div id="panel-report" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-file-lines me-2 text-cyan"></i>일일 AI 리포트 — 관제 브리핑
-        <span class="badge ms-2" id="report-mode-badge" style="background:#30363d">-</span>
+        <span class="badge ms-2" id="report-mode-badge" style="background:var(--border)">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="generateReport()">
           <i class="fa fa-wand-magic-sparkles me-1"></i>지금 생성
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           하루 동안 쌓인 <strong>알림·정탐/오탐·EDR·Sigma·네트워크·인증·차단</strong> 지표를 모아
           <strong>Claude가 자연어 브리핑</strong>으로 요약합니다(매일 <span id="report-hour" class="text-warning">08</span>시 자동 + 수동 생성).
           아침에 이 한 장만 보면 밤새 무슨 일이 있었는지, 오늘 뭘 해야 하는지 파악됩니다.
@@ -23,7 +23,7 @@
       <div class="row g-3">
         <div class="col-lg-4">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>리포트 이력</div>
+            <h3 class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>리포트 이력</h3>
             <div id="report-history" style="max-height:520px; overflow-y:auto">
               <div class="text-muted p-2">로딩 중...</div>
             </div>
@@ -37,7 +37,7 @@
             </div>
             <div class="row g-2 p-2" id="report-kpis"></div>
             <div class="p-2">
-              <pre id="report-briefing" class="small p-3 mb-0" style="white-space:pre-wrap; line-height:1.7; color:#e6edf3; background:#0d1117; border-radius:6px; max-height:440px; overflow:auto;">리포트를 생성하거나 이력에서 선택하세요.</pre>
+              <pre id="report-briefing" class="small p-3 mb-0" style="white-space:pre-wrap; line-height:1.7; color:var(--text-primary); background:var(--bg-primary); border-radius:6px; max-height:440px; overflow:auto;">리포트를 생성하거나 이력에서 선택하세요.</pre>
             </div>
           </div>
         </div>

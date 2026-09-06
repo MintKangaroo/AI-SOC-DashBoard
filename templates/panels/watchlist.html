@@ -1,18 +1,18 @@
     <!-- ════ IOC 워치리스트 패널 ════ -->
     <div id="panel-watchlist" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-binoculars me-2 text-purple"></i>IOC 워치리스트 — 능동 헌팅
         <span class="badge bg-dark ms-2" id="wl-total-badge">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadWatchlist()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--purple">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-purple me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           아직 차단까진 아니지만 <strong>계속 지켜볼 지표(IP·도메인·해시)</strong>를 등록하는 능동 헌팅 목록입니다.
           등록한 IOC 가 이후 알림의 출발지/목적지로 <strong>등장하면 히트가 집계</strong>되고 실시간 알림이 뜹니다.
           SOAR 차단(사후 반응)과 달리, 의심스럽지만 확증 전인 지표를 미리 올려두고 추적하세요.
@@ -23,9 +23,9 @@
       <div class="row g-3 mb-3">
         <div class="col-lg-4">
           <div class="card-panel h-100">
-            <div class="card-panel-header"><i class="fa fa-plus me-2 text-success"></i>IOC 추가</div>
+            <h3 class="card-panel-header"><i class="fa fa-plus me-2 text-success"></i>IOC 추가</h3>
             <div class="mb-2">
-              <label class="form-label small text-muted mb-1">유형</label>
+              <label for="wl-type" class="form-label small text-muted mb-1">유형</label>
               <select id="wl-type" class="form-select form-select-sm bg-dark text-white border-secondary">
                 <option value="ip">IP</option>
                 <option value="domain">도메인</option>
@@ -33,11 +33,11 @@
               </select>
             </div>
             <div class="mb-2">
-              <label class="form-label small text-muted mb-1">값</label>
+              <label for="wl-value" class="form-label small text-muted mb-1">값</label>
               <input type="text" id="wl-value" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="예: 185.220.101.45">
             </div>
             <div class="mb-2">
-              <label class="form-label small text-muted mb-1">메모</label>
+              <label for="wl-note" class="form-label small text-muted mb-1">메모</label>
               <input type="text" id="wl-note" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="추적 사유(선택)">
             </div>
             <button class="btn btn-sm btn-cyan w-100" onclick="addWatchlist()"><i class="fa fa-plus me-1"></i>워치리스트에 추가</button>

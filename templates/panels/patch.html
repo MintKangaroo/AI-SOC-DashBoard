@@ -1,18 +1,18 @@
     <!-- ════ 취약점 패치 (Ansible) 패널 ════ -->
     <div id="panel-patch" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-shield-halved me-2 text-warning"></i>자동화 취약점 패치 — Ansible
-        <span class="badge ms-2" id="patch-mode-badge" style="background:#30363d">-</span>
+        <span class="badge ms-2" id="patch-mode-badge" style="background:var(--border)">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadPatch(true)">
           <i class="fa fa-sync me-1"></i>재스캔
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--orange">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-triangle-exclamation text-orange me-2"></i>운영 중 자동매매 서버 — 안전 우선
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           미적용 보안 업데이트를 스캔하고 <strong>Ansible 플레이북</strong>으로 패치를 자동화합니다.
           스캔은 읽기 전용(안전)이지만, <strong>실제 패치는 자동매매 봇을 중단시킬 수 있어 자동 실행하지 않습니다.</strong>
           기본은 <strong>dry-run(--check)</strong>으로 무엇이 바뀌는지만 확인하고, 실제 적용은 점검 시간대에 수동으로.
@@ -33,7 +33,7 @@
       </div>
 
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-chart-pie text-orange me-2"></i>업데이트 구성 (보안 vs 일반)</div>
+        <h3 class="card-panel-header"><i class="fa fa-chart-pie text-orange me-2"></i>업데이트 구성 (보안 vs 일반)</h3>
         <svg id="patch-donut" width="100%" height="150"></svg>
       </div>
 
@@ -67,9 +67,9 @@
 
       <!-- 일괄 ad-hoc 명령 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header"><i class="fa fa-terminal text-cyan me-2"></i>선택 서버에 명령 일괄 실행 (Ansible ad-hoc)</div>
+        <h3 class="card-panel-header"><i class="fa fa-terminal text-cyan me-2"></i>선택 서버에 명령 일괄 실행 (Ansible ad-hoc)</h3>
         <div class="d-flex flex-wrap gap-2 align-items-center">
-          <input type="text" id="patch-cmd-input" class="form-control form-control-sm font-monospace flex-fill"
+          <input type="text" id="patch-cmd-input" aria-label="실행할 점검 명령" class="form-control form-control-sm font-monospace flex-fill"
                  style="min-width:220px" placeholder="예: uptime · df -h · systemctl status trader"
                  onkeydown="if(event.key==='Enter')patchCommand('check')">
           <button class="btn btn-sm btn-outline-warning" onclick="patchCommand('check')">
@@ -86,7 +86,7 @@
       <div class="row g-3">
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>취약 패키지 인벤토리</div>
+            <h3 class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>취약 패키지 인벤토리</h3>
             <div class="table-responsive" style="max-height:420px; overflow-y:auto">
               <table class="table table-dark table-sm mb-0" style="font-size:12px">
                 <thead><tr><th>패키지</th><th>현재→대상</th><th>구분</th></tr></thead>
@@ -99,14 +99,14 @@
         </div>
         <div class="col-lg-6">
           <div class="card-panel mb-3">
-            <div class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>작업 이력</div>
+            <h3 class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>작업 이력</h3>
             <div id="patch-jobs-list" style="max-height:180px; overflow-y:auto">
               <div class="text-muted p-2">작업 없음</div>
             </div>
           </div>
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-terminal text-cyan me-2"></i>출력 (플레이북/로그)</div>
-            <pre id="patch-output" class="small p-2 mb-0" style="max-height:240px; overflow:auto; color:#8ff0a4; background:#0d1117; white-space:pre-wrap;">버튼을 눌러 플레이북 생성 또는 dry-run 하세요.</pre>
+            <h3 class="card-panel-header"><i class="fa fa-terminal text-cyan me-2"></i>출력 (플레이북/로그)</h3>
+            <pre id="patch-output" class="small p-2 mb-0" style="max-height:240px; overflow:auto; color:#8ff0a4; background:var(--bg-primary); white-space:pre-wrap;">버튼을 눌러 플레이북 생성 또는 dry-run 하세요.</pre>
           </div>
         </div>
       </div>

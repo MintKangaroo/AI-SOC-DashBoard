@@ -5,6 +5,82 @@
      SOC Dashboard — Main JS
   ══════════════════════════════════════════ */
 
+  /* ── 토큰 값 읽기 ──
+     Chart.js 는 캔버스에 그리고 SVG 속성은 문자열을 받으므로 `var(--x)` 를
+     그대로 넘길 수 없다. 그래서 색을 하드코딩해 두었더니 팔레트를 블랙으로
+     바꿀 때 차트만 옛 색으로 남았다. 여기서 계산된 값을 읽어 넘긴다.
+     한 번 읽은 값은 캐시한다(테마 전환이 없는 화면이라 안전하다). */
+  const _cssVarCache = new Map();
+
+  function cssVar(name, fallback) {
+    if (_cssVarCache.has(name)) return _cssVarCache.get(name);
+    let v = '';
+    try {
+      v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    } catch (e) { /* 계산 불가 환경 — fallback 으로 */ }
+    const out = v || fallback || '';
+    if (v) _cssVarCache.set(name, out);
+    return out;
+  }
+
+  /* ── 키보드 조작 ──
+     클릭 가능한 카드·단계 표시가 div/span 으로 만들어져 있어 마우스로만 쓸 수
+     있었다. role="button" tabindex="0" 를 붙였으니 실제 버튼처럼 **Enter/Space
+     로도 눌려야** 한다. 브라우저는 진짜 <button> 에만 그걸 해 준다. */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    const el = e.target;
+    if (!el || el.getAttribute('role') !== 'button') return;
+    if (el.tagName === 'BUTTON' || el.tagName === 'A') return;   // 기본 동작에 맡긴다
+    e.preventDefault();          // Space 로 페이지가 스크롤되지 않게
+    el.click();
+  });
+
+  /* Esc: 열려 있는 모바일 사이드바를 닫는다. 백드롭은 '바깥 클릭' 오버레이라
+     탭 순서에 넣지 않았으므로, 키보드 사용자에겐 이 경로가 유일한 탈출구다. */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && typeof closeSidebar === 'function') closeSidebar();
+  });
+
+  /* ── 보조기기 안내 ──
+     라이브 스트림은 초당 여러 건이 흐른다. 거기에 aria-live 를 걸면 스크린리더가
+     읽기를 멈추지 못해 화면을 쓸 수 없게 된다. 그래서 **의미 있는 사건만** 요약해
+     이쪽으로 보낸다.
+
+     announce(): 상태 갱신(polite) — 읽던 것을 끊지 않고 틈에 끼워 읽는다.
+     alarm():    즉시 알림(assertive) — 읽던 것을 끊는다. CRITICAL 과 오류만.
+
+     쏟아질 때를 대비해 창(window) 안에서 묶는다. CRITICAL 이 10초에 12건 오면
+     12번 말하는 대신 "심각 알림 12건" 으로 한 번 말한다. */
+  const _annQueue = { polite: [], assertive: [] };
+  let _annTimer = { polite: null, assertive: null };
+
+  function _flushAnn(kind) {
+    const id = kind === 'assertive' ? 'a11y-alarm' : 'a11y-announcer';
+    const box = document.getElementById(id);
+    _annTimer[kind] = null;
+    const items = _annQueue[kind].splice(0);
+    if (!box || !items.length) return;
+    // 같은 문구가 반복되면 건수로 접는다.
+    const counts = new Map();
+    items.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
+    const text = [...counts.entries()]
+      .map(([t, n]) => (n > 1 ? `${t} ${n}건` : t)).join('. ');
+    // 같은 문자열을 다시 넣으면 스크린리더가 변화를 감지하지 못한다.
+    box.textContent = '';
+    setTimeout(() => { box.textContent = text; }, 30);
+  }
+
+  function _queueAnn(kind, text, waitMs) {
+    if (!text) return;
+    _annQueue[kind].push(String(text));
+    if (_annTimer[kind]) return;
+    _annTimer[kind] = setTimeout(() => _flushAnn(kind), waitMs);
+  }
+
+  function announce(text) { _queueAnn('polite', text, 1500); }
+  function alarm(text)    { _queueAnn('assertive', text, 800); }
+
   /* DataTables 공통 설정.
 
      언어: 대시보드는 전부 한국어인데 표 컨트롤만 "Show / entries / Search:" 였다.
@@ -134,15 +210,16 @@
 
     const item = document.createElement('div');
     item.className = 'api-error-toast';
+    item.setAttribute('role', 'alert');   // 오류는 읽던 것을 끊고 알려야 한다
     item.setAttribute('style',
-      'background:#2d1416;border:1px solid #f85149;' +
-      'color:#e6edf3;border-radius:6px;padding:8px 10px;font-size:11.5px;' +
+      'background:#2d1416;border:1px solid var(--red);' +
+      'color:var(--text-primary);border-radius:6px;padding:8px 10px;font-size:11.5px;' +
       'display:flex;gap:8px;align-items:flex-start;box-shadow:0 2px 8px rgba(0,0,0,.4)');
     item.innerHTML =
-      '<i class="fa fa-triangle-exclamation" style="color:#f85149;margin-top:2px"></i>' +
+      '<i class="fa fa-triangle-exclamation" style="color:var(--red);margin-top:2px"></i>' +
       `<span style="flex:1;word-break:break-all">${escapeHtml(message)}</span>` +
-      '<span class="api-err-count" style="color:#8b949e">×1</span>' +
-      '<button type="button" style="background:none;border:none;color:#8b949e;' +
+      '<span class="api-err-count" style="color:var(--text-dim)">×1</span>' +
+      '<button type="button" style="background:none;border:none;color:var(--text-dim);' +
       'cursor:pointer;padding:0 2px;line-height:1">&times;</button>';
     item.querySelector('button').onclick = () => {
       item.remove();
@@ -173,15 +250,15 @@
   }
 
   function protoColor(p) {
-    const m = { TCP:'#39d0d8', UDP:'#9d79f2', ICMP:'#e3b341', ARP:'#3fb950', OTHER:'#8b949e' };
-    return m[p] || '#8b949e';
+    const m = { TCP:'#39d0d8', UDP:'#9d79f2', ICMP:'#e3b341', ARP:'#3fb950', OTHER:cssVar('--text-dim', '#94949b') };
+    return m[p] || cssVar('--text-dim', '#94949b');
   }
 
   function threatColor(t) {
     const m = { DDOS:'#f85149', PORT_SCAN:'#f79000', BRUTE_FORCE:'#e3b341',
                  MALWARE_BEACON:'#f85149', DATA_EXFIL:'#f79000',
-                 ARP_SPOOFING:'#9d79f2', DNS_TUNNELING:'#58a6ff', ANOMALY:'#8b949e' };
-    return m[t] || '#8b949e';
+                 ARP_SPOOFING:'#9d79f2', DNS_TUNNELING:'#58a6ff', ANOMALY:cssVar('--text-dim', '#94949b') };
+    return m[t] || cssVar('--text-dim', '#94949b');
   }
 
   /* 실시간 이벤트는 모든 패널에 도착한다. 숨겨진 패널·백그라운드 탭의
@@ -482,6 +559,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
+    alarm, announce, cssVar,
     closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, protoColor, sevBadge, showPanel,
     socket, threatColor, toggleGroup, toggleSidebar,
   });

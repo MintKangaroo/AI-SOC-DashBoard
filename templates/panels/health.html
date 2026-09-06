@@ -1,23 +1,23 @@
     <!-- ════ 모듈 헬스 패널 ════ -->
     <div id="panel-health" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-heart-pulse me-2 text-success"></i>모듈 헬스 — 가동 상태 · 동작 모드
-        <span class="badge ms-2" id="health-demo-badge" style="background:#30363d">-</span>
+        <span class="badge ms-2" id="health-demo-badge" style="background:var(--border)">-</span>
         <label class="form-check form-switch small ms-3 mb-0 d-flex align-items-center gap-1" title="10초마다 자동 갱신">
-          <input class="form-check-input" type="checkbox" id="health-auto" checked>
+          <input class="form-check-input" type="checkbox" id="health-auto" aria-label="헬스 자동 새로고침" checked>
           <span class="text-muted">자동 갱신</span>
         </label>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadHealth()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--green">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-success me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           관제에 투입된 전 모듈의 <strong>가동 여부</strong>와 <strong>동작 모드</strong>를 한눈에 봅니다.
           <span class="badge bg-success">실측</span> 실제 데이터/외부 API,
           <span class="badge" style="background:var(--cyan);color:#001417">상시</span> 항상 실동작하는 처리 모듈,
@@ -43,11 +43,11 @@
 
       <!-- 자기 관측성 (docs/AUDIT.md 3단계 제안 B) -->
       <div class="panel-note mt-3 panel-note--purple">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-gauge-high text-purple me-2"></i>자기 관측성 — 지연 · 실패 · 적체
           <span class="small text-muted ms-2">위는 &lsquo;살아 있는가&rsquo;, 여기는 &lsquo;얼마나 느리고 얼마나 실패하는가&rsquo;</span>
           <span class="badge bg-dark ms-auto" id="tel-summary">-</span>
-        </div>
+        </h3>
         <div id="tel-probes" class="mb-2 small"></div>
         <div class="table-responsive" style="max-height:320px; overflow-y:auto">
           <table class="table table-dark table-sm mb-0" style="font-size:12px">

@@ -31,13 +31,13 @@
         : '아직 실행 안 함';
       return `<div class="border-bottom border-secondary py-2">
         <div class="d-flex align-items-center gap-2">
-          <b style="color:#e6edf3">${escapeHtml(h.name)}</b>
+          <b style="color:var(--text-primary)">${escapeHtml(h.name)}</b>
           <button class="btn btn-xs btn-purple ms-auto" onclick="runHunt(${Number(h.id)})">실행</button>
           <button class="btn btn-xs btn-outline-secondary" onclick="deleteHunt(${Number(h.id)})"
                   title="삭제">&times;</button>
         </div>
-        <div class="small" style="color:#8b949e">${escapeHtml(h.description || '')}</div>
-        <div class="small font-monospace" style="color:#58a6ff">${cond}</div>
+        <div class="small" style="color:var(--text-dim)">${escapeHtml(h.description || '')}</div>
+        <div class="small font-monospace" style="color:var(--blue)">${cond}</div>
         <div class="small text-muted">${last}</div>
       </div>`;
     }).join('');

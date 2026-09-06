@@ -16,7 +16,7 @@
       card('총 알림', hl.alerts_total, 'var(--cyan)'),
       card('정탐', hl.true_positives, 'var(--orange)'),
       card('오탐', hl.false_positives, 'var(--green)'),
-      card('오탐율 %', hl.fp_rate, '#8b949e'),
+      card('오탐율 %', hl.fp_rate, cssVar('--text-dim', '#94949b')),
       card('자동 차단', hl.auto_blocked, 'var(--red)'),
       card('EDR', hl.edr_detections, 'var(--info,#58a6ff)'),
       card('Sigma', hl.sigma_matches, 'var(--purple)'),
@@ -42,8 +42,8 @@
     if (badge) {
       const claude = stats.ai_mode === 'claude';
       badge.textContent = claude ? 'Claude 브리핑' : '규칙 기반 (API 키 없음)';
-      badge.style.background = claude ? 'var(--green)' : '#30363d';
-      badge.style.color = claude ? '#001417' : '#e6edf3';
+      badge.style.background = claude ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = claude ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     const note = document.getElementById('report-mode-note');
     if (note) note.textContent = stats.ai_mode === 'claude' ? '' : '(ANTHROPIC_API_KEY 설정 시 Claude가 작성)';
@@ -54,7 +54,7 @@
       hist.innerHTML = hs.length
         ? hs.map(h => `
           <div class="p-2 border-bottom border-secondary small" style="cursor:pointer" onclick="openReport('${h.id}')">
-            <div style="color:#e6edf3;font-weight:600"><i class="fa fa-file-lines me-1 text-cyan"></i>${escapeHtml(h.generated)}</div>
+            <div style="color:var(--text-primary);font-weight:600"><i class="fa fa-file-lines me-1 text-cyan"></i>${escapeHtml(h.generated)}</div>
             <div class="text-muted" style="font-size:11px">
               알림 ${h.highlights?.alerts_total ?? 0} · 정탐 ${h.highlights?.true_positives ?? 0} · 오탐 ${h.highlights?.false_positives ?? 0}
               ${h.trigger === 'scheduled' ? '· <span class="text-info">예약</span>' : ''}</div>
@@ -89,7 +89,7 @@
     fetch('/api/sigma/reload', { method: 'POST' }).then(r => r.json()).then(renderSigma).catch(() => {});
   }
 
-  const SIGMA_LEVEL = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--yellow,#d29922)', low: '#8b949e', informational: '#8b949e' };
+  const SIGMA_LEVEL = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--yellow,#d29922)', low: cssVar('--text-dim', '#94949b'), informational: cssVar('--text-dim', '#94949b') };
   function sigmaLevelBadge(lv) {
     return `<span class="badge" style="background:${SIGMA_LEVEL[lv] || '#555'};font-size:9px;color:#fff">${escapeHtml(lv || '?')}</span>`;
   }
@@ -109,8 +109,8 @@
     if (badge) {
       const on = stats.enabled;
       badge.textContent = on ? `활성 · ${stats.rules_loaded}룰` : '비활성 (PyYAML 없음)';
-      badge.style.background = on ? 'var(--green)' : '#30363d';
-      badge.style.color = on ? '#001417' : '#e6edf3';
+      badge.style.background = on ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = on ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) note.textContent = stats.enabled ? '' : '(PyYAML 미설치 — pip install pyyaml 후 재시작)';
 
@@ -121,7 +121,7 @@
         ? rules.map(r => `
           <tr style="opacity:${r.enabled ? 1 : 0.45}">
             <td>${sigmaLevelBadge(r.level)}</td>
-            <td class="small" style="color:#e6edf3" title="${escapeHtml(r.id)}">${escapeHtml(r.title)}</td>
+            <td class="small" style="color:var(--text-primary)" title="${escapeHtml(r.id)}">${escapeHtml(r.title)}</td>
             <td class="small">${(r.mitre || []).map(m => `<span class="badge bg-dark" style="font-size:9px">${escapeHtml(m)}</span>`).join(' ') || '-'}</td>
             <td><div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleSigma('${escapeHtml(r.id)}')">
@@ -139,17 +139,17 @@
       { label: 'critical', value: lc.critical || 0, color: '#f85149' },
       { label: 'high', value: lc.high || 0, color: '#f0a500' },
       { label: 'medium', value: lc.medium || 0, color: '#d29922' },
-      { label: 'low', value: lc.low || 0, color: '#8b949e' },
+      { label: 'low', value: lc.low || 0, color: cssVar('--text-dim', '#94949b') },
     ], '개');
   }
 
   function sigmaMatchRow(m) {
     return `
       <tr style="background:rgba(248,81,73,${m.severity === 'CRITICAL' ? '.10' : '.05'})">
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml((m.timestamp || '').slice(11))}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml((m.timestamp || '').slice(11))}</td>
         <td>${sigmaLevelBadge(m.level)}</td>
-        <td class="small" style="color:#e6edf3">${escapeHtml(m.rule)}</td>
-        <td class="small font-monospace text-truncate" style="max-width:260px;color:#e6edf3"
+        <td class="small" style="color:var(--text-primary)">${escapeHtml(m.rule)}</td>
+        <td class="small font-monospace text-truncate" style="max-width:260px;color:var(--text-primary)"
             title="${escapeHtml(m.cmdline || m.image || '')}">${escapeHtml(m.cmdline || m.image || '-')}</td>
         <td class="small">${(m.mitre || []).map(x => `<span class="badge bg-dark" style="font-size:9px">${escapeHtml(x)}</span>`).join(' ') || '-'}</td>
       </tr>`;
@@ -194,7 +194,7 @@
   };
   function vsevBadge(sev) {
     const s = VSEV[sev] || VSEV.info;
-    return `<span class="badge" style="background:${s.c};color:#0d1117;font-size:9px;font-weight:700">${s.t}</span>`;
+    return `<span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:9px;font-weight:700">${s.t}</span>`;
   }
 
   const VVERDICT = {
@@ -207,7 +207,7 @@
     const s = VVERDICT[v.state] || VVERDICT.unknown;
     const ver = v.installed
       ? `<span class="text-muted font-monospace" style="font-size:10px">설치: ${escapeHtml(v.installed)}${v.candidate ? ' → ' + escapeHtml(v.candidate) : ''}</span>` : '';
-    return `<div class="mt-1"><span class="badge" style="background:${s.c};color:#0d1117;font-size:9px;font-weight:700"
+    return `<div class="mt-1"><span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:9px;font-weight:700"
       title="${escapeHtml(v.note || '')}">${s.t}</span> ${ver}
       <div class="small text-muted" style="font-size:10px">${escapeHtml(v.note || '')}</div></div>`;
   }
@@ -230,14 +230,14 @@
     if (badge) {
       const real = stats.mode === 'real';
       badge.textContent = real ? '실측' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      badge.style.background = real ? 'var(--green)' : '#30363d';
-      badge.style.color = real ? '#001417' : '#e6edf3';
+      badge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     const eng = document.getElementById('vuln-engine-badge');
     if (eng) {
       eng.textContent = stats.nmap ? 'nmap' : 'socket 스캔';
-      eng.style.background = stats.nmap ? 'var(--purple)' : '#30363d';
-      eng.style.color = stats.nmap ? '#0d1117' : '#e6edf3';
+      eng.style.background = stats.nmap ? 'var(--purple)' : cssVar('--border', '#2c2c31');
+      eng.style.color = stats.nmap ? cssVar('--bg-primary', '#0a0a0b') : cssVar('--text-primary', '#ececed');
     }
     const note = document.getElementById('vuln-mode-note');
     if (note) note.textContent = '(응답하는 대상은 실측 스캔 · 응답 없는 대상만 데모 샘플)';
@@ -267,7 +267,7 @@
     box.innerHTML = hosts.map(h => {
       const checked = _vulnHostsInit ? (prev.includes(h.id) ? 'checked' : '') : 'checked';
       const remote = h.conn === 'ssh';
-      return `<label class="d-flex align-items-center gap-1 small" style="color:#e6edf3">
+      return `<label class="d-flex align-items-center gap-1 small" style="color:var(--text-primary)">
         <input type="checkbox" class="vuln-host" value="${escapeHtml(h.id)}" ${checked}>
         <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:11px"></i>
         ${escapeHtml(h.name)}<span class="text-muted font-monospace" style="font-size:10px">(${escapeHtml(h.addr)})</span>
@@ -315,7 +315,7 @@
         const demo = p.demo ? '<span class="demo-badge ms-1">데모</span>' : '';
         return `<tr>
           <td class="font-monospace text-cyan" style="white-space:nowrap">${p.port}</td>
-          <td class="small" style="color:#e6edf3">${escapeHtml(p.service || '')}</td>
+          <td class="small" style="color:var(--text-primary)">${escapeHtml(p.service || '')}</td>
           <td class="small text-muted font-monospace text-truncate" style="max-width:180px" title="${escapeHtml(p.version || '')}">${escapeHtml(p.version || '—')}</td>
           <td>${vsevBadge(p.severity)}${demo}${vulnVerdict(p.verdict)}<div class="mt-1">${items || '<span class="small text-muted">알려진 취약점 없음</span>'}</div></td>
         </tr>`;
@@ -324,7 +324,7 @@
       return `<div class="mb-3">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}"></i>
-          <strong style="color:#e6edf3">${escapeHtml(r.host)}</strong>
+          <strong style="color:var(--text-primary)">${escapeHtml(r.host)}</strong>
           <span class="text-muted font-monospace small">${escapeHtml(r.addr)}</span>
           <span class="badge bg-secondary ms-1" style="font-size:10px">열린 포트 ${r.open || 0}</span>
           <span class="badge bg-danger" style="font-size:10px">취약점 ${r.vulns || 0}</span>
@@ -360,7 +360,7 @@
     const box = document.getElementById('vuln-history');
     if (!box) return;
     box.innerHTML = hist.length
-      ? hist.map(h => `<div class="p-1 border-bottom border-secondary small" style="color:#e6edf3">
+      ? hist.map(h => `<div class="p-1 border-bottom border-secondary small" style="color:var(--text-primary)">
           <i class="fa fa-radar text-cyan me-1"></i>${escapeHtml(h.ts)}
           <span class="text-muted ms-1">서버 ${h.hosts} · 포트 ${h.open_ports} · 취약 ${h.vulns}</span></div>`).join('')
       : '<div class="text-muted p-2">이력 없음</div>';
@@ -403,7 +403,7 @@
     if (sb) sb.textContent = (stats.findings || 0).toLocaleString();
 
     const eng = document.getElementById('fuzz-engine-badge');
-    if (eng) { eng.textContent = stats.engine || '-'; eng.style.background = 'var(--purple)'; eng.style.color = '#0d1117'; }
+    if (eng) { eng.textContent = stats.engine || '-'; eng.style.background = 'var(--purple)'; eng.style.color = cssVar('--bg-primary', '#0a0a0b'); }
     const rn = document.getElementById('fuzz-rate-note');
     const pc = document.getElementById('fuzz-payload-count');
     if (pc) pc.textContent = d.payload_count ?? '-';
@@ -465,10 +465,10 @@
         return `<tr>
           <td class="small text-muted font-monospace">${escapeHtml(f.time || '')}</td>
           <td>${vsevBadge(f.severity)} <span class="small" style="color:${ty.c}">${escapeHtml(ty.t)}</span></td>
-          <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(f.path || '')}<span class="text-muted">?${escapeHtml(f.param || '')}</span></td>
+          <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(f.path || '')}<span class="text-muted">?${escapeHtml(f.param || '')}</span></td>
           <td class="small"><span class="badge bg-secondary" style="font-size:9px">${escapeHtml(f.payload_label || '')}</span>
             <div class="text-muted font-monospace text-truncate" style="max-width:150px" title="${escapeHtml(f.payload || '')}">${escapeHtml(f.payload || '')}</div></td>
-          <td class="small font-monospace" style="color:#e6edf3">${f.status ?? '—'}<div class="text-muted" style="font-size:10px">${f.elapsed_ms ?? 0}ms</div></td>
+          <td class="small font-monospace" style="color:var(--text-primary)">${f.status ?? '—'}<div class="text-muted" style="font-size:10px">${f.elapsed_ms ?? 0}ms</div></td>
           <td class="small text-muted">${escapeHtml(f.desc || '')}</td>
         </tr>`;
       }).join('')
@@ -488,7 +488,7 @@
     const box = document.getElementById('fuzz-history');
     if (!box) return;
     box.innerHTML = hist.length
-      ? hist.map(h => `<div class="p-1 border-bottom border-secondary small" style="color:#e6edf3">
+      ? hist.map(h => `<div class="p-1 border-bottom border-secondary small" style="color:var(--text-primary)">
           <i class="fa fa-bug text-danger me-1"></i>${escapeHtml(h.ts)}
           <div class="text-muted" style="font-size:10.5px">${escapeHtml(h.target)} · ${escapeHtml(h.method)} · 요청 ${h.requests} · 발견 ${h.findings}${h.stopped ? ' · 중단됨' : ''}</div></div>`).join('')
       : '<div class="text-muted p-2">이력 없음</div>';
@@ -530,8 +530,8 @@
     if (badge) {
       const real = stats.mode === 'real';
       badge.textContent = real ? '실측 (apt)' : (stats.mode === 'demo' ? '데모 모드' : '비활성');
-      badge.style.background = real ? 'var(--green)' : '#30363d';
-      badge.style.color = real ? '#001417' : '#e6edf3';
+      badge.style.background = real ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = real ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) {
       const parts = [];
@@ -548,7 +548,7 @@
       tb.innerHTML = inv.length
         ? inv.map(p => `
           <tr ${p.security ? 'style="background:rgba(248,81,73,.06)"' : ''}>
-            <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(p.package)}
+            <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(p.package)}
               ${p.cve ? `<span class="badge bg-danger ms-1" style="font-size:9px">${escapeHtml(p.cve)}</span>` : ''}</td>
             <td class="small text-muted"><span class="font-monospace">${escapeHtml(p.current)}</span> →
               <span class="font-monospace text-success">${escapeHtml(p.candidate)}</span></td>
@@ -577,7 +577,7 @@
         ? (prev.includes(h.id) ? 'checked' : '')
         : (h.conn === 'local' ? 'checked' : '');   // 최초: localhost만
       const remote = h.conn === 'ssh';
-      return `<label class="d-flex align-items-center gap-1 small" style="color:#e6edf3">
+      return `<label class="d-flex align-items-center gap-1 small" style="color:var(--text-primary)">
         <input type="checkbox" class="patch-host" value="${escapeHtml(h.id)}" ${checked}>
         <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:11px"></i>
         ${escapeHtml(h.name)}${remote ? `<span class="text-muted font-monospace" style="font-size:10px">(${escapeHtml(h.addr)})</span>` : ''}
@@ -602,7 +602,7 @@
       ? jobs.map(j => `
         <div class="p-1 border-bottom border-secondary small" style="cursor:pointer" onclick='showPatchLog(${JSON.stringify(j).replace(/'/g, "&#39;")})'>
           <span class="badge" style="background:${statusColor[j.status] || '#555'};font-size:9px">${escapeHtml(j.status)}</span>
-          <span style="color:#e6edf3" class="ms-1">#${j.id} ${j.kind === 'command'
+          <span style="color:var(--text-primary)" class="ms-1">#${j.id} ${j.kind === 'command'
             ? `<i class="fa fa-terminal me-1"></i><span class="font-monospace">${escapeHtml((j.command || '').slice(0, 32))}</span>`
             : `${j.mode === 'check' ? 'Dry-run' : j.mode} ${j.security_only ? '(보안만)' : '(전체)'}`}
             ${Array.isArray(j.hosts) && j.hosts.length ? `<span class="text-muted" style="font-size:9px">· ${escapeHtml(j.hosts.join(', '))}</span>` : ''}</span>
@@ -689,8 +689,8 @@
     const note = document.getElementById('notify-mode-note');
     if (badge) {
       badge.textContent = d.active ? '활성 (폰 연결됨)' : '비활성 (미설정)';
-      badge.style.background = d.active ? 'var(--green)' : '#30363d';
-      badge.style.color = d.active ? '#001417' : '#e6edf3';
+      badge.style.background = d.active ? 'var(--green)' : cssVar('--border', '#2c2c31');
+      badge.style.color = d.active ? '#001417' : cssVar('--text-primary', '#ececed');
     }
     if (note) note.textContent = d.active ? '' : '(NTFY_ENABLED=True + NTFY_TOPIC 설정 후 재시작하면 폰으로 알림)';
 
@@ -700,9 +700,9 @@
       tb.innerHTML = h.length
         ? h.map(e => `
           <tr>
-            <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml((e.timestamp || '').slice(11))}</td>
+            <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml((e.timestamp || '').slice(11))}</td>
             <td><span class="badge" style="background:${sevColor(e.severity)};font-size:9px">${escapeHtml(e.severity)}</span></td>
-            <td class="small" style="color:#e6edf3">${escapeHtml(e.title)}</td>
+            <td class="small" style="color:var(--text-primary)">${escapeHtml(e.title)}</td>
             <td class="small">${e.delivered ? '<span class="text-success">전송✓</span>' : `<span class="text-muted">${escapeHtml(e.detail || '미전송')}</span>`}</td>
           </tr>`).join('')
         : '<tr><td colspan="4" class="text-muted text-center p-3">이력 없음</td></tr>';

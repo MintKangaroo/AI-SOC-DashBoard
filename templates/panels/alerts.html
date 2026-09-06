@@ -1,13 +1,13 @@
     <!-- ════ 알림 패널 ════ -->
     <div id="panel-alerts" class="panel-section d-none">
-      <div class="panel-title"><i class="fa fa-triangle-exclamation me-2 text-danger"></i>위협 알림 관리</div>
+      <h2 class="panel-title"><i class="fa fa-triangle-exclamation me-2 text-danger"></i>위협 알림 관리</h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--red">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           탐지 엔진이 생성한 모든 알림을 관리합니다. <strong class="text-danger">CRITICAL → HIGH → MEDIUM</strong> 순으로 우선 처리하세요. 각 행의 <strong>AI 분석</strong> 버튼은 Claude에게 대응 권고를 받고, <strong>확인(ACK)</strong>은 조사 중, <strong>종료(CLOSED)</strong>는 처리 완료 의미입니다.
           <div class="mt-2 panel-subnote panel-note--cyan">
             <i class="fa fa-layer-group text-cyan me-1"></i>
@@ -21,7 +21,7 @@
 
       <div class="row g-2 mb-3">
         <div class="col-auto">
-          <select class="form-select form-select-sm bg-dark text-white border-secondary" id="alert-severity-filter">
+          <select class="form-select form-select-sm bg-dark text-white border-secondary" id="alert-severity-filter" aria-label="심각도로 거르기">
             <option value="">전체 심각도</option>
             <option value="CRITICAL">CRITICAL</option>
             <option value="HIGH">HIGH</option>
@@ -30,7 +30,7 @@
           </select>
         </div>
         <div class="col-auto">
-          <select class="form-select form-select-sm bg-dark text-white border-secondary" id="alert-status-filter">
+          <select class="form-select form-select-sm bg-dark text-white border-secondary" id="alert-status-filter" aria-label="처리 상태로 거르기">
             <option value="">전체 상태</option>
             <option value="OPEN">OPEN</option>
             <option value="ACK">확인됨</option>
@@ -94,11 +94,11 @@
               <div class="stat-value text-danger" style="font-size:20px" id="dedup-storms">0</div>
               <div class="stat-label">스톰 발생</div></div></div>
             <div class="col-sm-2"><div class="stat-card border-secondary">
-              <div class="stat-value" style="font-size:20px;color:#8b949e" id="dedup-window">-</div>
+              <div class="stat-value" style="font-size:20px;color:var(--text-dim)" id="dedup-window">-</div>
               <div class="stat-label">병합 윈도우</div></div></div>
             <div class="col-sm-2 d-flex align-items-center">
               <select class="form-select form-select-sm bg-dark text-white border-secondary"
-                      id="supp-kind-filter" onchange="loadSuppressed(1)">
+                      id="supp-kind-filter" aria-label="억제 종류로 거르기" onchange="loadSuppressed(1)">
                 <option value="">전체 종류</option>
                 <option value="duplicate">중복 병합</option>
                 <option value="suppressed">규칙 억제</option>

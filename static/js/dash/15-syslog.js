@@ -38,7 +38,7 @@
       hostsBox.innerHTML = top.length
         ? top.map(([h, cnt], i) => `
             <div class="d-flex justify-content-between p-1 border-bottom border-secondary small">
-              <span style="color:#e6edf3">${i + 1}. ${escapeHtml(h)}</span>
+              <span style="color:var(--text-primary)">${i + 1}. ${escapeHtml(h)}</span>
               <span class="text-info">${cnt.toLocaleString()}건</span>
             </div>`).join('')
         : '<div class="text-muted p-2">데이터 없음</div>';
@@ -50,7 +50,7 @@
       topBox.innerHTML = top.length
         ? top.map(([ip, cnt], i) => `
             <div class="d-flex justify-content-between p-1 border-bottom border-secondary small">
-              <span class="font-monospace" style="color:#e6edf3">${i + 1}. ${escapeHtml(ip)}</span>
+              <span class="font-monospace" style="color:var(--text-primary)">${i + 1}. ${escapeHtml(ip)}</span>
               <span class="text-warning">${cnt.toLocaleString()}건</span>
             </div>`).join('')
         : '<div class="text-muted p-2">데이터 없음</div>';
@@ -68,10 +68,10 @@
     const demoTag = e.demo ? ' <span class="badge bg-info text-dark" style="font-size:8px">데모</span>' : '';
     return `
       <tr ${e.suspicious ? 'style="background:rgba(248,81,73,.08)"' : ''}>
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml(e.timestamp)}</td>
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml(e.host)}${demoTag}</td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(e.ip || '-')}</td>
-        <td class="small font-monospace text-truncate" style="max-width:320px;color:#e6edf3"
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.timestamp)}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.host)}${demoTag}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip || '-')}</td>
+        <td class="small font-monospace text-truncate" style="max-width:320px;color:var(--text-primary)"
             title="${escapeHtml(e.message)}">${escapeHtml(e.message)}</td>
         <td class="small"><span class="badge ${sevCls}" style="font-size:9px">${escapeHtml(e.category)}</span></td>
       </tr>`;

@@ -87,13 +87,18 @@
       <td><span class="badge bg-${statusColors[alert.status]}">${statusLabels[alert.status]}</span></td>
       <td>${verdictBadge(alert)}</td>
       <td>
-        <button class="btn btn-xs btn-outline-info me-1" onclick="analyzeAlertAI(${alert.id})">
-          <i class="fa fa-robot"></i>
-        </button>
-        <button class="btn btn-xs btn-outline-warning me-1" onclick="updateAlertStatus(${alert.id},'ACK')">확인</button>
-        <button class="btn btn-xs btn-outline-danger me-1" onclick="setAlertVerdict(${alert.id},'TRUE_POSITIVE')">정탐</button>
-        <button class="btn btn-xs btn-outline-success me-1" onclick="setAlertVerdict(${alert.id},'FALSE_POSITIVE')">오탐</button>
-        <button class="btn btn-xs btn-outline-secondary" onclick="updateAlertStatus(${alert.id},'CLOSED')">종료</button>
+        <!-- 조치 5개를 그냥 나열하면 열 폭에 따라 4+1 처럼 어긋나게 접힌다.
+             격자로 묶어 어느 폭에서도 가지런히 두 줄로 떨어지게 한다. -->
+        <div class="row-actions">
+          <button class="btn btn-xs btn-outline-info" aria-label="AI 분석"
+                  onclick="analyzeAlertAI(${alert.id})">
+            <i class="fa fa-robot" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-xs btn-outline-warning" onclick="updateAlertStatus(${alert.id},'ACK')">확인</button>
+          <button class="btn btn-xs btn-outline-danger" onclick="setAlertVerdict(${alert.id},'TRUE_POSITIVE')">정탐</button>
+          <button class="btn btn-xs btn-outline-success" onclick="setAlertVerdict(${alert.id},'FALSE_POSITIVE')">오탐</button>
+          <button class="btn btn-xs btn-outline-secondary" onclick="updateAlertStatus(${alert.id},'CLOSED')">종료</button>
+        </div>
       </td>`;
     // 실시간 이벤트가 장시간 누적되어 DOM/DataTables가 느려지는 것을 방지한다.
     // DataTables가 관리 중이면 API를 통해, 초기화 전이면 DOM에서 직접 제거한다.
@@ -173,7 +178,7 @@
     tbody.innerHTML = rows.length
       ? rows.map(e => {
           const [cls, label] = kindMeta[e.kind] || ['bg-secondary', e.kind];
-          return `<tr style="color:#e6edf3">
+          return `<tr style="color:var(--text-primary)">
             <td class="small font-monospace text-nowrap">${escapeHtml(e.ts)}</td>
             <td><span class="badge ${cls}" style="font-size:9px">${label}</span></td>
             <td>${sevBadge(e.severity)}</td>
@@ -296,16 +301,16 @@
     if (!tbody || !packetsInit) return;
     packets.slice(-10).forEach(p => {
       const row = document.createElement('tr');
-      row.style.color = '#e6edf3';
+      row.style.color = cssVar('--text-primary', '#ececed');
       row.innerHTML = `
-        <td style="color:#e6edf3">${escapeHtml(p.time)}</td>
-        <td style="color:#e6edf3">${escapeHtml(p.src_ip)}</td>
-        <td style="color:#e6edf3">${escapeHtml(p.dst_ip)}</td>
-        <td style="color:#e6edf3">${p.src_port || '-'}</td>
-        <td style="color:#e6edf3">${p.dst_port || '-'}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(p.time)}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(p.src_ip)}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(p.dst_ip)}</td>
+        <td style="color:var(--text-primary)">${p.src_port || '-'}</td>
+        <td style="color:var(--text-primary)">${p.dst_port || '-'}</td>
         <td><span style="color:${protoColor(p.protocol)};font-weight:600">${escapeHtml(p.protocol)}</span></td>
-        <td style="color:#e6edf3">${p.length}</td>
-        <td style="color:#e6edf3">${escapeHtml(p.info)}</td>`;
+        <td style="color:var(--text-primary)">${p.length}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(p.info)}</td>`;
       tbody.insertBefore(row, tbody.firstChild);
       while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
     });
@@ -327,8 +332,8 @@
         animation: false, responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: '#8b949e', maxTicksLimit: 10, font:{size:10} }, grid: { color: '#21262d' } },
-          y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
+          x: { ticks: { color: cssVar('--text-dim', '#94949b'), maxTicksLimit: 10, font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
+          y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
         },
       },
     });
@@ -349,8 +354,8 @@
           animation: false, responsive: true, maintainAspectRatio: false, indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
-            y: { ticks: { color: '#8b949e', font:{size:10}, maxTicksLimit: 10 }, grid: { color: '#21262d' } },
+            x: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
+            y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10}, maxTicksLimit: 10 }, grid: { color: cssVar('--bg-hover', '#202024') } },
           },
         },
       }
@@ -363,8 +368,8 @@
           animation: false, responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
-            y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
+            x: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
+            y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
           },
         },
       }
@@ -425,15 +430,15 @@
         _seenSysmonEvents.delete(_seenSysmonOrder.shift());
       }
       const row = document.createElement('tr');
-      row.style.color = '#e6edf3';
+      row.style.color = cssVar('--text-primary', '#ececed');
       if (ev.suspicious || highlight) row.style.background = 'rgba(248,81,73,.08)';
       row.innerHTML = `
-        <td style="color:#e6edf3">${escapeHtml(ev.timestamp)}</td>
-        <td style="color:#e6edf3">${escapeHtml(ev.event_id)}</td>
-        <td style="color:#e6edf3">${escapeHtml(ev.event_name)}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(ev.timestamp)}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(ev.event_id)}</td>
+        <td style="color:var(--text-primary)">${escapeHtml(ev.event_name)}</td>
         <td>${sevBadge(ev.severity)}</td>
-        <td class="font-monospace text-truncate" style="max-width:120px;color:#e6edf3" title="${escapeHtml(ev.process||'')}">${escapeHtml(ev.process||'-')}</td>
-        <td class="text-truncate" style="max-width:240px;color:#e6edf3" title="${escapeHtml(ev.message)}">${escapeHtml(ev.message)}</td>
+        <td class="font-monospace text-truncate" style="max-width:120px;color:var(--text-primary)" title="${escapeHtml(ev.process||'')}">${escapeHtml(ev.process||'-')}</td>
+        <td class="text-truncate" style="max-width:240px;color:var(--text-primary)" title="${escapeHtml(ev.message)}">${escapeHtml(ev.message)}</td>
         <td>${ev.suspicious ? '<span class="badge bg-danger">의심</span>' : ''}</td>`;
       tbody.insertBefore(row, tbody.firstChild);
       while (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
@@ -474,10 +479,46 @@
 
   const DEFENDER = { lat: 37.5665, lng: 126.9780, label: 'Seoul (방어 서버)' };
 
+  /* 3D 지구본 라이브러리(three.js + globe.gl, 합 1.7MB)를 필요할 때 받아온다.
+     개요 패널의 공격 지도 하나에만 쓰이므로 모든 진입에서 받을 이유가 없다.
+     여러 번 불려도 요청은 한 번만 나가도록 프라미스를 캐시한다. */
+  let globeLibPromise = null;
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement('script');
+      tag.src = src;
+      tag.onload = () => resolve();
+      tag.onerror = () => reject(new Error(src));
+      document.head.appendChild(tag);
+    });
+  }
+
+  function ensureGlobeLib() {
+    if (typeof Globe !== 'undefined') return Promise.resolve(true);
+    if (!globeLibPromise) {
+      // three 가 먼저다 — globe.gl 이 전역 THREE 를 찾는다.
+      globeLibPromise = loadScript('/static/vendor/globe/three.min.js')
+        .then(() => loadScript('/static/vendor/globe/globe.gl.min.js'))
+        .then(() => true)
+        .catch(err => {
+          globeLibPromise = null;      // 다음에 다시 시도할 수 있게
+          console.warn('[SOC] 지구본 라이브러리 로드 실패', err);
+          return false;
+        });
+    }
+    return globeLibPromise;
+  }
+
   function initMap() {
     if (globeInited) return;
     const el = document.getElementById('attack-globe');
-    if (!el || typeof Globe === 'undefined') return;
+    if (!el) return;
+    if (typeof Globe === 'undefined') {
+      // 라이브러리가 아직 없다 — 받아오고 다시 부른다.
+      ensureGlobeLib().then(ok => { if (ok) initMap(); });
+      return;
+    }
     globeInited = true;
 
     globe = Globe()(el)
@@ -551,7 +592,7 @@
     // 방어자(서울) 마커 + 상시 레이더 펄스 링
     _globePoints.push({
       lat: DEFENDER.lat, lng: DEFENDER.lng, color: '#39d0d8',
-      radius: 0.55, alt: 0.012, label: `<b style="color:#39d0d8">🛡 ${DEFENDER.label}</b>`
+      radius: 0.55, alt: 0.012, label: `<b style="color:var(--cyan)">🛡 ${DEFENDER.label}</b>`
     });
     _globeRings.push({
       lat: DEFENDER.lat, lng: DEFENDER.lng,
@@ -569,7 +610,7 @@
     const sevRgb = {
       CRITICAL: '255,45,94', HIGH: '255,123,0', MEDIUM: '255,210,63', LOW: '0,225,255'
     };
-    const color = sevColors[entry.severity] || '#8b949e';
+    const color = sevColors[entry.severity] || cssVar('--text-dim', '#94949b');
     const rgb   = sevRgb[entry.severity]   || '139,148,158';
 
     // Arc (미사일 궤적)
@@ -648,8 +689,8 @@
           animation: false, responsive: true, maintainAspectRatio: false, indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
-            y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
+            x: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
+            y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
           },
         },
       });

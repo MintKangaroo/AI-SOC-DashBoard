@@ -1,19 +1,19 @@
     <div id="panel-siem" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-magnifying-glass-chart me-2 text-cyan"></i>SIEM — 이벤트 검색·분석
         <span class="badge bg-dark border border-secondary ms-2" style="font-weight:400;font-size:10px">Search &amp; Reporting</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSiem()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 검색 바 (Splunk SPL 스타일) -->
       <div class="spl-searchbar">
         <span class="spl-prompt">&gt;</span>
-        <input type="text" id="siem-search" class="spl-search-input"
+        <input type="text" id="siem-search" aria-label="SIEM 이벤트 검색" class="spl-search-input"
                placeholder='검색: ip, 요청, 분류, source (예: /.env  또는  185.220  또는  suspicious)'
                oninput="renderSiemEvents()" onkeydown="if(event.key==='Enter')renderSiemEvents()">
-        <select id="siem-timerange" class="spl-timerange" onchange="renderSiemEvents()">
+        <select id="siem-timerange" aria-label="조회 시간 범위" class="spl-timerange" onchange="renderSiemEvents()">
           <option value="0">전체 시간</option>
           <option value="5">최근 5분</option>
           <option value="15">최근 15분</option>

@@ -1,13 +1,13 @@
     <!-- ════ ML 자체 모델 패널 ════ -->
     <div id="panel-ml" class="panel-section d-none">
-      <div class="panel-title"><i class="fa fa-brain me-2 text-purple"></i>ML 자체 보안 AI 모델</div>
+      <h2 class="panel-title"><i class="fa fa-brain me-2 text-purple"></i>ML 자체 보안 AI 모델</h2>
 
       <!-- 이 패널은 어떻게 보나요? (가이드) -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           <strong class="text-cyan">Isolation Forest</strong> 한 종이 실시간 트래픽의 이상 점수를 냅니다.
           점수가 <u>0보다 크면 정상, 0보다 작을수록 이상</u>이며 급격히 떨어지면 비정상 트래픽입니다.
           <div class="mt-2 panel-subnote" style="--note-accent: var(--yellow)">
@@ -52,7 +52,7 @@
         <!-- 운영 모델 -->
         <div class="col-lg-4">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-circle-info text-cyan me-2"></i>운영 모델</div>
+            <h3 class="card-panel-header"><i class="fa fa-circle-info text-cyan me-2"></i>운영 모델</h3>
             <div class="small">
               <div class="panel-subnote panel-note--cyan">
                 <strong class="text-cyan">Isolation Forest</strong><br/>
@@ -60,7 +60,7 @@
                 오염률(contamination): 8% | 트리: 200개<br/>
                 입력: 8개 트래픽 피처 (pps·bps·프로토콜 비율·고유 출발지/포트·평균 패킷 크기)</span>
               </div>
-              <div class="mt-2 small" style="color:#8b949e;font-size:10.5px">
+              <div class="mt-2 small" style="color:var(--text-dim);font-size:10.5px">
                 라벨 없이 실트래픽으로 재학습할 수 있는 유일한 모델이라 남겼습니다.
               </div>
             </div>
@@ -70,11 +70,11 @@
         <!-- 격리된 실험 모델 -->
         <div class="col-lg-8">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-flask text-muted me-2"></i>격리된 실험 모델
               <span class="badge bg-secondary ms-2">비활성</span>
-            </div>
-            <div class="small px-2 pb-2" style="color:#8b949e;font-size:11px">
+            </h3>
+            <div class="small px-2 pb-2" style="color:var(--text-dim);font-size:11px">
               아래 3종은 실데이터로 학습·검증된 적이 없고 출력이 어떤 판단 경로에도
               연결되어 있지 않아 <code>experimental/</code> 로 격리했습니다.
               격리 사유와 복귀 조건은 <code>experimental/README.md</code>.
@@ -82,7 +82,7 @@
             <div class="table-responsive">
               <table class="table table-dark table-sm mb-0" style="font-size:11.5px">
                 <thead><tr><th>모델</th><th>격리 사유</th><th>복귀 조건</th></tr></thead>
-                <tbody style="color:#e6edf3">
+                <tbody style="color:var(--text-primary)">
                   <tr>
                     <td><strong class="text-purple">Random Forest</strong><br/><span class="text-muted">지도 분류 6클래스</span></td>
                     <td>사람 판정 라벨 1건 — 학습·검증 불가.<br/>학습 분포 밖에서 자신 있게 오분류.</td>
@@ -107,7 +107,7 @@
         <!-- IF 이상탐지 점수 추이 -->
         <div class="col-12">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-chart-line text-cyan me-2"></i>Isolation Forest 이상 점수 추이</div>
+            <h3 class="card-panel-header"><i class="fa fa-chart-line text-cyan me-2"></i>Isolation Forest 이상 점수 추이</h3>
             <canvas id="if-score-chart" height="90"></canvas>
           </div>
         </div>
@@ -115,14 +115,14 @@
         <!-- ML 분석 로그 -->
         <div class="col-12">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-list text-muted me-2"></i>ML 분석 로그
               <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="triggerMLAnalysis()">
                 <i class="fa fa-play me-1"></i>지금 분석
               </button>
               <button class="btn btn-xs btn-outline-secondary ms-2" onclick="sendFeedback(false)">정탐</button>
               <button class="btn btn-xs btn-outline-warning ms-1" onclick="sendFeedback(true)">오탐</button>
-            </div>
+            </h3>
             <div id="ml-log" style="max-height:250px;overflow-y:auto;font-size:11.5px;"></div>
           </div>
         </div>
@@ -130,14 +130,14 @@
         <!-- 의사결정 지원: 유사 위협 그룹핑 + 정오탐 자동 분석 -->
         <div class="col-12">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-sitemap text-cyan me-2"></i>ML 의사결정 지원 — 유사 위협 그룹핑 &amp; 정오탐 분석
               <span class="badge bg-secondary ms-2" id="ds-cluster-count">0 그룹</span>
               <span class="badge bg-warning text-dark ms-1" id="ds-verdict-count">판정 0건</span>
               <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadDecisionSupport()">
                 <i class="fa fa-sync me-1"></i>새로고침
               </button>
-            </div>
+            </h3>
             <div class="small text-muted px-2 pb-1" style="font-size:10.5px">
               동일 (위협유형 × 출발지 /24) 그룹의 AI/규칙 판정을 학습해 정탐률을 추정하고,
               그 결과가 신규 알림의 신뢰도에 자동 반영됩니다. 오탐이 반복되는 그룹은 자동으로 조용해집니다.

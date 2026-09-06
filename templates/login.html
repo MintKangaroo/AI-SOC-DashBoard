@@ -10,44 +10,48 @@
     body {
       margin: 0; min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at top, #0b1e3a 0%, #0d1117 55%, #020409 100%);
+      background: radial-gradient(ellipse at top, #0b1e3a 0%, var(--bg-primary) 55%, #020409 100%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-      color: #e6edf3; padding: 20px;
+      color: var(--text-primary); padding: 20px;
     }
     .login-card {
       width: 100%; max-width: 360px;
       background: rgba(28,35,51,.85);
-      border: 1px solid #30363d;
+      border: 1px solid var(--border);
       border-radius: 14px;
       padding: 32px 26px;
       box-shadow: 0 12px 40px rgba(0,0,0,.5);
       backdrop-filter: blur(6px);
     }
     .brand { text-align: center; margin-bottom: 22px; }
-    .brand i { font-size: 34px; color: #39d0d8; }
+    .brand i { font-size: 34px; color: var(--cyan); }
     .brand h1 { font-size: 17px; margin: 12px 0 2px; font-weight: 700; }
-    .brand p { font-size: 12px; color: #8b949e; margin: 0; }
-    label { display: block; font-size: 12px; color: #8b949e; margin: 14px 0 5px; }
+    .brand p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    label { display: block; font-size: 12px; color: var(--text-dim); margin: 14px 0 5px; }
     input {
       width: 100%; padding: 11px 12px;
-      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
-      color: #e6edf3; font-size: 14px; outline: none;
+      background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-primary); font-size: 14px; outline: none;
     }
-    input:focus { border-color: #39d0d8; box-shadow: 0 0 0 2px rgba(57,208,216,.15); }
+    input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(57,208,216,.15); }
     button {
       width: 100%; margin-top: 22px; padding: 12px;
-      background: #39d0d8; color: #001417; border: none; border-radius: 8px;
+      background: var(--cyan); color: #001417; border: none; border-radius: 8px;
       font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s;
     }
     button:hover { background: #2bb8bf; }
     .error {
       margin-top: 16px; padding: 10px 12px;
       background: rgba(248,81,73,.12); border: 1px solid rgba(248,81,73,.4);
-      border-radius: 8px; color: #f85149; font-size: 12.5px; text-align: center;
+      border-radius: 8px; color: var(--red); font-size: 12.5px; text-align: center;
     }
     .foot { margin-top: 18px; text-align: center; font-size: 11px; color: #6e7681; }
-    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#3fb950; margin-right:5px; animation: blink 1.6s infinite; }
+    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:5px; animation: blink 1.6s infinite; }
     @keyframes blink { 50% { opacity:.3; } }
+    /* 맥박은 멈추되 점은 켜진 채로 둔다 — '실시간'이라는 정보가 사라지지 않게. */
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot { animation: none; opacity: 1; }
+    }
   </style>
 </head>
 <body>

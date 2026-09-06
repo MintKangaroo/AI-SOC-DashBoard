@@ -1,17 +1,17 @@
     <!-- ════ 웹 퍼징 (견고성) 패널 ════ -->
     <div id="panel-fuzz" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-bug me-2 text-danger"></i>웹 엔드포인트 퍼징 — 견고성 점검
-        <span class="badge ms-2" id="fuzz-engine-badge" style="background:#30363d">-</span>
+        <span class="badge ms-2" id="fuzz-engine-badge" style="background:var(--border)">-</span>
         <button class="btn btn-xs btn-outline-danger ms-auto" onclick="fuzzStop()">
           <i class="fa fa-stop me-1"></i>중단</button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--orange">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-triangle-exclamation text-orange me-2"></i>본인 소유 서버만 · 안전 우선
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           엔드포인트에 <strong>비정상 입력</strong>(경계값·특수문자·오버플로·인젝션 마커)을 보내 서버가 안전하게 처리하는지 봅니다 — 목적은 <strong>방어 관점의 결함 발견</strong>(5xx·행·입력반사).
           <strong>사설/loopback/Tailscale 대상만</strong> 허용(공인 IP 거부), 기본 <strong>GET 전용</strong>(매매 트리거 없음),
           <strong id="fuzz-rate-note">rate limit</strong>으로 부하를 억제합니다.
@@ -32,24 +32,24 @@
 
       <!-- 실행 설정 -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-sliders text-cyan me-2"></i>퍼징 대상 · 설정</div>
+        <h3 class="card-panel-header"><i class="fa fa-sliders text-cyan me-2"></i>퍼징 대상 · 설정</h3>
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
-            <label class="small text-muted d-block mb-1">대상 서버</label>
+            <label for="fuzz-target" class="small text-muted d-block mb-1">대상 서버</label>
             <select id="fuzz-target" class="form-select form-select-sm"></select>
           </div>
           <div class="col-md-4">
-            <label class="small text-muted d-block mb-1">경로 (쉼표 구분)</label>
+            <label for="fuzz-paths" class="small text-muted d-block mb-1">경로 (쉼표 구분)</label>
             <input type="text" id="fuzz-paths" class="form-control form-control-sm font-monospace"
                    value="/, /login, /api/whoami" placeholder="/, /login">
           </div>
           <div class="col-md-2">
-            <label class="small text-muted d-block mb-1">파라미터</label>
+            <label for="fuzz-params" class="small text-muted d-block mb-1">파라미터</label>
             <input type="text" id="fuzz-params" class="form-control form-control-sm font-monospace"
                    value="q" placeholder="q,id">
           </div>
           <div class="col-md-2">
-            <label class="small text-muted d-block mb-1">메서드</label>
+            <label for="fuzz-method" class="small text-muted d-block mb-1">메서드</label>
             <select id="fuzz-method" class="form-select form-select-sm">
               <option value="GET">GET</option>
               <option value="POST">POST (쓰기)</option>
@@ -68,7 +68,7 @@
       <div class="row g-3">
         <div class="col-lg-8">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-list-check text-danger me-2"></i>발견 (견고성 결함)</div>
+            <h3 class="card-panel-header"><i class="fa fa-list-check text-danger me-2"></i>발견 (견고성 결함)</h3>
             <div class="table-responsive" style="max-height:460px; overflow-y:auto">
               <table class="table table-dark table-sm mb-0" style="font-size:12px">
                 <thead><tr><th>시각</th><th>유형</th><th>경로</th><th>페이로드</th><th>응답</th><th>설명</th></tr></thead>
@@ -81,11 +81,11 @@
         </div>
         <div class="col-lg-4">
           <div class="card-panel mb-3">
-            <div class="card-panel-header"><i class="fa fa-chart-simple text-orange me-2"></i>발견 유형 분포</div>
+            <h3 class="card-panel-header"><i class="fa fa-chart-simple text-orange me-2"></i>발견 유형 분포</h3>
             <svg id="fuzz-type-bars" width="100%" height="110"></svg>
           </div>
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>실행 이력</div>
+            <h3 class="card-panel-header"><i class="fa fa-clock-rotate-left text-cyan me-2"></i>실행 이력</h3>
             <div id="fuzz-history" style="max-height:220px; overflow-y:auto">
               <div class="text-muted p-2">이력 없음</div>
             </div>

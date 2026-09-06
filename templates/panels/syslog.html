@@ -1,17 +1,17 @@
     <div id="panel-syslog" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-satellite-dish me-2 text-cyan"></i>Syslog 수신 — 원격 침해시도 수집
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSyslog()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           자동매매 KR / USA 서버가 접속 시도·보안 이벤트를 <strong>syslog(UDP/TCP)</strong>로 전송하면
           여기서 실시간 수신합니다. 파일 tail 방식과 달리 로그 위치가 바뀌어도 끊기지 않습니다.
           인증 실패·프로브·SQLi/XSS·포트 스캔 등 <strong>의심 이벤트는 자동 분류</strong>되어
@@ -22,12 +22,12 @@
 
       <!-- 전송 설정 안내 (KR/USA 쪽) -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-plug text-info me-2"></i>KR/USA 프로젝트에서 이렇게 연결하세요</div>
-        <div class="small" style="color:#cdd9e5; line-height:1.7">
+        <h3 class="card-panel-header"><i class="fa fa-plug text-info me-2"></i>KR/USA 프로젝트에서 이렇게 연결하세요</h3>
+        <div class="small" style="color:var(--text-soft); line-height:1.7">
           각 프로젝트에 아래를 추가하면 접속 로그가 이 대시보드로 전송됩니다
           (<code>&lt;bind&gt;</code>는 위 수신 주소).
         </div>
-<pre class="mb-0 mt-2" style="background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; font-size:12px; color:#e6edf3; overflow-x:auto"><code>import logging, logging.handlers
+<pre class="mb-0 mt-2" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:12px; color:var(--text-primary); overflow-x:auto"><code>import logging, logging.handlers
 h = logging.handlers.SysLogHandler(address=(&quot;127.0.0.1&quot;, 5514),
                                    socktype=socket.SOCK_DGRAM)   # 또는 SOCK_STREAM(TCP)
 logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC 로 전송</code></pre>
@@ -61,13 +61,13 @@ logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC �
         <!-- TOP 호스트/IP -->
         <div class="col-lg-4">
           <div class="card-panel mb-3">
-            <div class="card-panel-header"><i class="fa fa-server text-info me-2"></i>전송 호스트</div>
+            <h3 class="card-panel-header"><i class="fa fa-server text-info me-2"></i>전송 호스트</h3>
             <div id="syslog-top-hosts" style="max-height:200px; overflow-y:auto">
               <div class="text-muted p-2">데이터 없음</div>
             </div>
           </div>
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 출발지 IP</div>
+            <h3 class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 출발지 IP</h3>
             <div id="syslog-top-ips" style="max-height:260px; overflow-y:auto">
               <div class="text-muted p-2">데이터 없음</div>
             </div>

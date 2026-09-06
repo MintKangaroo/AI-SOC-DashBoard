@@ -1,13 +1,13 @@
     <!-- ════ 트래픽 패널 ════ -->
     <div id="panel-traffic" class="panel-section d-none">
-      <div class="panel-title"><i class="fa fa-chart-line me-2 text-cyan"></i>네트워크 트래픽 분석</div>
+      <h2 class="panel-title"><i class="fa fa-chart-line me-2 text-cyan"></i>네트워크 트래픽 분석</h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           실시간 네트워크 트래픽을 4가지 관점으로 봅니다. <strong class="text-cyan">pps/bps 추이</strong>에서 갑자기 수직 상승(스파이크)이면 <span class="text-danger">DDoS·대량 스캔 의심</span>. <strong class="text-cyan">Top Talkers</strong>에 낯선 내부 IP가 상위에 오르면 내부 확산 가능성. <strong class="text-cyan">프로토콜 분포</strong>가 평소와 다르게 ICMP·UDP 비중이 급증하면 터널링/flood 가능성을 의심하세요.
         </div>
       </div>
@@ -15,25 +15,25 @@
       <div class="row g-3">
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">패킷/초 (pps) 추이</div>
+            <h3 class="card-panel-header">패킷/초 (pps) 추이</h3>
             <div class="chart-wrap" style="height:180px"><canvas id="traffic-pps-chart"></canvas></div>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">바이트/초 (bps) 추이</div>
+            <h3 class="card-panel-header">바이트/초 (bps) 추이</h3>
             <div class="chart-wrap" style="height:180px"><canvas id="traffic-bps-chart"></canvas></div>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">상위 송신 IP (Top Talkers)</div>
+            <h3 class="card-panel-header">상위 송신 IP (Top Talkers)</h3>
             <div class="chart-wrap" style="height:200px"><canvas id="top-talkers-chart"></canvas></div>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">프로토콜 분포</div>
+            <h3 class="card-panel-header">프로토콜 분포</h3>
             <div class="chart-wrap" style="height:200px"><canvas id="proto-dist-chart"></canvas></div>
           </div>
         </div>

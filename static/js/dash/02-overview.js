@@ -19,8 +19,8 @@
       animation: false, responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#8b949e', maxTicksLimit: 8, font:{size:10} }, grid: { color: '#21262d' } },
-        y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color: '#21262d' } },
+        x: { ticks: { color: cssVar('--text-dim', '#94949b'), maxTicksLimit: 8, font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
+        y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color: cssVar('--bg-hover', '#202024') } },
       },
     },
   });
@@ -31,7 +31,7 @@
     data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
     options: {
       animation: false, responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e', font:{size:10}, padding:6 } } },
+      plugins: { legend: { position: 'bottom', labels: { color: cssVar('--text-dim', '#94949b'), font:{size:10}, padding:6 } } },
     },
   });
 
@@ -44,7 +44,7 @@
     },
     options: {
       animation: false, responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e', font:{size:10}, padding:6 } } },
+      plugins: { legend: { position: 'bottom', labels: { color: cssVar('--text-dim', '#94949b'), font:{size:10}, padding:6 } } },
     },
   });
 
@@ -145,6 +145,17 @@
     // KPI: CRITICAL / HIGH
     if (alert.severity === 'CRITICAL') incEl('kpi-critical');
     if (alert.severity === 'HIGH')     incEl('kpi-high');
+
+    /* 보조기기 안내. 이 제품이 파는 것이 실시간 통보인데 그동안 화면을 보고
+       있는 사람에게만 갔다. 다만 전부 읽으면 파이어호스가 되므로 CRITICAL 만
+       읽기를 끊고(alarm), HIGH 는 틈에 끼워 읽는다(announce). MEDIUM 이하는
+       말하지 않는다 — 말이 많아지면 정작 급한 것을 놓친다. */
+    if (alert.severity === 'CRITICAL' || alert.severity === 'HIGH') {
+      const where = alert.src_ip ? ` 출발지 ${alert.src_ip}` : '';
+      const msg = `${alert.severity === 'CRITICAL' ? '심각' : '높음'} 알림, `
+                + `${alert.threat_type || '위협'}${where}`;
+      (alert.severity === 'CRITICAL' ? alarm : announce)(msg);
+    }
 
     // TOP 공격자
     trackAttacker(alert.src_ip, alert.threat_type);
@@ -320,8 +331,8 @@
           animation: false, responsive: true, maintainAspectRatio: false, indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color:'#21262d' } },
-            y: { ticks: { color: '#8b949e', font:{size:10} }, grid: { color:'#21262d' } },
+            x: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color:cssVar('--bg-hover', '#202024') } },
+            y: { ticks: { color: cssVar('--text-dim', '#94949b'), font:{size:10} }, grid: { color:cssVar('--bg-hover', '#202024') } },
           },
         },
       });

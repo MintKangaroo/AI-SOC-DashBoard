@@ -18,6 +18,17 @@
 </head>
 <body>
 
+<!-- 키보드 사용자가 사이드바 36개 링크를 매번 통과하지 않도록. 평소엔 숨어 있고
+     탭으로 포커스를 받으면 나타난다. -->
+<a href="#main-content" class="skip-link">본문으로 건너뛰기</a>
+
+<!-- 보조기기 안내 영역.
+     라이브 스트림(#live-stream)에 직접 aria-live 를 걸면 초당 여러 건이 흐르는
+     파이어호스를 그대로 읽어 스크린리더가 폭주한다. 그래서 **의미 있는 것만**
+     — 새 CRITICAL/HIGH 알림 — 을 요약해 이쪽으로 보낸다(01-core.js announce). -->
+<div id="a11y-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="a11y-alarm" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
 <!-- ══════════════ NAVBAR ══════════════ -->
 <nav class="navbar navbar-dark navbar-soc px-3 py-2">
   <div class="d-flex align-items-center gap-2">
@@ -221,7 +232,7 @@
   </nav>
 
   <!-- ── MAIN CONTENT ── -->
-  <main class="main-content flex-fill overflow-auto p-3">
+  <main id="main-content" class="main-content flex-fill overflow-auto p-3" tabindex="-1">
 
     {% include "panels/overview.html" %}
     {% include "panels/traffic.html" %}
@@ -264,36 +275,37 @@
 </div><!-- /layout -->
 
 <!-- ── 스크립트 ── -->
-<script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="/static/vendor/chartjs/chart.umd.min.js"></script>
-<script src="/static/vendor/jquery/jquery-3.7.1.min.js"></script>
-<script src="/static/vendor/datatables/jquery.dataTables.min.js"></script>
-<script src="/static/vendor/datatables/dataTables.bootstrap5.min.js"></script>
-<script src="/static/vendor/socketio/socket.io.min.js"></script>
-<!-- Three.js + Globe.gl (3D 지구본) -->
-<script src="/static/vendor/globe/three.min.js"></script>
-<script src="/static/vendor/globe/globe.gl.min.js"></script>
+<script defer src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script defer src="/static/vendor/chartjs/chart.umd.min.js"></script>
+<script defer src="/static/vendor/jquery/jquery-3.7.1.min.js"></script>
+<script defer src="/static/vendor/datatables/jquery.dataTables.min.js"></script>
+<script defer src="/static/vendor/datatables/dataTables.bootstrap5.min.js"></script>
+<script defer src="/static/vendor/socketio/socket.io.min.js"></script>
+<!-- Three.js + Globe.gl (3D 지구본, 합 1.7MB)은 여기서 로드하지 않는다.
+     쓰는 곳이 개요 패널의 공격 지도 하나뿐인데 모든 진입에서 받으면, 알림
+     목록만 보려는 분석가까지 기다리게 된다. initMap() 이 필요할 때 불러온다
+     (03-detection.js 의 ensureGlobeLib). -->
 <!-- dashboard.js 분할 — 원본 순서대로 로드(동작 동일) -->
-<script src="/static/js/dash/01-core.js"></script>
-<script src="/static/js/dash/02-overview.js"></script>
-<script src="/static/js/dash/03-detection.js"></script>
-<script src="/static/js/dash/04-ml-mitre.js"></script>
-<script src="/static/js/dash/05-svg-intel.js"></script>
-<script src="/static/js/dash/06-sources.js"></script>
-<script src="/static/js/dash/07-ops.js"></script>
-<script src="/static/js/dash/08-response-init.js"></script>
-<script src="/static/js/dash/09-alert-history.js"></script>
-<script src="/static/js/dash/10-health.js"></script>
-<script src="/static/js/dash/11-metrics.js"></script>
-<script src="/static/js/dash/12-audit.js"></script>
-<script src="/static/js/dash/13-watchlist.js"></script>
-<script src="/static/js/dash/14-campaigns.js"></script>
-<script src="/static/js/dash/15-syslog.js"></script>
-<script src="/static/js/dash/16-honeypot.js"></script>
-<script src="/static/js/dash/17-siem-correlation.js"></script>
-<script src="/static/js/dash/18-snort.js"></script>
-<script src="/static/js/dash/19-yara.js"></script>
-<script src="/static/js/dash/20-hunt.js"></script>
-<script src="/static/js/dash/21-labeling.js"></script>
+<script defer src="/static/js/dash/01-core.js"></script>
+<script defer src="/static/js/dash/02-overview.js"></script>
+<script defer src="/static/js/dash/03-detection.js"></script>
+<script defer src="/static/js/dash/04-ml-mitre.js"></script>
+<script defer src="/static/js/dash/05-svg-intel.js"></script>
+<script defer src="/static/js/dash/06-sources.js"></script>
+<script defer src="/static/js/dash/07-ops.js"></script>
+<script defer src="/static/js/dash/08-response-init.js"></script>
+<script defer src="/static/js/dash/09-alert-history.js"></script>
+<script defer src="/static/js/dash/10-health.js"></script>
+<script defer src="/static/js/dash/11-metrics.js"></script>
+<script defer src="/static/js/dash/12-audit.js"></script>
+<script defer src="/static/js/dash/13-watchlist.js"></script>
+<script defer src="/static/js/dash/14-campaigns.js"></script>
+<script defer src="/static/js/dash/15-syslog.js"></script>
+<script defer src="/static/js/dash/16-honeypot.js"></script>
+<script defer src="/static/js/dash/17-siem-correlation.js"></script>
+<script defer src="/static/js/dash/18-snort.js"></script>
+<script defer src="/static/js/dash/19-yara.js"></script>
+<script defer src="/static/js/dash/20-hunt.js"></script>
+<script defer src="/static/js/dash/21-labeling.js"></script>
 </body>
 </html>

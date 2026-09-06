@@ -1,9 +1,9 @@
     <!-- ════ 킬체인 상관관계 패널 ════ -->
     <div id="panel-campaigns" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-diagram-project me-2 text-danger"></i>공격 캠페인 — 킬체인 상관관계
         <span class="badge bg-dark ms-2" id="camp-total-badge">-</span>
-        <select id="camp-hours" class="form-select form-select-sm bg-dark text-white border-secondary ms-3"
+        <select id="camp-hours" aria-label="캠페인 조회 기간" class="form-select form-select-sm bg-dark text-white border-secondary ms-3"
                 style="width:auto" onchange="loadCampaigns()">
           <option value="24" selected>최근 24시간</option>
           <option value="48">최근 48시간</option>
@@ -13,13 +13,13 @@
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadCampaigns()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--red">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           개별 알림은 '점'이지만, <strong>같은 출발지</strong>의 알림들을 시간 순으로 묶으면 하나의 <strong>공격 캠페인</strong>이 됩니다.
           각 캠페인은 MITRE 전술 순서(<strong>정찰 → 초기접근 → … → 유출 → 영향</strong>)로 진행 단계를 보여줍니다.
           <strong>단계가 많은(다단계)</strong> 캠페인일수록 실제 침투가 진행된 공격 스토리이니 우선 확인하세요.

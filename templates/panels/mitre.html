@@ -1,13 +1,13 @@
     <!-- ════ MITRE ATT&CK 매트릭스 ════ -->
     <div id="panel-mitre" class="panel-section d-none">
-      <div class="panel-title"><i class="fa fa-crosshairs me-2 text-danger"></i>MITRE ATT&amp;CK Enterprise Matrix</div>
+      <h2 class="panel-title"><i class="fa fa-crosshairs me-2 text-danger"></i>MITRE ATT&amp;CK Enterprise Matrix</h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--red">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           실제 탐지된 공격을 MITRE 공격 단계(Tactic)와 세부 기법(Technique)에 매핑합니다. <strong>아래 매트릭스의 셀을 클릭</strong>하면 해당 기법의 상세, 관련 IP, 방어 권고가 표시됩니다.
           <ul class="mb-0 mt-1 ps-3">
             <li><span class="mitre-cell hit-low" style="display:inline-block;width:16px;height:10px;vertical-align:middle"></span> 1–2회 탐지 · <span class="mitre-cell hit-med" style="display:inline-block;width:16px;height:10px;vertical-align:middle"></span> 3–9회 · <span class="mitre-cell hit-high" style="display:inline-block;width:16px;height:10px;vertical-align:middle"></span> 10회 이상</li>
@@ -50,13 +50,13 @@
 
       <!-- 탐지 커버리지 자가 진단 -->
       <div class="panel-note mb-3 panel-note--purple">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-clipboard-check text-purple me-2"></i>탐지 커버리지 자가 진단
           <span class="small text-muted ms-2">— 히트 0 이 &lsquo;공격이 없었다&rsquo;인지 &lsquo;룰이 없어 못 본다&rsquo;인지 구분한다</span>
           <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreCoverage()">
             <i class="fa fa-sync me-1"></i>다시 진단
           </button>
-        </div>
+        </h3>
         <div class="row g-2 text-center mb-2">
           <div class="col-6 col-md-3">
             <div class="stat-value" id="cov-rule-pct" style="font-size:20px">-</div>
@@ -76,7 +76,7 @@
           </div>
         </div>
         <div id="cov-untracked" class="small mb-2"></div>
-        <div class="small" style="color:#8b949e">
+        <div class="small" style="color:var(--text-dim)">
           <span class="cov-legend cov-validated"></span> 룰 + 퍼플팀 검증 &nbsp;
           <span class="cov-legend cov-rule"></span> 룰만 있음(미검증) &nbsp;
           <span class="cov-legend cov-gap"></span> 공백 — 룰 자체가 없다
@@ -85,7 +85,7 @@
 
       <!-- ATT&CK 매트릭스 테이블 -->
       <div class="card-panel p-2 mb-3">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-table text-danger me-2"></i>ATT&amp;CK 매트릭스
           <div class="btn-group btn-group-sm ms-3" role="group">
             <button type="button" id="mitre-view-hits" class="btn btn-xs btn-cyan"
@@ -97,34 +97,34 @@
           <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreMatrix()">
             <i class="fa fa-sync me-1"></i>새로고침
           </button>
-        </div>
+        </h3>
         <div class="mitre-matrix-wrapper" id="mitre-matrix-container"></div>
       </div>
 
       <!-- 커버리지 공백 = 다음에 써야 할 룰 목록 -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-list-check text-danger me-2"></i>커버리지 공백 — 다음에 써야 할 룰
           <span class="badge bg-dark ms-2" id="cov-gap-badge">-</span>
-        </div>
+        </h3>
         <div id="cov-gap-list" class="small" style="max-height:260px;overflow-y:auto">진단 중...</div>
       </div>
 
       <!-- 상세 로그 (확장된 테이블) -->
       <div class="card-panel p-0 mb-3">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-clock-rotate-left text-info me-2"></i>상세 ATT&amp;CK 매핑 로그
           <span class="small text-muted ms-3">최근 200건 · Technique 링크 클릭 시 상세</span>
           <div class="ms-auto d-flex gap-1">
-            <select id="mitre-log-sev-filter" class="form-select form-select-sm bg-dark text-white border-secondary" style="width:auto">
+            <select id="mitre-log-sev-filter" aria-label="심각도로 거르기" class="form-select form-select-sm bg-dark text-white border-secondary" style="width:auto">
               <option value="">전체 심각도</option>
               <option value="CRITICAL">CRITICAL</option>
               <option value="HIGH">HIGH</option>
               <option value="MEDIUM">MEDIUM</option>
             </select>
-            <input id="mitre-log-filter" type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="IP/기법 검색" style="width:180px"/>
+            <input id="mitre-log-filter" aria-label="IP 또는 기법 검색" type="text" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="IP/기법 검색" style="width:180px"/>
           </div>
-        </div>
+        </h3>
         <div style="max-height:420px; overflow-y:auto">
           <table class="table table-dark table-hover table-sm mb-0">
             <thead class="table-dark" style="position:sticky;top:0;z-index:2">
@@ -148,18 +148,18 @@
         <!-- TOP Technique -->
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-fire text-danger me-2"></i>가장 많이 탐지된 Technique
-            </div>
+            </h3>
             <div id="mitre-top-list" class="small">데이터 수집 중...</div>
           </div>
         </div>
         <!-- 최근 매핑 이벤트 (요약) -->
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-rss text-info me-2"></i>최근 이벤트 스트림
-            </div>
+            </h3>
             <div id="mitre-recent-list" class="small" style="max-height:300px;overflow-y:auto">데이터 수집 중...</div>
           </div>
         </div>

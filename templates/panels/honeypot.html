@@ -1,17 +1,17 @@
     <div id="panel-honeypot" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-shield-halved me-2 text-orange"></i>허니팟 — 유인 서비스 침해 포착
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadHoneypot()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--orange">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-orange me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           공격자가 노리는 서비스(SSH·Telnet·MySQL·Redis·HTTP 등)를 흉내 낸
           <strong>가짜 리스너</strong>입니다. 정상 사용자는 접근할 이유가 없으므로,
           여기에 붙는 연결은 사실상 전부 정찰·공격 시도 — <strong>고신뢰 침해 지표</strong>입니다.
@@ -49,11 +49,11 @@
         <!-- 서비스별 + TOP IP -->
         <div class="col-lg-4">
           <div class="card-panel mb-3">
-            <div class="card-panel-header"><i class="fa fa-server text-info me-2"></i>유인 서비스별 접촉</div>
+            <h3 class="card-panel-header"><i class="fa fa-server text-info me-2"></i>유인 서비스별 접촉</h3>
             <svg id="honeypot-bars" width="100%" height="150"></svg>
           </div>
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-user-secret text-danger me-2"></i>TOP 공격자 IP</div>
+            <h3 class="card-panel-header"><i class="fa fa-user-secret text-danger me-2"></i>TOP 공격자 IP</h3>
             <div id="honeypot-top-ips" style="max-height:240px; overflow-y:auto">
               <div class="text-muted p-2">데이터 없음</div>
             </div>
@@ -62,7 +62,7 @@
         <!-- 접촉 로그 -->
         <div class="col-lg-8">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>유인 접촉 로그</div>
+            <h3 class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>유인 접촉 로그</h3>
             <div class="table-responsive" style="max-height:560px; overflow-y:auto">
               <table class="table table-dark table-sm mb-0" style="font-size:12px">
                 <thead><tr><th>시각</th><th>공격자 IP</th><th>서비스</th><th>입력(자격증명/명령)</th><th>심각도</th></tr></thead>

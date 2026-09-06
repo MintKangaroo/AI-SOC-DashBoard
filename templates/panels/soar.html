@@ -1,24 +1,24 @@
     <!-- ════ SOAR 자동 대응 패널 ════ -->
     <div id="panel-soar" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-robot me-2 text-cyan"></i>SOAR — AI 기반 자동 대응 (Playbooks)
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSoar()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           탐지(SIEM/IDS) → <strong>AI 트리아지(Claude가 정탐/오탐 판정)</strong> → 자동 대응(차단/종결/에스컬레이션)의
           SOC 워크플로를 자동화합니다. 오탐은 자동 종결되어 ML 모델에 피드백되고, 정탐 CRITICAL은 외부 IP를 자동 차단합니다.
           차단 모드 <code id="soar-mode-label">simulate</code> — 시뮬레이션은 기록만 하며,
           홈서버 실차단은 <code>.env</code>에 <code>SOAR_BLOCK_MODE=ufw</code> 설정 (sudo 필요).
         </div>
-        <div class="small mt-2 pt-2" style="color:#e6edf3; border-top:1px solid var(--border)">
+        <div class="small mt-2 pt-2" style="color:var(--text-primary); border-top:1px solid var(--border)">
           <i class="fa fa-shield-halved text-success me-1"></i><strong>안전장치</strong>:
           사설·<span class="text-cyan">Tailscale(100.64.0.0/10)</span>·서버 자신은 <u>절대 차단 안 함</u>(자가 락아웃 방지).
           <span id="soar-safety-extra"></span>
@@ -38,13 +38,13 @@
           <div class="stat-value text-danger" id="soar-blocked">0</div>
           <div class="stat-label">차단된 IP</div>
         </div></div>
-        <div class="col-md-3"><div class="stat-card border-success clickable"
+        <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-success clickable"
              onclick="showVerdictDetail('fp')" title="클릭하면 오탐 종결 상세 내역">
           <div class="stat-icon text-success"><i class="fa fa-circle-check"></i></div>
           <div class="stat-value text-success" id="soar-closed-fp">0</div>
           <div class="stat-label">오탐 자동 종결</div>
         </div></div>
-        <div class="col-md-3"><div class="stat-card border-warning clickable"
+        <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-warning clickable"
              onclick="showVerdictDetail('tp')" title="클릭하면 정탐 에스컬레이션 상세 내역">
           <div class="stat-icon text-warning"><i class="fa fa-arrow-up-right-dots"></i></div>
           <div class="stat-value text-warning" id="soar-escalated">0</div>
@@ -56,7 +56,7 @@
         <div class="col-lg-5">
           <!-- 플레이북 -->
           <div class="card-panel mb-3">
-            <div class="card-panel-header"><i class="fa fa-book text-cyan me-2"></i>플레이북</div>
+            <h3 class="card-panel-header"><i class="fa fa-book text-cyan me-2"></i>플레이북</h3>
             <div id="soar-playbooks"><div class="text-muted p-2">로딩 중...</div></div>
           </div>
           <!-- 차단 IP -->
@@ -64,7 +64,7 @@
             <div class="card-panel-header d-flex align-items-center">
               <i class="fa fa-ban text-danger me-2"></i>차단 IP 목록
               <div class="ms-auto d-flex gap-1">
-                <input type="text" id="soar-block-ip-input" class="form-control form-control-sm font-monospace"
+                <input type="text" id="soar-block-ip-input" aria-label="수동 차단할 IP" class="form-control form-control-sm font-monospace"
                        placeholder="IP 수동 차단" style="width:150px; font-size:11px">
                 <button class="btn btn-xs btn-outline-danger" onclick="soarManualBlock()">차단</button>
               </div>
@@ -77,7 +77,7 @@
         <!-- 대응 타임라인 -->
         <div class="col-lg-7">
           <div class="card-panel mb-3">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-route text-cyan me-2"></i>플레이북 실행 현황
               <span class="ms-auto small" id="soar-vt-status"></span>
               <button class="btn btn-xs btn-outline-cyan ms-2" onclick="testVirusTotal()">
@@ -86,7 +86,7 @@
               <button class="btn btn-xs btn-outline-success ms-1" onclick="approveAllSoar()">
                 <i class="fa fa-check-double me-1"></i>대기 일괄 승인
               </button>
-            </div>
+            </h3>
             <div id="soar-vt-test-result" class="small px-2 pb-2 d-none"></div>
             <div id="soar-executions" class="soar-executions">
               <div class="text-muted p-3 text-center small">실행 대기 중…</div>
@@ -94,10 +94,10 @@
           </div>
           <!-- 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) -->
           <div class="panel-note mb-3 panel-note--purple">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-scale-balanced text-purple me-2"></i>차단 결정 기록
               <span class="small text-muted ms-2">— 차단하지 <b>않은</b> 결정도 남긴다</span>
-              <select id="bd-filter" class="form-select form-select-sm bg-dark text-white border-secondary ms-auto"
+              <select id="bd-filter" aria-label="차단 결정 거르기" class="form-select form-select-sm bg-dark text-white border-secondary ms-auto"
                       style="width:auto" onchange="loadBlockDecisions()">
                 <option value="all">전체</option>
                 <option value="true">차단됨</option>
@@ -106,7 +106,7 @@
               <button class="btn btn-xs btn-outline-cyan ms-2" onclick="loadBlockDecisions()">
                 <i class="fa fa-sync"></i>
               </button>
-            </div>
+            </h3>
             <div id="bd-summary" class="small mb-2 text-muted">불러오는 중...</div>
             <div class="table-responsive" style="max-height:320px; overflow-y:auto">
               <table class="table table-dark table-sm mb-0" style="font-size:12px">
@@ -120,7 +120,7 @@
           </div>
 
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-timeline text-warning me-2"></i>자동 대응 타임라인</div>
+            <h3 class="card-panel-header"><i class="fa fa-timeline text-warning me-2"></i>자동 대응 타임라인</h3>
             <div class="table-responsive" style="max-height:640px; overflow-y:auto">
               <table class="table table-dark table-sm mb-0" style="font-size:12px">
                 <thead><tr><th>시각</th><th>플레이북</th><th>액션</th><th>대상</th><th>결과</th><th>상세</th></tr></thead>

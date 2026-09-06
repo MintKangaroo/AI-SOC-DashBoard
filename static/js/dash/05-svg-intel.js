@@ -21,10 +21,10 @@
         off += len;
       });
     } else {
-      ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#21262d" stroke-width="${sw}"/>`;
+      ring = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${cssVar('--bg-hover', '#202024')}" stroke-width="${sw}"/>`;
     }
-    const center = `<text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="20" font-weight="800" fill="#e6edf3">${escapeHtml(centerTop ?? total)}</text>
-      <text x="${cx}" y="${cy + 15}" text-anchor="middle" font-size="10" fill="#8b949e">${escapeHtml(centerSub || '')}</text>`;
+    const center = `<text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="20" font-weight="800" fill="${cssVar('--text-primary', '#ececed')}">${escapeHtml(centerTop ?? total)}</text>
+      <text x="${cx}" y="${cy + 15}" text-anchor="middle" font-size="10" fill="${cssVar('--text-dim', '#94949b')}">${escapeHtml(centerSub || '')}</text>`;
     const lx = cx + r + sw + 6;
     let legend = '';
     segs.forEach((s, i) => {
@@ -32,7 +32,7 @@
       const pct = total ? Math.round((s.value || 0) / total * 100) : 0;
       legend += `<rect x="${lx}" y="${ly - 9}" width="11" height="11" rx="2" fill="${s.color}"/>
         <text x="${lx + 17}" y="${ly}" font-size="11" fill="#c9d1d9">${escapeHtml(s.label)}</text>
-        <text x="${lx + 17}" y="${ly + 13}" font-size="10" fill="#8b949e">${(s.value || 0).toLocaleString()} · ${pct}%</text>`;
+        <text x="${lx + 17}" y="${ly + 13}" font-size="10" fill="${cssVar('--text-dim', '#94949b')}">${(s.value || 0).toLocaleString()} · ${pct}%</text>`;
     });
     svg.innerHTML = ring + center + legend;
   }
@@ -46,7 +46,7 @@
     const H = Math.max(40, top * 2 + items.length * rowH);
     svg.setAttribute('height', H);
     if (!items.length) {
-      svg.innerHTML = `<text x="${W / 2}" y="26" text-anchor="middle" font-size="11" fill="#8b949e">데이터 없음</text>`;
+      svg.innerHTML = `<text x="${W / 2}" y="26" text-anchor="middle" font-size="11" fill="${cssVar('--text-dim', '#94949b')}">데이터 없음</text>`;
       return;
     }
     const max = Math.max(1, ...items.map(i => i.value || 0));
@@ -56,9 +56,9 @@
       const y = top + i * rowH;
       const w = Math.max(2, (it.value || 0) / max * barMax);
       out += `<text x="${padL - 8}" y="${y + 15}" text-anchor="end" font-size="11" fill="#c9d1d9">${escapeHtml((it.label ?? '').toString().slice(0, 16))}</text>
-        <rect x="${padL}" y="${y + 4}" width="${barMax}" height="15" rx="3" fill="#161b22"/>
+        <rect x="${padL}" y="${y + 4}" width="${barMax}" height="15" rx="3" fill="${cssVar('--bg-secondary', '#121214')}"/>
         <rect x="${padL}" y="${y + 4}" width="${w}" height="15" rx="3" fill="${it.color || 'var(--cyan)'}"/>
-        <text x="${padL + w + 6}" y="${y + 15}" font-size="11" font-weight="700" fill="#e6edf3">${(it.value || 0).toLocaleString()}${unit || ''}</text>`;
+        <text x="${padL + w + 6}" y="${y + 15}" font-size="11" font-weight="700" fill="${cssVar('--text-primary', '#ececed')}">${(it.value || 0).toLocaleString()}${unit || ''}</text>`;
     });
     svg.innerHTML = out;
   }
@@ -119,12 +119,12 @@
                       : sev === 'HIGH'     ? 'bg-orange'
                       : 'bg-warning text-dark';
           return `
-          <div class="mitre-recent-item" style="color:#e6edf3">
-            <span class="ts" style="color:#e6edf3">${(e.timestamp||'').split(' ')[1] || e.timestamp}</span>
+          <div class="mitre-recent-item" style="color:var(--text-primary)">
+            <span class="ts" style="color:var(--text-primary)">${(e.timestamp||'').split(' ')[1] || e.timestamp}</span>
             <span class="badge bg-danger font-monospace">${escapeHtml(e.technique_id)}</span>
             <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
-            <span class="tactic" style="color:#e6edf3">${escapeHtml(e.tactic_ko || e.tactic_id)}</span>
-            <span class="desc" style="color:#e6edf3">${escapeHtml(e.description||'')}</span>
+            <span class="tactic" style="color:var(--text-primary)">${escapeHtml(e.tactic_ko || e.tactic_id)}</span>
+            <span class="desc" style="color:var(--text-primary)">${escapeHtml(e.description||'')}</span>
           </div>`;
         }).join('');
       });
@@ -168,13 +168,13 @@
                   : 'bg-warning text-dark';
       const div = document.createElement('div');
       div.className = 'mitre-recent-item new';
-      div.setAttribute('style', 'color:#e6edf3');
+      div.setAttribute('style', 'color:var(--text-primary)');
       div.innerHTML = `
-        <span class="ts" style="color:#e6edf3">${(entry.timestamp||'').split(' ')[1] || entry.timestamp}</span>
+        <span class="ts" style="color:var(--text-primary)">${(entry.timestamp||'').split(' ')[1] || entry.timestamp}</span>
         <span class="badge bg-danger font-monospace">${escapeHtml(entry.technique_id)}</span>
         <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
-        <span class="tactic" style="color:#e6edf3">${escapeHtml(entry.tactic_ko || entry.tactic_id)}</span>
-        <span class="desc" style="color:#e6edf3">${escapeHtml(entry.description||'')}</span>`;
+        <span class="tactic" style="color:var(--text-primary)">${escapeHtml(entry.tactic_ko || entry.tactic_id)}</span>
+        <span class="desc" style="color:var(--text-primary)">${escapeHtml(entry.description||'')}</span>`;
       recentList.insertBefore(div, recentList.firstChild);
       while (recentList.children.length > 30) recentList.removeChild(recentList.lastChild);
     }
@@ -216,14 +216,14 @@
     if (srcTbody) {
       const rows = (d.sources || []).map(s => {
         const okCls = /ok/i.test(s.status) ? 'text-success' : 'text-danger';
-        return `<tr style="color:#e6edf3">
-          <td class="small" style="color:#e6edf3">${escapeHtml(s.name)}</td>
-          <td class="small" style="color:#e6edf3">${escapeHtml(s.type)}</td>
-          <td class="small font-monospace text-end" style="color:#e6edf3">${(s.count||0).toLocaleString()}</td>
+        return `<tr style="color:var(--text-primary)">
+          <td class="small" style="color:var(--text-primary)">${escapeHtml(s.name)}</td>
+          <td class="small" style="color:var(--text-primary)">${escapeHtml(s.type)}</td>
+          <td class="small font-monospace text-end" style="color:var(--text-primary)">${(s.count||0).toLocaleString()}</td>
           <td class="small ${okCls}">${escapeHtml(s.status||'-')}</td>
         </tr>`;
       }).join('');
-      srcTbody.innerHTML = rows || '<tr><td colspan="4" class="text-center" style="color:#e6edf3">피드 로딩 중...</td></tr>';
+      srcTbody.innerHTML = rows || '<tr><td colspan="4" class="text-center" style="color:var(--text-primary)">피드 로딩 중...</td></tr>';
     }
 
     const ipBox = document.getElementById('ti-sample-ips');
@@ -249,7 +249,7 @@
       { label: '악성 URL', value: stats.bad_url_count || 0, color: '#f0a500' },
     ], ((stats.bad_ip_count || 0) + (stats.bad_url_count || 0)).toLocaleString(), '총 IoC');
     svgHBars('ti-bars', (d.sources || []).slice(0, 6).map(s => ({
-      label: s.name, value: s.count || 0, color: /ok/i.test(s.status || '') ? '#39d0d8' : '#8b949e',
+      label: s.name, value: s.count || 0, color: /ok/i.test(s.status || '') ? '#39d0d8' : cssVar('--text-dim', '#94949b'),
     })), '개');
   }
 
@@ -269,7 +269,7 @@
     const kindCls = m.kind === 'ip' ? 'bg-danger' : 'bg-orange';
     const dirIcon = m.direction === 'inbound' ? 'fa-arrow-down' : 'fa-arrow-up';
     const time = (m.timestamp || '').split(' ')[1] || m.timestamp || '';
-    return `<div class="ti-match-item p-2 border-bottom border-secondary" style="color:#e6edf3">
+    return `<div class="ti-match-item p-2 border-bottom border-secondary" style="color:var(--text-primary)">
       <div class="d-flex align-items-center gap-2 mb-1">
         <span class="badge ${kindCls}" style="font-size:9px">${(m.kind||'').toUpperCase()}</span>
         <span class="badge bg-danger" style="font-size:9px">CRITICAL</span>

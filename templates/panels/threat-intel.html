@@ -1,18 +1,18 @@
     <!-- ════ 위협 인텔리전스 패널 ════ -->
     <div id="panel-threat-intel" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-virus me-2 text-danger"></i>위협 인텔리전스 (Malicious IP / URL Feeds)
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="refreshThreatIntel()">
           <i class="fa fa-sync me-1"></i>피드 갱신
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--red">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-red me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           공개 IoC 피드(Feodo Tracker · Spamhaus DROP · URLhaus · OpenPhish)에서 악성 IP·URL을 주기적으로 가져와
           내부 트래픽과 매칭해 알려줍니다. <strong>매칭이 발생하면 CRITICAL</strong> — 즉시 해당 단말 격리·블록 필요.
           피드 로딩 실패 시 내장 데모 IoC로 Fallback 됩니다.
@@ -45,11 +45,11 @@
 
       <div class="row g-3 mb-3">
         <div class="col-lg-5"><div class="card-panel h-100">
-          <div class="card-panel-header"><i class="fa fa-chart-pie text-orange me-2"></i>IoC 구성 (IP vs URL)</div>
+          <h3 class="card-panel-header"><i class="fa fa-chart-pie text-orange me-2"></i>IoC 구성 (IP vs URL)</h3>
           <svg id="ti-donut" width="100%" height="170"></svg>
         </div></div>
         <div class="col-lg-7"><div class="card-panel h-100">
-          <div class="card-panel-header"><i class="fa fa-chart-simple text-orange me-2"></i>피드 소스별 IoC 수집량</div>
+          <h3 class="card-panel-header"><i class="fa fa-chart-simple text-orange me-2"></i>피드 소스별 IoC 수집량</h3>
           <svg id="ti-bars" width="100%" height="120"></svg>
         </div></div>
       </div>
@@ -58,7 +58,7 @@
         <!-- 피드 소스 -->
         <div class="col-lg-5">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-database text-info me-2"></i>피드 소스</div>
+            <h3 class="card-panel-header"><i class="fa fa-database text-info me-2"></i>피드 소스</h3>
             <div class="table-responsive">
               <table class="table table-dark table-sm mb-0">
                 <thead><tr><th>이름</th><th>유형</th><th>IoC 수</th><th>상태</th></tr></thead>
@@ -70,10 +70,10 @@
         <!-- 최근 매칭 이벤트 -->
         <div class="col-lg-7">
           <div class="card-panel">
-            <div class="card-panel-header">
+            <h3 class="card-panel-header">
               <i class="fa fa-triangle-exclamation text-danger me-2"></i>실시간 매칭 이벤트
               <span class="ms-auto small text-muted">CRITICAL</span>
-            </div>
+            </h3>
             <div id="ti-match-list" class="small" style="max-height:380px;overflow-y:auto">
               <div class="text-muted text-center p-3">매칭 대기 중...</div>
             </div>
@@ -82,26 +82,26 @@
         <!-- 샘플 IoC -->
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-list text-danger me-2"></i>악성 IP 샘플 (TOP 20)</div>
-            <div id="ti-sample-ips" class="small text-monospace" style="color:#e6edf3;max-height:200px;overflow-y:auto"></div>
+            <h3 class="card-panel-header"><i class="fa fa-list text-danger me-2"></i>악성 IP 샘플 (TOP 20)</h3>
+            <div id="ti-sample-ips" class="small text-monospace" style="color:var(--text-primary);max-height:200px;overflow-y:auto"></div>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-link text-orange me-2"></i>악성 URL 샘플 (TOP 20)</div>
-            <div id="ti-sample-urls" class="small text-monospace" style="color:#e6edf3;max-height:200px;overflow-y:auto;word-break:break-all"></div>
+            <h3 class="card-panel-header"><i class="fa fa-link text-orange me-2"></i>악성 URL 샘플 (TOP 20)</h3>
+            <div id="ti-sample-urls" class="small text-monospace" style="color:var(--text-primary);max-height:200px;overflow-y:auto;word-break:break-all"></div>
           </div>
         </div>
         <!-- IoC 직접 조회 -->
         <div class="col-12">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-search text-cyan me-2"></i>IoC 직접 조회</div>
+            <h3 class="card-panel-header"><i class="fa fa-search text-cyan me-2"></i>IoC 직접 조회</h3>
             <div class="row g-2">
               <div class="col-md-5">
-                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="ti-check-ip" placeholder="IP (예: 45.33.32.156)"/>
+                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="ti-check-ip" aria-label="평판 조회할 IP" placeholder="IP (예: 45.33.32.156)"/>
               </div>
               <div class="col-md-5">
-                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="ti-check-url" placeholder="URL (예: http://evil.xyz/gate.php)"/>
+                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="ti-check-url" aria-label="평판 조회할 URL" placeholder="URL (예: http://evil.xyz/gate.php)"/>
               </div>
               <div class="col-md-2">
                 <button class="btn btn-sm btn-outline-cyan w-100" onclick="checkThreatIntel()">

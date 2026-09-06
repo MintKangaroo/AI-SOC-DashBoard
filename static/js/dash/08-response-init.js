@@ -145,7 +145,7 @@
 
   function renderPlaybookCard(pb) {
     const steps = (pb.steps || []).map((s, i) => {
-      const k = PB_STEP_KIND[s.kind] || { ko: '', color: '#8b949e' };
+      const k = PB_STEP_KIND[s.kind] || { ko: '', color: cssVar('--text-dim', '#94949b') };
       const arrow = i > 0 ? '<span class="pb-arrow">→</span>' : '';
       return `${arrow}<span class="pb-step" style="border-color:${k.color}">
         <span class="pb-step-kind" style="background:${k.color}">${k.ko}</span>
@@ -161,7 +161,7 @@
                    onchange="soarTogglePb('${escapeHtml(pb.id)}')">
           </div>
           <span class="badge bg-dark border border-secondary font-monospace" style="font-size:9px">${escapeHtml(pb.id)}</span>
-          <span class="small fw-bold flex-fill" style="color:#e6edf3">${escapeHtml(pb.name)}</span>
+          <span class="small fw-bold flex-fill" style="color:var(--text-primary)">${escapeHtml(pb.name)}</span>
           <span class="small text-muted" style="font-size:10px; white-space:nowrap">
             실행 <b class="text-cyan">${pb.runs}</b>회${pb.last_run ? ` · ${escapeHtml(pb.last_run.slice(11))}` : ''}
           </span>
@@ -256,7 +256,7 @@
       <div class="soar-run">
         <div class="d-flex align-items-center gap-2 small">
           <span class="pb-tag">${escapeHtml(run.playbook)}</span>
-          <strong style="color:#e6edf3">${escapeHtml(run.target)}</strong>
+          <strong style="color:var(--text-primary)">${escapeHtml(run.target)}</strong>
           <span class="ms-auto badge ${run.status === 'running' ? 'bg-info text-dark' : run.status === 'waiting_approval' ? 'bg-warning text-dark' : ['failed','rejected','expired'].includes(run.status) ? 'bg-danger' : run.status === 'cancelled' ? 'bg-secondary' : 'bg-success'}">${escapeHtml(SOAR_RUN_STATE[run.status] || run.status)}</span>
           ${run.attempt > 1 ? `<span class="badge bg-secondary">${run.attempt}차 시도</span>` : ''}
           ${run.status === 'failed' && run.playbook === 'PB-MALWARE-ENRICH' ? `<button class="btn btn-xs btn-outline-warning" onclick="retrySoarExecution(${Number(run.id)})"><i class="fa fa-rotate-right me-1"></i>실패 단계 재시도</button>` : ''}
@@ -375,7 +375,7 @@
           <div class="list-group-item bg-transparent border-secondary px-0 py-2">
             <div class="d-flex align-items-center gap-2">
               <span class="badge ${isFp ? 'bg-success' : 'bg-warning text-dark'}">${isFp ? '오탐' : '정탐'}</span>
-              <span class="fw-bold" style="color:#e6edf3">${escapeHtml(a.target || '')}</span>
+              <span class="fw-bold" style="color:var(--text-primary)">${escapeHtml(a.target || '')}</span>
               <span class="text-muted ms-auto small font-monospace">${escapeHtml(a.timestamp || '')}</span>
             </div>
             <div class="small mt-1" style="color:#c9d3de">${escapeHtml(a.detail || '')}</div>
@@ -408,12 +408,12 @@
   function soarActionRow(a) {
     return `
       <tr>
-        <td class="small" style="color:#e6edf3; white-space:nowrap">${escapeHtml((a.timestamp || '').split(' ')[1] || a.timestamp)}</td>
+        <td class="small" style="color:var(--text-primary); white-space:nowrap">${escapeHtml((a.timestamp || '').split(' ')[1] || a.timestamp)}</td>
         <td class="small" style="white-space:nowrap"><span class="pb-tag">${escapeHtml(a.playbook)}</span></td>
         <td class="small">${SOAR_ACTION_LABELS[a.action] || escapeHtml(a.action)}</td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(a.target)}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(a.target)}</td>
         <td class="small ${a.result === 'success' ? 'text-success' : 'text-muted'}">${escapeHtml(a.result)}</td>
-        <td class="small text-truncate" style="max-width:260px; color:#e6edf3" title="${escapeHtml(a.detail)}">${escapeHtml(a.detail)}</td>
+        <td class="small text-truncate" style="max-width:260px; color:var(--text-primary)" title="${escapeHtml(a.detail)}">${escapeHtml(a.detail)}</td>
       </tr>`;
   }
 
@@ -501,14 +501,14 @@
       return `
         <tr>
           <td class="small" style="color:${threatColor(c.threat_type)};font-weight:600">${escapeHtml(c.threat_type)}</td>
-          <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(c.src_net)}</td>
-          <td class="small" style="color:#e6edf3">${c.count}</td>
-          <td class="small" style="color:#e6edf3">${c.unique_ips}</td>
+          <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(c.src_net)}</td>
+          <td class="small" style="color:var(--text-primary)">${c.count}</td>
+          <td class="small" style="color:var(--text-primary)">${c.unique_ips}</td>
           <td class="small">${sevBadge(c.dominant_severity)}</td>
-          <td class="small" style="color:#e6edf3">${c.tp} / ${c.fp}</td>
+          <td class="small" style="color:var(--text-primary)">${c.tp} / ${c.fp}</td>
           <td class="small ${rateCls}">${rate}</td>
           <td class="small">${DS_RECO_BADGES[c.recommendation] || ''}
-            <span style="color:#e6edf3" title="${escapeHtml(c.reason)}">${escapeHtml(c.reason)}</span></td>
+            <span style="color:var(--text-primary)" title="${escapeHtml(c.reason)}">${escapeHtml(c.reason)}</span></td>
         </tr>`;
     }).join('');
     tbody.innerHTML = rows || '<tr><td colspan="8" class="text-muted text-center p-3">아직 그룹 없음</td></tr>';
@@ -604,11 +604,11 @@
       <tr style="cursor:pointer" onclick="selectIncident(${inc.id})"
           ${inc.id === selectedIncidentId ? 'class="table-active"' : ''}>
         <td class="small text-cyan">#${inc.id}</td>
-        <td class="small" style="color:#e6edf3">${escapeHtml(inc.title)}</td>
+        <td class="small" style="color:var(--text-primary)">${escapeHtml(inc.title)}</td>
         <td class="small">${sevBadge(inc.severity)}</td>
         <td class="small">${INC_STATUS_BADGES[inc.status] || escapeHtml(inc.status)}</td>
-        <td class="small" style="color:#e6edf3">${inc.alert_count}</td>
-        <td class="small" style="color:#e6edf3">${escapeHtml(inc.assignee || '-')}</td>
+        <td class="small" style="color:var(--text-primary)">${inc.alert_count}</td>
+        <td class="small" style="color:var(--text-primary)">${escapeHtml(inc.assignee || '-')}</td>
         <td class="small text-muted" style="white-space:nowrap">${escapeHtml((inc.updated || '').slice(5))}</td>
       </tr>`).join('');
     tbody.innerHTML = rows || '<tr><td colspan="7" class="text-muted text-center p-3">인시던트 없음</td></tr>';
@@ -642,7 +642,7 @@
             <div class="d-flex gap-2 p-2 border-bottom border-secondary small">
               <span>${INC_TL_ICONS[t.kind] || ''}</span>
               <span class="text-muted" style="white-space:nowrap; font-size:10px">${escapeHtml((t.ts || '').slice(5))}</span>
-              <span style="color:#e6edf3">${escapeHtml(t.text)}</span>
+              <span style="color:var(--text-primary)">${escapeHtml(t.text)}</span>
             </div>`).join('') || '<div class="text-muted p-3 small">타임라인 없음</div>';
         }
       });

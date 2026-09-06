@@ -45,7 +45,7 @@
       topBox.innerHTML = top.length
         ? top.map(([ip, cnt], i) => `
             <div class="d-flex justify-content-between p-1 border-bottom border-secondary small">
-              <span class="font-monospace" style="color:#e6edf3">${i + 1}. ${escapeHtml(ip)}</span>
+              <span class="font-monospace" style="color:var(--text-primary)">${i + 1}. ${escapeHtml(ip)}</span>
               <span class="text-warning">${cnt.toLocaleString()}건</span>
             </div>`).join('')
         : '<div class="text-muted p-2">데이터 없음</div>';
@@ -63,8 +63,8 @@
       : '<span class="text-muted">연결만</span>';
     return `
       <tr style="background:rgba(240,165,0,.06)">
-        <td class="small" style="color:#e6edf3;white-space:nowrap">${escapeHtml(e.timestamp)}</td>
-        <td class="small font-monospace" style="color:#e6edf3">${escapeHtml(e.ip)}${demoTag}</td>
+        <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.timestamp)}</td>
+        <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip)}${demoTag}</td>
         <td class="small"><span class="badge bg-secondary">${escapeHtml(e.service)}:${e.port}</span></td>
         <td class="small text-truncate" style="max-width:300px">${payload}</td>
         <td class="small"><span class="badge ${sevCls}" style="font-size:9px">${escapeHtml(e.severity)}</span></td>

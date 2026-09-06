@@ -1,18 +1,18 @@
     <!-- ════ SSH 인증 로그 패널 ════ -->
     <div id="panel-authlog" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-key me-2 text-cyan"></i>SSH 인증 로그 — 실시간 로그인 관제
-        <span class="badge ms-2" id="authlog-mode-badge" style="background:#30363d">-</span>
+        <span class="badge ms-2" id="authlog-mode-badge" style="background:var(--border)">-</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadAuthlog()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           홈서버 <code>/var/log/auth.log</code>를 실시간 감시합니다. 누가 SSH로 로그인하는지(성공/실패/무효 계정)를 보여주고,
           <strong>동일 IP가 짧은 시간에 반복 실패하면 무차별 대입(BRUTE_FORCE)으로 판정</strong>해 알림 파이프라인
           (AI 트리아지 → SOAR 자동 차단 → 인시던트)에 자동으로 넣습니다. 사설·Tailscale IP는 집계에서 제외됩니다.
@@ -34,14 +34,14 @@
       </div>
 
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-chart-pie text-cyan me-2"></i>로그인 시도 구성 (성공/실패/무효)</div>
+        <h3 class="card-panel-header"><i class="fa fa-chart-pie text-cyan me-2"></i>로그인 시도 구성 (성공/실패/무효)</h3>
         <svg id="auth-donut" width="100%" height="150"></svg>
       </div>
 
       <div class="row g-3">
         <div class="col-lg-4">
           <div class="card-panel">
-            <div class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 출발지 IP</div>
+            <h3 class="card-panel-header"><i class="fa fa-user-ninja text-danger me-2"></i>TOP 출발지 IP</h3>
             <div id="auth-top-ips" style="max-height:420px; overflow-y:auto">
               <div class="text-muted p-2">데이터 없음</div>
             </div>

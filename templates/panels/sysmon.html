@@ -1,13 +1,13 @@
     <!-- ════ Sysmon 패널 ════ -->
     <div id="panel-sysmon" class="panel-section d-none">
-      <div class="panel-title"><i class="fa-brands fa-windows me-2"></i>Sysmon 이벤트 로그</div>
+      <h2 class="panel-title"><i class="fa-brands fa-windows me-2"></i>Sysmon 이벤트 로그</h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--blue">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-info me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           엔드포인트 단위의 상세 행위 로그입니다. 주목할 Event ID: <strong>ID 1</strong> 프로세스 생성(비정상 경로·PowerShell 인코딩 주의), <strong>ID 3</strong> 네트워크 연결(비표준 포트·외부 C2), <strong>ID 8</strong> 원격 스레드(Meterpreter migrate), <strong>ID 10</strong> LSASS 접근(자격증명 덤프), <strong>ID 12/13</strong> Run 키 지속성. <span class="badge bg-danger">의심</span> 배지가 붙은 행은 Metasploit/악성 도구 시그니처 일치 — 즉시 해당 단말 격리를 검토하세요.
         </div>
       </div>

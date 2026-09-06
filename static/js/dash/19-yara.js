@@ -52,7 +52,7 @@
           <td class="font-monospace small">${escapeHtml(r.name)}</td>
           <td>${sevBadgeYara(r.severity)}</td>
           <td class="font-monospace small">${escapeHtml(r.mitre || '-')}</td>
-          <td class="small" style="color:#e6edf3">${escapeHtml(r.description || '')}</td>
+          <td class="small" style="color:var(--text-primary)">${escapeHtml(r.description || '')}</td>
         </tr>`).join('')
         : `<tr><td colspan="4" class="text-muted text-center p-3">${
              escapeHtml(d.reason || '로드된 룰 없음')}</td></tr>`;
@@ -109,7 +109,7 @@
   socket.on('yara_match', m => {
     if (typeof pushLive === 'function') {
       pushLive('alert', m.severity,
-        `<b style="color:#f85149">YARA 탐지</b> ${escapeHtml((m.rules || []).join(', '))} `
+        `<b style="color:var(--red)">YARA 탐지</b> ${escapeHtml((m.rules || []).join(', '))} `
         + `<span class="lv-ip">${escapeHtml(m.path)}</span>`);
     }
     if (isPanelVisible('yara') && !document.hidden) loadYara();

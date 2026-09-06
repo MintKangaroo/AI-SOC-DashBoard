@@ -1,8 +1,8 @@
     <!-- ════ SOC 운영 지표 패널 ════ -->
     <div id="panel-metrics" class="panel-section d-none">
-      <div class="panel-title">
+      <h2 class="panel-title">
         <i class="fa fa-gauge-high me-2 text-cyan"></i>SOC 운영 지표 — 추세 · MTTR · 대응현황
-        <select id="metrics-days" class="form-select form-select-sm bg-dark text-white border-secondary ms-3"
+        <select id="metrics-days" aria-label="지표 조회 기간" class="form-select form-select-sm bg-dark text-white border-secondary ms-3"
                 style="width:auto" onchange="loadMetrics()">
           <option value="7">최근 7일</option>
           <option value="14" selected>최근 14일</option>
@@ -11,14 +11,14 @@
         <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMetrics()">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
-      </div>
+      </h2>
 
       <!-- 가이드 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <div class="card-panel-header" style="border:none; padding-bottom:4px;">
+        <h3 class="card-panel-header">
           <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </div>
-        <div class="small" style="color:#e6edf3; line-height:1.7">
+        </h3>
+        <div class="panel-note-body">
           SOC가 실제로 관리하는 <strong>운영 지표</strong>입니다.
           <strong>MTTR</strong>(평균 대응완료 시간)·<strong>MTTA</strong>(평균 확인 시간)은 인시던트 타임라인에서,
           알림 추세·시간대 집중도·TOP 위협은 전체 알림 DB에서 산출합니다.
@@ -38,12 +38,12 @@
 
       <!-- 알림 보존 현황 -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header">
+        <h3 class="card-panel-header">
           <i class="fa fa-database me-2 text-cyan"></i>알림 보존 현황
           <button class="btn btn-xs btn-outline-warning ms-auto" onclick="runArchive()">
             <i class="fa fa-box-archive me-1"></i><span id="mr-archive-label">경과분 아카이브</span>
           </button>
-        </div>
+        </h3>
         <div class="row g-2 small">
           <div class="col-6 col-md">활성 알림 <span class="fw-bold text-cyan" id="mr-live">-</span></div>
           <div class="col-6 col-md">아카이브 <span class="fw-bold text-muted" id="mr-archived">-</span></div>
@@ -63,12 +63,12 @@
 
       <!-- 일별 추세 (누적 막대) -->
       <div class="card-panel mb-3">
-        <div class="card-panel-header"><i class="fa fa-chart-column me-2 text-cyan"></i>일별 알림 추세 (심각도 누적)</div>
+        <h3 class="card-panel-header"><i class="fa fa-chart-column me-2 text-cyan"></i>일별 알림 추세 (심각도 누적)</h3>
         <div style="overflow-x:auto"><svg id="metrics-daily" width="100%" height="200"></svg></div>
         <div class="small text-muted mt-1">
           <span class="me-3"><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px"></span> CRITICAL</span>
           <span class="me-3"><span style="display:inline-block;width:10px;height:10px;background:var(--orange);border-radius:2px"></span> HIGH</span>
-          <span><span style="display:inline-block;width:10px;height:10px;background:#8b949e;border-radius:2px"></span> 기타</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--text-dim);border-radius:2px"></span> 기타</span>
         </div>
       </div>
 
@@ -76,14 +76,14 @@
         <!-- 시간대×요일 히트맵 -->
         <div class="col-lg-7">
           <div class="card-panel h-100">
-            <div class="card-panel-header"><i class="fa fa-table-cells me-2 text-purple"></i>공격 집중 시간대 (요일 × 시)</div>
+            <h3 class="card-panel-header"><i class="fa fa-table-cells me-2 text-purple"></i>공격 집중 시간대 (요일 × 시)</h3>
             <div style="overflow-x:auto"><svg id="metrics-heatmap" width="100%" height="220"></svg></div>
           </div>
         </div>
         <!-- TOP 위협 유형 -->
         <div class="col-lg-5">
           <div class="card-panel h-100">
-            <div class="card-panel-header"><i class="fa fa-crosshairs me-2 text-danger"></i>TOP 위협 유형</div>
+            <h3 class="card-panel-header"><i class="fa fa-crosshairs me-2 text-danger"></i>TOP 위협 유형</h3>
             <svg id="metrics-types" width="100%" height="220"></svg>
           </div>
         </div>
@@ -91,7 +91,7 @@
 
       <!-- TOP 공격자 -->
       <div class="card-panel">
-        <div class="card-panel-header"><i class="fa fa-user-secret me-2 text-orange"></i>TOP 공격자 IP</div>
+        <h3 class="card-panel-header"><i class="fa fa-user-secret me-2 text-orange"></i>TOP 공격자 IP</h3>
         <svg id="metrics-attackers" width="100%" height="280"></svg>
       </div>
     </div>
