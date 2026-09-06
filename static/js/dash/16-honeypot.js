@@ -57,7 +57,7 @@
 
   function honeypotEventRow(e) {
     const sevCls = e.severity === 'CRITICAL' ? 'bg-danger' : 'bg-orange';
-    const demoTag = e.demo ? ' <span class="badge bg-info text-dark" style="font-size:8px">데모</span>' : '';
+    const demoTag = e.demo ? ' <span class="badge bg-info text-dark" style="font-size:var(--fs-micro)">데모</span>' : '';
     const payload = e.interacted
       ? `<span class="text-danger font-monospace">${escapeHtml(e.payload)}</span>`
       : '<span class="text-muted">연결만</span>';
@@ -67,7 +67,7 @@
         <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip)}${demoTag}</td>
         <td class="small"><span class="badge bg-secondary">${escapeHtml(e.service)}:${e.port}</span></td>
         <td class="small text-truncate" style="max-width:300px">${payload}</td>
-        <td class="small"><span class="badge ${sevCls}" style="font-size:9px">${escapeHtml(e.severity)}</span></td>
+        <td class="small"><span class="badge ${sevCls}" style="font-size:var(--fs-micro)">${escapeHtml(e.severity)}</span></td>
       </tr>`;
   }
 

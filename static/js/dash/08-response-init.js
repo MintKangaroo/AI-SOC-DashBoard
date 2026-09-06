@@ -160,13 +160,13 @@
             <input class="form-check-input" type="checkbox" ${pb.enabled ? 'checked' : ''}
                    onchange="soarTogglePb('${escapeHtml(pb.id)}')">
           </div>
-          <span class="badge bg-dark border border-secondary font-monospace" style="font-size:9px">${escapeHtml(pb.id)}</span>
+          <span class="badge bg-dark border border-secondary font-monospace" style="font-size:var(--fs-micro)">${escapeHtml(pb.id)}</span>
           <span class="small fw-bold flex-fill" style="color:var(--text-primary)">${escapeHtml(pb.name)}</span>
-          <span class="small text-muted" style="font-size:10px; white-space:nowrap">
+          <span class="small text-muted" style="font-size:var(--fs-meta); white-space:nowrap">
             실행 <b class="text-cyan">${pb.runs}</b>회${pb.last_run ? ` · ${escapeHtml(pb.last_run.slice(11))}` : ''}
           </span>
         </div>
-        <div class="small text-muted mb-2" style="font-size:10px">${escapeHtml(pb.description)}</div>
+        <div class="small text-muted mb-2" style="font-size:var(--fs-meta)">${escapeHtml(pb.description)}</div>
         <div class="pb-flow">${steps || '<span class="text-muted small">단계 정의 없음</span>'}</div>
       </div>`;
   }
@@ -226,12 +226,12 @@
             <div class="d-flex align-items-center p-1 border-bottom border-secondary small">
               <span class="font-monospace text-danger me-2">${escapeHtml(b.ip)}</span>
               <span class="badge ${b.mode === 'simulate' ? 'bg-secondary' : 'bg-danger'}"
-                    style="font-size:9px">${escapeHtml(b.mode)}</span>
-              <span class="text-muted ms-2 text-truncate" style="font-size:10px; max-width:150px"
+                    style="font-size:var(--fs-micro)">${escapeHtml(b.mode)}</span>
+              <span class="text-muted ms-2 text-truncate" style="font-size:var(--fs-meta); max-width:150px"
                     title="${escapeHtml(b.reason)}">${escapeHtml(b.reason)}</span>
-              <span class="text-warning ms-1" style="font-size:9px; white-space:nowrap"
+              <span class="text-warning ms-1" style="font-size:var(--fs-micro); white-space:nowrap"
                     title="자동 만료 시각">${escapeHtml((b.expires || '').replace(/^\d{4}-/, ''))}</span>
-              <button class="btn btn-xs btn-outline-secondary ms-auto" style="font-size:9px"
+              <button class="btn btn-xs btn-outline-secondary ms-auto" style="font-size:var(--fs-micro)"
                       onclick="soarUnblock('${escapeHtml(b.ip)}')">해제</button>
             </div>`).join('')
         : '<div class="text-muted p-2">차단된 IP 없음</div>';
@@ -268,7 +268,7 @@
           ${run.attempt > 1 ? `<span class="badge bg-secondary">${run.attempt}차 시도</span>` : ''}
           ${run.status === 'failed' && run.playbook === 'PB-MALWARE-ENRICH' ? `<button class="btn btn-xs btn-outline-warning" onclick="retrySoarExecution(${Number(run.id)})"><i class="fa fa-rotate-right me-1"></i>실패 단계 재시도</button>` : ''}
           ${run.status === 'waiting_approval' ? `<button class="btn btn-xs btn-success" onclick="reviewSoarApproval(${Number(run.id)},'approve')">승인</button><button class="btn btn-xs btn-outline-danger" onclick="reviewSoarApproval(${Number(run.id)},'reject')">거절</button><button class="btn btn-xs btn-outline-secondary" onclick="reviewSoarApproval(${Number(run.id)},'cancel')">취소</button>` : ''}
-          <span class="text-muted font-monospace" style="font-size:9px">${escapeHtml((run.started || '').split(' ')[1] || '')}</span>
+          <span class="text-muted font-monospace" style="font-size:var(--fs-micro)">${escapeHtml((run.started || '').split(' ')[1] || '')}</span>
         </div>
         <div class="soar-run-steps">${(run.steps || []).map(step => `
           <div class="soar-run-step ${escapeHtml(step.status)}" title="${escapeHtml(step.detail || '')}">
@@ -648,7 +648,7 @@
           box.innerHTML = [...(inc.timeline || [])].reverse().map(t => `
             <div class="d-flex gap-2 p-2 border-bottom border-secondary small">
               <span>${INC_TL_ICONS[t.kind] || ''}</span>
-              <span class="text-muted" style="white-space:nowrap; font-size:10px">${escapeHtml((t.ts || '').slice(5))}</span>
+              <span class="text-muted" style="white-space:nowrap; font-size:var(--fs-meta)">${escapeHtml((t.ts || '').slice(5))}</span>
               <span style="color:var(--text-primary)">${escapeHtml(t.text)}</span>
             </div>`).join('') || '<div class="text-muted p-3 small">타임라인 없음</div>';
         }

@@ -49,7 +49,7 @@
         <div id="patch-hosts" class="d-flex flex-wrap gap-3">
           <span class="text-muted small">로딩 중...</span>
         </div>
-        <div class="small text-muted mt-2" style="font-size:10.5px">
+        <div class="small text-muted mt-2" style="font-size:var(--fs-label)">
           원격 서버는 <code>.env ANSIBLE_TARGETS="이름=user@host;..."</code> 로 추가 (localhost는 항상 포함).
         </div>
       </div>
@@ -77,7 +77,7 @@
           <button class="btn btn-sm btn-outline-danger" onclick="patchCommand('apply')">
             <i class="fa fa-bolt me-1"></i>실행</button>
         </div>
-        <div class="small text-muted mt-2" style="font-size:10.5px">
+        <div class="small text-muted mt-2" style="font-size:var(--fs-label)">
           기본은 <strong>미리보기(실행 안 함)</strong>. 실제 실행은 <code>PATCH_APPLY_ENABLED=True</code> 필요 +
           파괴적 명령(rm -rf, reboot 등)은 자동 차단됩니다.
         </div>
@@ -88,7 +88,7 @@
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list text-orange me-2"></i>취약 패키지 인벤토리</h3>
             <div class="table-responsive" style="max-height:420px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
                 <thead><tr><th>패키지</th><th>현재→대상</th><th>구분</th></tr></thead>
                 <tbody id="patch-inv-tbody">
                   <tr><td colspan="3" class="text-muted text-center p-3">로딩 중...</td></tr>

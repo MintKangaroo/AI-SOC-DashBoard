@@ -27,7 +27,7 @@
           각 프로젝트에 아래를 추가하면 접속 로그가 이 대시보드로 전송됩니다
           (<code>&lt;bind&gt;</code>는 위 수신 주소).
         </div>
-<pre class="mb-0 mt-2" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:12px; color:var(--text-primary); overflow-x:auto"><code>import logging, logging.handlers
+<pre class="mb-0 mt-2" style="background:var(--bg-primary); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:var(--fs-sm); color:var(--text-primary); overflow-x:auto"><code>import logging, logging.handlers
 h = logging.handlers.SysLogHandler(address=(&quot;127.0.0.1&quot;, 5514),
                                    socktype=socket.SOCK_DGRAM)   # 또는 SOCK_STREAM(TCP)
 logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC 로 전송</code></pre>
@@ -85,7 +85,7 @@ logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC �
               </div>
             </div>
             <div class="table-responsive" style="max-height:560px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
                 <thead><tr><th>시각</th><th>호스트</th><th>IP</th><th>메시지</th><th>분류</th></tr></thead>
                 <tbody id="syslog-events-tbody">
                   <tr><td colspan="5" class="text-muted text-center p-3">로딩 중...</td></tr>

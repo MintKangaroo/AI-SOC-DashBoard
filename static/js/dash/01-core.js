@@ -317,7 +317,7 @@
     item.setAttribute('role', 'alert');   // 오류는 읽던 것을 끊고 알려야 한다
     item.setAttribute('style',
       'background:#2d1416;border:1px solid var(--red);' +
-      'color:var(--text-primary);border-radius:6px;padding:8px 10px;font-size:11.5px;' +
+      'color:var(--text-primary);border-radius:6px;padding:8px 10px;font-size:var(--fs-sm);' +
       'display:flex;gap:8px;align-items:flex-start;box-shadow:0 2px 8px rgba(0,0,0,.4)');
     item.innerHTML =
       '<i class="fa fa-triangle-exclamation" style="color:var(--red);margin-top:2px"></i>' +

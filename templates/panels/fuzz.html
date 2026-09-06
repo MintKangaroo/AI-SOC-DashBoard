@@ -60,7 +60,7 @@
           <button class="btn btn-sm btn-outline-danger" id="fuzz-run-btn" onclick="fuzzRun()">
             <i class="fa fa-play me-1"></i>퍼징 시작</button>
           <span class="small text-muted" id="fuzz-run-status"></span>
-          <span class="small text-muted ms-auto" style="font-size:10.5px">
+          <span class="small text-muted ms-auto" style="font-size:var(--fs-label)">
             페이로드 <span id="fuzz-payload-count">-</span>종 · 대상은 <code>FUZZ_TARGETS</code>/<code>NET_MONITOR_TARGETS</code></span>
         </div>
       </div>
@@ -70,7 +70,7 @@
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-list-check text-danger me-2"></i>발견 (견고성 결함)</h3>
             <div class="table-responsive" style="max-height:460px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
                 <thead><tr><th>시각</th><th>유형</th><th>경로</th><th>페이로드</th><th>응답</th><th>설명</th></tr></thead>
                 <tbody id="fuzz-findings-tbody">
                   <tr><td colspan="6" class="text-muted text-center p-3">아직 실행하지 않았습니다.</td></tr>

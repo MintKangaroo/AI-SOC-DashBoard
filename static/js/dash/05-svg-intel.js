@@ -122,7 +122,7 @@
           <div class="mitre-recent-item" style="color:var(--text-primary)">
             <span class="ts" style="color:var(--text-primary)">${(e.timestamp||'').split(' ')[1] || e.timestamp}</span>
             <span class="badge bg-danger font-monospace">${escapeHtml(e.technique_id)}</span>
-            <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
+            <span class="badge ${sevCls}" style="font-size:var(--fs-micro)">${sev}</span>
             <span class="tactic" style="color:var(--text-primary)">${escapeHtml(e.tactic_ko || e.tactic_id)}</span>
             <span class="desc" style="color:var(--text-primary)">${escapeHtml(e.description||'')}</span>
           </div>`;
@@ -172,7 +172,7 @@
       div.innerHTML = `
         <span class="ts" style="color:var(--text-primary)">${(entry.timestamp||'').split(' ')[1] || entry.timestamp}</span>
         <span class="badge bg-danger font-monospace">${escapeHtml(entry.technique_id)}</span>
-        <span class="badge ${sevCls}" style="font-size:9px">${sev}</span>
+        <span class="badge ${sevCls}" style="font-size:var(--fs-micro)">${sev}</span>
         <span class="tactic" style="color:var(--text-primary)">${escapeHtml(entry.tactic_ko || entry.tactic_id)}</span>
         <span class="desc" style="color:var(--text-primary)">${escapeHtml(entry.description||'')}</span>`;
       recentList.insertBefore(div, recentList.firstChild);
@@ -271,8 +271,8 @@
     const time = (m.timestamp || '').split(' ')[1] || m.timestamp || '';
     return `<div class="ti-match-item p-2 border-bottom border-secondary" style="color:var(--text-primary)">
       <div class="d-flex align-items-center gap-2 mb-1">
-        <span class="badge ${kindCls}" style="font-size:9px">${(m.kind||'').toUpperCase()}</span>
-        <span class="badge bg-danger" style="font-size:9px">CRITICAL</span>
+        <span class="badge ${kindCls}" style="font-size:var(--fs-micro)">${(m.kind||'').toUpperCase()}</span>
+        <span class="badge bg-danger" style="font-size:var(--fs-micro)">CRITICAL</span>
         <i class="fa ${dirIcon} text-muted small"></i>
         <span class="text-muted small">${time}</span>
       </div>

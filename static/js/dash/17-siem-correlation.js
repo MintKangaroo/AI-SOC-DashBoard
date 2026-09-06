@@ -39,11 +39,11 @@
       rulesBox.innerHTML = (d.rules || []).map(r => `
         <div class="p-2 border-bottom border-secondary">
           <div class="small fw-bold" style="color:var(--text-primary)">
-            <span class="badge bg-dark border border-secondary font-monospace" style="font-size:8px">${escapeHtml(r.id)}</span>
+            <span class="badge bg-dark border border-secondary font-monospace" style="font-size:var(--fs-micro)">${escapeHtml(r.id)}</span>
             ${escapeHtml(r.name)}
-            <span class="badge bg-secondary ms-1" style="font-size:9px">${(byRule[r.id] || 0)}건</span>
+            <span class="badge bg-secondary ms-1" style="font-size:var(--fs-micro)">${(byRule[r.id] || 0)}건</span>
           </div>
-          <div class="small text-muted" style="font-size:10px">${escapeHtml(r.desc)}</div>
+          <div class="small text-muted" style="font-size:var(--fs-meta)">${escapeHtml(r.desc)}</div>
         </div>`).join('');
     }
 
@@ -56,11 +56,11 @@
     return `
       <tr style="background:rgba(56,189,248,.05)">
         <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(f.timestamp)}</td>
-        <td class="small"><span class="badge bg-info text-dark" style="font-size:9px">${escapeHtml(CORR_RULE_KO[f.rule] || f.rule)}</span></td>
+        <td class="small"><span class="badge bg-info text-dark" style="font-size:var(--fs-micro)">${escapeHtml(CORR_RULE_KO[f.rule] || f.rule)}</span></td>
         <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(f.ip)}</td>
-        <td class="small"><span class="badge ${sevCls}" style="font-size:9px">${escapeHtml(f.severity)}</span></td>
+        <td class="small"><span class="badge ${sevCls}" style="font-size:var(--fs-micro)">${escapeHtml(f.severity)}</span></td>
         <td class="small" style="color:var(--text-soft)">${escapeHtml(f.summary)}
-          ${f.dst_ip ? `<div class="text-muted font-monospace" style="font-size:10px">목적지 ${escapeHtml(f.dst_ip)}${f.bytes_out ? ` · ${(Number(f.bytes_out)/1e6).toFixed(1)}MB` : ''}</div>` : ''}</td>
+          ${f.dst_ip ? `<div class="text-muted font-monospace" style="font-size:var(--fs-meta)">목적지 ${escapeHtml(f.dst_ip)}${f.bytes_out ? ` · ${(Number(f.bytes_out)/1e6).toFixed(1)}MB` : ''}</div>` : ''}</td>
       </tr>`;
   }
 

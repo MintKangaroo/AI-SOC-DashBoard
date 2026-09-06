@@ -65,7 +65,7 @@
                 : e.severity === 'HIGH'     ? 'bg-orange'
                 : e.severity === 'MEDIUM'   ? 'bg-warning text-dark'
                 : 'bg-secondary';
-    const demoTag = e.demo ? ' <span class="badge bg-info text-dark" style="font-size:8px">데모</span>' : '';
+    const demoTag = e.demo ? ' <span class="badge bg-info text-dark" style="font-size:var(--fs-micro)">데모</span>' : '';
     return `
       <tr ${e.suspicious ? 'style="background:rgba(248,81,73,.08)"' : ''}>
         <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.timestamp)}</td>
@@ -73,7 +73,7 @@
         <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip || '-')}</td>
         <td class="small font-monospace text-truncate" style="max-width:320px;color:var(--text-primary)"
             title="${escapeHtml(e.message)}">${escapeHtml(e.message)}</td>
-        <td class="small"><span class="badge ${sevCls}" style="font-size:9px">${escapeHtml(e.category)}</span></td>
+        <td class="small"><span class="badge ${sevCls}" style="font-size:var(--fs-micro)">${escapeHtml(e.category)}</span></td>
       </tr>`;
   }
 

@@ -40,9 +40,9 @@
             <div class="card-panel-header d-flex align-items-center">
               <i class="fa fa-diagram-project text-cyan me-2"></i>네트워크 토폴로지 (실시간 연결)
               <span class="ms-auto small text-muted">
-                <i class="fa fa-circle" style="color:var(--green);font-size:8px"></i> 내부·Tailscale
-                <i class="fa fa-circle ms-2" style="color:var(--orange);font-size:8px"></i> 외부
-                <i class="fa fa-circle ms-2" style="color:var(--red);font-size:8px"></i> 악성
+                <i class="fa fa-circle" style="color:var(--green);font-size:var(--fs-micro)"></i> 내부·Tailscale
+                <i class="fa fa-circle ms-2" style="color:var(--orange);font-size:var(--fs-micro)"></i> 외부
+                <i class="fa fa-circle ms-2" style="color:var(--red);font-size:var(--fs-micro)"></i> 악성
               </span>
             </div>
             <div style="overflow:auto"><svg id="net-topology" width="100%" height="360" style="min-width:520px; display:block"></svg></div>
@@ -63,7 +63,7 @@
           <div class="card-panel">
             <h3 class="card-panel-header"><i class="fa fa-plug text-cyan me-2"></i>활성 연결</h3>
             <div class="table-responsive" style="max-height:420px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
                 <thead><tr><th>로컬</th><th>원격</th><th>상태</th><th>프로세스</th></tr></thead>
                 <tbody id="net-conns-tbody">
                   <tr><td colspan="4" class="text-muted text-center p-3">로딩 중...</td></tr>
@@ -76,7 +76,7 @@
           <div class="card-panel mb-3">
             <h3 class="card-panel-header"><i class="fa fa-door-open text-orange me-2"></i>리스닝(오픈) 포트</h3>
             <div class="table-responsive" style="max-height:180px; overflow-y:auto">
-              <table class="table table-dark table-sm mb-0" style="font-size:12px">
+              <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
                 <thead><tr><th>포트</th><th>주소</th><th>프로세스</th></tr></thead>
                 <tbody id="net-listen-tbody">
                   <tr><td colspan="3" class="text-muted text-center p-3">로딩 중...</td></tr>

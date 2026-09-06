@@ -43,10 +43,10 @@
     const c = alert.confidence ?? alert.details?.confidence;
     if (c == null) return '';
     if (alert.details?.low_confidence) {
-      return ` <span class="badge bg-orange" style="font-size:9px" title="신뢰도 ${Math.round(c*100)}% — 임계값 미만">오탐 의심</span>`;
+      return ` <span class="badge bg-orange" style="font-size:var(--fs-micro)" title="신뢰도 ${Math.round(c*100)}% — 임계값 미만">오탐 의심</span>`;
     }
     const cls = c >= 0.75 ? 'bg-success' : 'bg-secondary';
-    return ` <span class="badge ${cls}" style="font-size:9px" title="정탐 신뢰도">${Math.round(c*100)}%</span>`;
+    return ` <span class="badge ${cls}" style="font-size:var(--fs-micro)" title="정탐 신뢰도">${Math.round(c*100)}%</span>`;
   }
 
   /* 중복 병합 횟수 뱃지 — 같은 핑거프린트가 윈도우 내에 몇 번 재발했는지 */
@@ -56,7 +56,7 @@
     const storm = alert.details?.dedup?.storm;
     const cls = storm ? 'bg-danger' : 'bg-info text-dark';
     const title = `동일 이벤트 ${n}건 병합 · 최근 ${alert.details.dedup.last_seen || '-'}`;
-    return ` <span class="badge ${cls} dedup-count" style="font-size:9px" title="${escapeHtml(title)}">×${n}</span>`;
+    return ` <span class="badge ${cls} dedup-count" style="font-size:var(--fs-micro)" title="${escapeHtml(title)}">×${n}</span>`;
   }
 
   function verdictBadge(alert) {
@@ -181,7 +181,7 @@
           const [cls, label] = kindMeta[e.kind] || ['bg-secondary', e.kind];
           return `<tr style="color:var(--text-primary)">
             <td class="small font-monospace text-nowrap">${escapeHtml(e.ts)}</td>
-            <td><span class="badge ${cls}" style="font-size:9px">${label}</span></td>
+            <td><span class="badge ${cls}" style="font-size:var(--fs-micro)">${label}</span></td>
             <td>${sevBadge(e.severity)}</td>
             <td class="small">${escapeHtml(e.threat_type || '')}</td>
             <td class="small font-monospace">${escapeHtml(e.src_ip || '-')}</td>
@@ -266,9 +266,9 @@
       <div class="flex-fill">
         <span style="color:${threatColor(alert.threat_type)};font-weight:600">${escapeHtml(alert.threat_label)}</span>${demoBadge(alert.details)}
         <span class="text-muted ms-2">${escapeHtml(alert.src_ip)} → ${escapeHtml(alert.dst_ip)}</span>
-        <div class="text-muted" style="font-size:11px">${escapeHtml(alert.description)}</div>
+        <div class="text-muted" style="font-size:var(--fs-label)">${escapeHtml(alert.description)}</div>
       </div>
-      <div class="text-muted" style="font-size:10px;white-space:nowrap">${alert.timestamp.split(' ')[1]||alert.timestamp}</div>`;
+      <div class="text-muted" style="font-size:var(--fs-meta);white-space:nowrap">${alert.timestamp.split(' ')[1]||alert.timestamp}</div>`;
     list.insertBefore(item, list.firstChild);
     while (list.children.length > 8) list.removeChild(list.lastChild);
   }

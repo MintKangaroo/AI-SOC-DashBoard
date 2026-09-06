@@ -250,7 +250,7 @@
     return `
       <tr ${e.type !== 'accepted' ? 'style="background:rgba(248,81,73,.06)"' : ''}>
         <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml(e.timestamp)}</td>
-        <td class="small"><span class="badge ${meta.badge}" style="font-size:9px">${meta.label}</span></td>
+        <td class="small"><span class="badge ${meta.badge}" style="font-size:var(--fs-micro)">${meta.label}</span></td>
         <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.user || '-')}</td>
         <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(e.ip)}</td>
         <td class="small" style="color:var(--text-primary)">${e.port || '-'}</td>
@@ -304,7 +304,7 @@
     let cls = 'bg-success', txt = '#001417';
     if (score >= repMinScore) { cls = 'bg-danger'; txt = '#fff'; }
     else if (score >= 25) { cls = 'bg-warning'; txt = '#1a1a1a'; }
-    return `<span class="badge ${cls}" style="color:${txt};font-size:10px">${score}/100</span>`;
+    return `<span class="badge ${cls}" style="color:${txt};font-size:var(--fs-meta)">${score}/100</span>`;
   }
 
   function renderReputation(d) {
@@ -428,7 +428,7 @@
     let cls = 'bg-success', txt = '#001417';
     if (risk >= 70) { cls = 'bg-danger'; txt = '#fff'; }
     else if (risk >= 40) { cls = 'bg-warning'; txt = '#1a1a1a'; }
-    return `<span class="badge ${cls}" style="color:${txt};font-size:10px">${risk}</span>`;
+    return `<span class="badge ${cls}" style="color:${txt};font-size:var(--fs-meta)">${risk}</span>`;
   }
 
   function loadEdr() {
@@ -696,7 +696,7 @@
       ? targets.map(t => `
         <div class="p-2 border rounded" style="border-color:${t.up ? 'var(--green)' : 'var(--red)'}!important; min-width:160px; background:rgba(${t.up ? '63,185,80' : '248,81,73'},.08)">
           <div class="small" style="color:var(--text-primary);font-weight:600">
-            <i class="fa fa-circle me-1" style="font-size:8px;color:${t.up ? 'var(--green)' : 'var(--red)'}"></i>${escapeHtml(t.name)}</div>
+            <i class="fa fa-circle me-1" style="font-size:var(--fs-micro);color:${t.up ? 'var(--green)' : 'var(--red)'}"></i>${escapeHtml(t.name)}</div>
           <div class="small font-monospace text-muted">${escapeHtml(t.host)}:${t.port}</div>
           <div class="small" style="color:${t.up ? 'var(--green)' : 'var(--red)'}">${t.up ? 'UP · ' + (t.latency_ms ?? '?') + 'ms' : 'DOWN'}</div>
         </div>`).join('')
@@ -709,9 +709,9 @@
     box.innerHTML = events.length
       ? events.map(e => `
         <div class="p-1 border-bottom border-secondary small">
-          <span class="badge" style="background:${sevColor(e.severity)};font-size:9px">${escapeHtml(e.severity)}</span>
+          <span class="badge" style="background:${sevColor(e.severity)};font-size:var(--fs-micro)">${escapeHtml(e.severity)}</span>
           <span style="color:var(--text-primary)" class="ms-1">${escapeHtml(e.description)}</span>${demoBadge(e.details)}
-          <div class="text-muted" style="font-size:10px">${escapeHtml(e.timestamp)}</div>
+          <div class="text-muted" style="font-size:var(--fs-meta)">${escapeHtml(e.timestamp)}</div>
         </div>`).join('')
       : '<div class="text-muted p-2">이벤트 없음</div>';
   }
@@ -781,13 +781,13 @@
     if (tb) {
       tb.innerHTML = purpleScenarios.map(s => {
         const r = s.result;
-        const verdict = !r ? '<span class="badge bg-secondary" style="font-size:10px">미실행</span>'
-          : (r.detected ? '<span class="badge bg-success" style="font-size:10px">PASS</span>'
-                        : '<span class="badge bg-danger" style="font-size:10px">FAIL</span>');
+        const verdict = !r ? '<span class="badge bg-secondary" style="font-size:var(--fs-meta)">미실행</span>'
+          : (r.detected ? '<span class="badge bg-success" style="font-size:var(--fs-meta)">PASS</span>'
+                        : '<span class="badge bg-danger" style="font-size:var(--fs-meta)">FAIL</span>');
         return `<tr style="${r && !r.detected ? 'background:rgba(248,81,73,.08)' : ''}">
           <td>${verdict}</td>
           <td class="small" style="color:var(--text-primary)">${escapeHtml(s.name)}</td>
-          <td><span class="badge bg-dark" style="font-size:9px">${escapeHtml(s.mitre)}</span></td>
+          <td><span class="badge bg-dark" style="font-size:var(--fs-micro)">${escapeHtml(s.mitre)}</span></td>
           <td class="small text-muted">${escapeHtml(s.expect)}</td>
           <td class="small" style="color:var(--text-primary)">${r ? escapeHtml(r.detail) : '-'}</td>
           <td><button class="btn btn-xs btn-outline-purple" onclick="runPurpleOne('${s.id}')" title="이 시나리오만 실행"><i class="fa fa-play"></i></button></td>

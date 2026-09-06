@@ -196,8 +196,8 @@
                 : 'badge bg-secondary';
     const time = (e.timestamp || '').split(' ')[1] || e.timestamp || '';
     return `<tr style="color:var(--text-primary)">
-      <td style="font-size:11px;color:var(--text-primary)">${time}</td>
-      <td><span class="${sevCls}" style="font-size:10px">${sev}</span></td>
+      <td style="font-size:var(--fs-label);color:var(--text-primary)">${time}</td>
+      <td><span class="${sevCls}" style="font-size:var(--fs-meta)">${sev}</span></td>
       <td><span class="small" style="color:var(--text-primary)">${escapeHtml(e.tactic_ko || e.tactic_id || '')}</span></td>
       <td>
         <a href="javascript:;" onclick="showTechniqueDetail('${escapeHtml(e.technique_id)}')" class="text-info font-monospace me-1">${escapeHtml(e.technique_id)}</a>
@@ -362,7 +362,7 @@
           return;
         }
         title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${escapeHtml(d.technique_id)} · ${escapeHtml(d.technique_ko)}
-          <span class="badge bg-secondary ms-2" style="font-size:11px">${escapeHtml(d.tactic_id)} · ${escapeHtml(d.tactic_ko)}</span>`;
+          <span class="badge bg-secondary ms-2" style="font-size:var(--fs-label)">${escapeHtml(d.tactic_id)} · ${escapeHtml(d.tactic_ko)}</span>`;
         ref.href = d.reference_url;
 
         const sev = d.severity_dist || {};
@@ -385,7 +385,7 @@
                           : e.severity === 'HIGH'     ? 'text-orange'
                           : 'text-warning';
               return `<tr>
-                <td class="text-muted" style="font-size:11px">${e.timestamp.split(' ')[1] || e.timestamp}</td>
+                <td class="text-muted" style="font-size:var(--fs-label)">${e.timestamp.split(' ')[1] || e.timestamp}</td>
                 <td class="${sevCls}">${e.severity||'-'}</td>
                 <td class="font-monospace">${e.src_ip||'-'}</td>
                 <td class="font-monospace">${e.dst_ip||'-'}</td>

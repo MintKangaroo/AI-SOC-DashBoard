@@ -55,7 +55,7 @@
         ? hs.map(h => `
           <div class="p-2 border-bottom border-secondary small" style="cursor:pointer" onclick="openReport('${h.id}')">
             <div style="color:var(--text-primary);font-weight:600"><i class="fa fa-file-lines me-1 text-cyan"></i>${escapeHtml(h.generated)}</div>
-            <div class="text-muted" style="font-size:11px">
+            <div class="text-muted" style="font-size:var(--fs-label)">
               알림 ${h.highlights?.alerts_total ?? 0} · 정탐 ${h.highlights?.true_positives ?? 0} · 오탐 ${h.highlights?.false_positives ?? 0}
               ${h.trigger === 'scheduled' ? '· <span class="text-info">예약</span>' : ''}</div>
           </div>`).join('')
@@ -91,7 +91,7 @@
 
   const SIGMA_LEVEL = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--yellow,#d29922)', low: cssVar('--text-dim', '#94949b'), informational: cssVar('--text-dim', '#94949b') };
   function sigmaLevelBadge(lv) {
-    return `<span class="badge" style="background:${SIGMA_LEVEL[lv] || '#555'};font-size:9px;color:#fff">${escapeHtml(lv || '?')}</span>`;
+    return `<span class="badge" style="background:${SIGMA_LEVEL[lv] || '#555'};font-size:var(--fs-micro);color:#fff">${escapeHtml(lv || '?')}</span>`;
   }
 
   let sigmaMatchBuffer = [];
@@ -122,7 +122,7 @@
           <tr style="opacity:${r.enabled ? 1 : 0.45}">
             <td>${sigmaLevelBadge(r.level)}</td>
             <td class="small" style="color:var(--text-primary)" title="${escapeHtml(r.id)}">${escapeHtml(r.title)}</td>
-            <td class="small">${(r.mitre || []).map(m => `<span class="badge bg-dark" style="font-size:9px">${escapeHtml(m)}</span>`).join(' ') || '-'}</td>
+            <td class="small">${(r.mitre || []).map(m => `<span class="badge bg-dark" style="font-size:var(--fs-micro)">${escapeHtml(m)}</span>`).join(' ') || '-'}</td>
             <td><div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleSigma('${escapeHtml(r.id)}')">
             </div></td>
@@ -151,7 +151,7 @@
         <td class="small" style="color:var(--text-primary)">${escapeHtml(m.rule)}</td>
         <td class="small font-monospace text-truncate" style="max-width:260px;color:var(--text-primary)"
             title="${escapeHtml(m.cmdline || m.image || '')}">${escapeHtml(m.cmdline || m.image || '-')}</td>
-        <td class="small">${(m.mitre || []).map(x => `<span class="badge bg-dark" style="font-size:9px">${escapeHtml(x)}</span>`).join(' ') || '-'}</td>
+        <td class="small">${(m.mitre || []).map(x => `<span class="badge bg-dark" style="font-size:var(--fs-micro)">${escapeHtml(x)}</span>`).join(' ') || '-'}</td>
       </tr>`;
   }
   function renderSigmaMatches() {
@@ -194,7 +194,7 @@
   };
   function vsevBadge(sev) {
     const s = VSEV[sev] || VSEV.info;
-    return `<span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:9px;font-weight:700">${s.t}</span>`;
+    return `<span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:var(--fs-micro);font-weight:700">${s.t}</span>`;
   }
 
   const VVERDICT = {
@@ -206,10 +206,10 @@
     if (!v) return '';
     const s = VVERDICT[v.state] || VVERDICT.unknown;
     const ver = v.installed
-      ? `<span class="text-muted font-monospace" style="font-size:10px">설치: ${escapeHtml(v.installed)}${v.candidate ? ' → ' + escapeHtml(v.candidate) : ''}</span>` : '';
-    return `<div class="mt-1"><span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:9px;font-weight:700"
+      ? `<span class="text-muted font-monospace" style="font-size:var(--fs-meta)">설치: ${escapeHtml(v.installed)}${v.candidate ? ' → ' + escapeHtml(v.candidate) : ''}</span>` : '';
+    return `<div class="mt-1"><span class="badge" style="background:${s.c};color:var(--bg-primary);font-size:var(--fs-micro);font-weight:700"
       title="${escapeHtml(v.note || '')}">${s.t}</span> ${ver}
-      <div class="small text-muted" style="font-size:10px">${escapeHtml(v.note || '')}</div></div>`;
+      <div class="small text-muted" style="font-size:var(--fs-meta)">${escapeHtml(v.note || '')}</div></div>`;
   }
 
   function loadVulnScan() {
@@ -269,8 +269,8 @@
       const remote = h.conn === 'ssh';
       return `<label class="d-flex align-items-center gap-1 small" style="color:var(--text-primary)">
         <input type="checkbox" class="vuln-host" value="${escapeHtml(h.id)}" ${checked}>
-        <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:11px"></i>
-        ${escapeHtml(h.name)}<span class="text-muted font-monospace" style="font-size:10px">(${escapeHtml(h.addr)})</span>
+        <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:var(--fs-label)"></i>
+        ${escapeHtml(h.name)}<span class="text-muted font-monospace" style="font-size:var(--fs-meta)">(${escapeHtml(h.addr)})</span>
       </label>`;
     }).join('') || '<span class="text-muted small">호스트 없음</span>';
     _vulnHostsInit = true;
@@ -326,12 +326,12 @@
           <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}"></i>
           <strong style="color:var(--text-primary)">${escapeHtml(r.host)}</strong>
           <span class="text-muted font-monospace small">${escapeHtml(r.addr)}</span>
-          <span class="badge bg-secondary ms-1" style="font-size:10px">열린 포트 ${r.open || 0}</span>
-          <span class="badge bg-danger" style="font-size:10px">취약점 ${r.vulns || 0}</span>
+          <span class="badge bg-secondary ms-1" style="font-size:var(--fs-meta)">열린 포트 ${r.open || 0}</span>
+          <span class="badge bg-danger" style="font-size:var(--fs-meta)">취약점 ${r.vulns || 0}</span>
           <span class="text-muted small ms-auto">${escapeHtml(r.scanned || '')}</span>
         </div>
         <div class="table-responsive">
-          <table class="table table-dark table-sm mb-0" style="font-size:12px">
+          <table class="table table-dark table-sm mb-0" style="font-size:var(--fs-sm)">
             <thead><tr><th style="width:60px">포트</th><th style="width:90px">서비스</th><th>버전</th><th>취약점 / 노출</th></tr></thead>
             <tbody>${rows || '<tr><td colspan="4" class="text-muted text-center p-2">열린 포트 없음</td></tr>'}</tbody>
           </table>
@@ -466,9 +466,9 @@
           <td class="small text-muted font-monospace">${escapeHtml(f.time || '')}</td>
           <td>${vsevBadge(f.severity)} <span class="small" style="color:${ty.c}">${escapeHtml(ty.t)}</span></td>
           <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(f.path || '')}<span class="text-muted">?${escapeHtml(f.param || '')}</span></td>
-          <td class="small"><span class="badge bg-secondary" style="font-size:9px">${escapeHtml(f.payload_label || '')}</span>
+          <td class="small"><span class="badge bg-secondary" style="font-size:var(--fs-micro)">${escapeHtml(f.payload_label || '')}</span>
             <div class="text-muted font-monospace text-truncate" style="max-width:150px" title="${escapeHtml(f.payload || '')}">${escapeHtml(f.payload || '')}</div></td>
-          <td class="small font-monospace" style="color:var(--text-primary)">${f.status ?? '—'}<div class="text-muted" style="font-size:10px">${f.elapsed_ms ?? 0}ms</div></td>
+          <td class="small font-monospace" style="color:var(--text-primary)">${f.status ?? '—'}<div class="text-muted" style="font-size:var(--fs-meta)">${f.elapsed_ms ?? 0}ms</div></td>
           <td class="small text-muted">${escapeHtml(f.desc || '')}</td>
         </tr>`;
       }).join('')
@@ -490,7 +490,7 @@
     box.innerHTML = hist.length
       ? hist.map(h => `<div class="p-1 border-bottom border-secondary small" style="color:var(--text-primary)">
           <i class="fa fa-bug text-danger me-1"></i>${escapeHtml(h.ts)}
-          <div class="text-muted" style="font-size:10.5px">${escapeHtml(h.target)} · ${escapeHtml(h.method)} · 요청 ${h.requests} · 발견 ${h.findings}${h.stopped ? ' · 중단됨' : ''}</div></div>`).join('')
+          <div class="text-muted" style="font-size:var(--fs-label)">${escapeHtml(h.target)} · ${escapeHtml(h.method)} · 요청 ${h.requests} · 발견 ${h.findings}${h.stopped ? ' · 중단됨' : ''}</div></div>`).join('')
       : '<div class="text-muted p-2">이력 없음</div>';
   }
 
@@ -549,10 +549,10 @@
         ? inv.map(p => `
           <tr ${p.security ? 'style="background:rgba(248,81,73,.06)"' : ''}>
             <td class="small font-monospace" style="color:var(--text-primary)">${escapeHtml(p.package)}
-              ${p.cve ? `<span class="badge bg-danger ms-1" style="font-size:9px">${escapeHtml(p.cve)}</span>` : ''}</td>
+              ${p.cve ? `<span class="badge bg-danger ms-1" style="font-size:var(--fs-micro)">${escapeHtml(p.cve)}</span>` : ''}</td>
             <td class="small text-muted"><span class="font-monospace">${escapeHtml(p.current)}</span> →
               <span class="font-monospace text-success">${escapeHtml(p.candidate)}</span></td>
-            <td>${p.security ? '<span class="badge bg-danger" style="font-size:10px">보안</span>' : '<span class="badge bg-secondary" style="font-size:10px">일반</span>'}</td>
+            <td>${p.security ? '<span class="badge bg-danger" style="font-size:var(--fs-meta)">보안</span>' : '<span class="badge bg-secondary" style="font-size:var(--fs-meta)">일반</span>'}</td>
           </tr>`).join('')
         : '<tr><td colspan="3" class="text-muted text-center p-3">업데이트 없음 (최신)</td></tr>';
     }
@@ -579,8 +579,8 @@
       const remote = h.conn === 'ssh';
       return `<label class="d-flex align-items-center gap-1 small" style="color:var(--text-primary)">
         <input type="checkbox" class="patch-host" value="${escapeHtml(h.id)}" ${checked}>
-        <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:11px"></i>
-        ${escapeHtml(h.name)}${remote ? `<span class="text-muted font-monospace" style="font-size:10px">(${escapeHtml(h.addr)})</span>` : ''}
+        <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}" style="font-size:var(--fs-label)"></i>
+        ${escapeHtml(h.name)}${remote ? `<span class="text-muted font-monospace" style="font-size:var(--fs-meta)">(${escapeHtml(h.addr)})</span>` : ''}
       </label>`;
     }).join('') || '<span class="text-muted small">호스트 없음</span>';
     _patchHostsInit = true;
@@ -601,12 +601,12 @@
     box.innerHTML = jobs.length
       ? jobs.map(j => `
         <div class="p-1 border-bottom border-secondary small" style="cursor:pointer" onclick='showPatchLog(${JSON.stringify(j).replace(/'/g, "&#39;")})'>
-          <span class="badge" style="background:${statusColor[j.status] || '#555'};font-size:9px">${escapeHtml(j.status)}</span>
+          <span class="badge" style="background:${statusColor[j.status] || '#555'};font-size:var(--fs-micro)">${escapeHtml(j.status)}</span>
           <span style="color:var(--text-primary)" class="ms-1">#${j.id} ${j.kind === 'command'
             ? `<i class="fa fa-terminal me-1"></i><span class="font-monospace">${escapeHtml((j.command || '').slice(0, 32))}</span>`
             : `${j.mode === 'check' ? 'Dry-run' : j.mode} ${j.security_only ? '(보안만)' : '(전체)'}`}
-            ${Array.isArray(j.hosts) && j.hosts.length ? `<span class="text-muted" style="font-size:9px">· ${escapeHtml(j.hosts.join(', '))}</span>` : ''}</span>
-          <div class="text-muted" style="font-size:10px">${escapeHtml(j.result || '')}</div>
+            ${Array.isArray(j.hosts) && j.hosts.length ? `<span class="text-muted" style="font-size:var(--fs-micro)">· ${escapeHtml(j.hosts.join(', '))}</span>` : ''}</span>
+          <div class="text-muted" style="font-size:var(--fs-meta)">${escapeHtml(j.result || '')}</div>
         </div>`).join('')
       : '<div class="text-muted p-2">작업 없음</div>';
   }
@@ -701,7 +701,7 @@
         ? h.map(e => `
           <tr>
             <td class="small" style="color:var(--text-primary);white-space:nowrap">${escapeHtml((e.timestamp || '').slice(11))}</td>
-            <td><span class="badge" style="background:${sevColor(e.severity)};font-size:9px">${escapeHtml(e.severity)}</span></td>
+            <td><span class="badge" style="background:${sevColor(e.severity)};font-size:var(--fs-micro)">${escapeHtml(e.severity)}</span></td>
             <td class="small" style="color:var(--text-primary)">${escapeHtml(e.title)}</td>
             <td class="small">${e.delivered ? '<span class="text-success">전송✓</span>' : `<span class="text-muted">${escapeHtml(e.detail || '미전송')}</span>`}</td>
           </tr>`).join('')
