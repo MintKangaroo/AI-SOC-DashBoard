@@ -117,11 +117,11 @@
           <div class="card-panel">
             <h3 class="card-panel-header">
               <i class="fa fa-list text-muted me-2"></i>ML 분석 로그
-              <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="triggerMLAnalysis()">
+              <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="triggerMLAnalysis">
                 <i class="fa fa-play me-1"></i>지금 분석
               </button>
-              <button class="btn btn-xs btn-outline-secondary ms-2" onclick="sendFeedback(false)">정탐</button>
-              <button class="btn btn-xs btn-outline-warning ms-1" onclick="sendFeedback(true)">오탐</button>
+              <button class="btn btn-xs btn-outline-secondary ms-2" data-action="sendFeedback" data-args='[false]'>정탐</button>
+              <button class="btn btn-xs btn-outline-warning ms-1" data-action="sendFeedback" data-args='[true]'>오탐</button>
             </h3>
             <div class="fs-sm scroll-y scroll-y-md" id="ml-log"></div>
           </div>
@@ -134,7 +134,7 @@
               <i class="fa fa-sitemap text-cyan me-2"></i>ML 의사결정 지원 — 유사 위협 그룹핑 &amp; 정오탐 분석
               <span class="badge bg-secondary ms-2" id="ds-cluster-count">0 그룹</span>
               <span class="badge bg-warning text-dark ms-1" id="ds-verdict-count">판정 0건</span>
-              <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadDecisionSupport()">
+              <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadDecisionSupport">
                 <i class="fa fa-sync me-1"></i>새로고침
               </button>
             </h3>

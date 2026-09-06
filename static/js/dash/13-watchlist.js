@@ -33,7 +33,7 @@
         <td class="small text-muted font-monospace">${escapeHtml((it.added_at || '').slice(0, 10))}</td>
         <td class="text-end ${hitCls}">${(it.hits || 0).toLocaleString()}</td>
         <td class="small text-muted font-monospace">${escapeHtml(it.last_hit || '-')}</td>
-        <td class="text-end"><button class="btn btn-xs btn-outline-danger" onclick="removeWatchlist(${it.id})"><i class="fa fa-trash"></i></button></td>
+        <td class="text-end"><button class="btn btn-xs btn-outline-danger" ${act('removeWatchlist', [it.id])}><i class="fa fa-trash"></i></button></td>
       </tr>`;
     }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">등록된 IOC 가 없습니다.</td></tr>';
   }

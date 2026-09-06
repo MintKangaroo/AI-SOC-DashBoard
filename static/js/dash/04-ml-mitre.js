@@ -201,7 +201,7 @@
       <td><span class="${sevCls}" style="font-size:var(--fs-meta)">${sev}</span></td>
       <td><span class="small" style="color:var(--text-primary)">${escapeHtml(e.tactic_ko || e.tactic_id || '')}</span></td>
       <td>
-        <a href="javascript:;" onclick="showTechniqueDetail('${escapeHtml(e.technique_id)}')" class="text-info font-monospace me-1">${escapeHtml(e.technique_id)}</a>
+        <a href="#" ${act('showTechniqueDetail', [e.technique_id])} class="text-info font-monospace me-1">${escapeHtml(e.technique_id)}</a>
         <span class="small" style="color:var(--text-primary)">${escapeHtml(e.technique_ko || '')}</span>
       </td>
       <td class="font-monospace small" style="color:var(--text-primary)">${e.src_ip || '-'}</td>
@@ -327,7 +327,7 @@
 
         html += `<div class="mitre-technique clickable ${hitClass}"
                       title="${escapeHtml(title)}"
-                      onclick="showTechniqueDetail('${escapeHtml(tech.id)}')"
+                      ${act('showTechniqueDetail', [tech.id])}
                       data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
           <div class="tech-id">${escapeHtml(tech.id)}</div>
           <div class="tech-name">${escapeHtml(tech.ko)}</div>

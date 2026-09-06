@@ -53,7 +53,7 @@
         <h3 class="card-panel-header">
           <i class="fa fa-clipboard-check text-purple me-2"></i>탐지 커버리지 자가 진단
           <span class="small text-muted ms-2">— 히트 0 이 &lsquo;공격이 없었다&rsquo;인지 &lsquo;룰이 없어 못 본다&rsquo;인지 구분한다</span>
-          <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreCoverage()">
+          <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadMitreCoverage">
             <i class="fa fa-sync me-1"></i>다시 진단
           </button>
         </h3>
@@ -89,12 +89,12 @@
           <i class="fa fa-table text-danger me-2"></i>ATT&amp;CK 매트릭스
           <div class="btn-group btn-group-sm ms-3" role="group">
             <button type="button" id="mitre-view-hits" class="btn btn-xs btn-cyan"
-                    onclick="setMitreView('hits')">탐지 히트</button>
+                    data-action="setMitreView" data-args='["hits"]'>탐지 히트</button>
             <button type="button" id="mitre-view-coverage" class="btn btn-xs btn-outline-cyan"
-                    onclick="setMitreView('coverage')">커버리지</button>
+                    data-action="setMitreView" data-args='["coverage"]'>커버리지</button>
           </div>
           <span class="small text-muted ms-2" id="mitre-view-hint">탐지된 Technique는 빨간색 강조 · 셀 클릭 시 상세</span>
-          <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadMitreMatrix()">
+          <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadMitreMatrix">
             <i class="fa fa-sync me-1"></i>새로고침
           </button>
         </h3>

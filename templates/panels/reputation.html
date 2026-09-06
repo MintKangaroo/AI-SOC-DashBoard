@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-user-shield me-2 text-cyan"></i>IP 평판 조회 — AbuseIPDB
         <span class="badge ms-2 badge-neutral" id="rep-mode-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadReputation()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadReputation">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -45,8 +45,8 @@
             <div class="p-2">
               <div class="input-group input-group-sm mb-2">
                 <input type="text" class="form-control" id="rep-check-input" aria-label="평판 조회할 IP" placeholder="예: 45.155.205.233"
-                       onkeydown="if(event.key==='Enter')checkReputation()">
-                <button class="btn btn-outline-cyan" onclick="checkReputation()">조회</button>
+                       data-action-enter="checkReputation">
+                <button class="btn btn-outline-cyan" data-action="checkReputation">조회</button>
               </div>
               <div id="rep-check-result" class="small text-muted">IP를 입력하면 AbuseIPDB 신뢰 점수를 조회합니다.</div>
             </div>

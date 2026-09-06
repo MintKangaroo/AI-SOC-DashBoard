@@ -220,9 +220,12 @@ p95 약 400ms, `/api/metrics/soc` 1회차 약 1.1초·2회차 캐시로 수 ms.
 - **CORS/CSRF**: 기본 same-origin. 상태변경 요청은 Origin/Referer 검증. 조회 전용
   엔드포인트(헌팅 실행·결정 재생 등)는 GET 이라 CSRF 게이트를 붙이지 않는다
 - **보안 헤더**: CSP(`script/style/font/img-src 'self'`) · X-Frame-Options · nosniff ·
-  Referrer-Policy · Permissions-Policy. CSP 의 `script-src` 에는 `'unsafe-inline'` 이
-  남아 있다 — 인라인 핸들러 132개 때문이며, **따라서 CSP 는 XSS 스크립트 주입을
-  막지 못한다.** 그 사실을 숨기지 않는다
+  Referrer-Policy · Permissions-Policy. `script-src` 는 **`'self'` 만**이다 — 인라인
+  핸들러 152개를 전부 `data-action` 위임(`01-core.js dispatchAction`)으로 옮기고
+  `'unsafe-inline'` 을 뺐다(2026-09-07). 이제 주입된 `<script>`·`onerror=` 는 브라우저가
+  실행을 거부한다. `escapeHtml` 이 한 곳 빠졌을 때의 백스톱이다. `style-src` 에는
+  `'unsafe-inline'` 이 남는다(인라인 style·라이브러리의 style 속성) — 스타일 주입은
+  스크립트 실행이 아니다
 - **스캐너 자체가 취약점이 되지 않도록**: YARA/해시 수동 스캔은 `HASH_SCAN_ALLOWED_DIRS`
   로 경로를 제한하고, 심볼릭 링크를 따라가지 않으며(경로 탈출), 파일 크기·타임아웃·
   파일 수 상한을 둔다. 매치 결과에 원문 페이로드를 담지 않는다

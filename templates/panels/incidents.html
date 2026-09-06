@@ -2,7 +2,7 @@
     <div id="panel-incidents" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-folder-open me-2 text-danger"></i>인시던트 케이스 관리
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadIncidents()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadIncidents">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -75,7 +75,7 @@
                      placeholder="담당자" style="width:100px">
               <input type="text" id="inc-note-input" aria-label="인시던트 메모" class="form-control form-control-sm flex-fill fs-label"
                      placeholder="메모 추가">
-              <button class="btn btn-xs btn-outline-cyan" onclick="saveIncident()">저장</button>
+              <button class="btn btn-xs btn-outline-cyan" data-action="saveIncident">저장</button>
             </div>
             <div class="scroll-y scroll-y-lg" id="inc-timeline">
               <div class="text-muted p-3 small">왼쪽 목록에서 인시던트를 클릭하면 타임라인이 표시됩니다.</div>

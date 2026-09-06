@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-shield-halved me-2 text-warning"></i>자동화 취약점 패치 — Ansible
         <span class="badge ms-2 badge-neutral" id="patch-mode-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadPatch(true)">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadPatch" data-args='[true]'>
           <i class="fa fa-sync me-1"></i>재스캔
         </button>
       </h2>
@@ -42,8 +42,8 @@
         <div class="card-panel-header d-flex align-items-center">
           <i class="fa fa-server text-cyan me-2"></i>대상 서버
           <span class="ms-auto d-flex gap-1">
-            <button class="btn btn-xs btn-outline-secondary" onclick="patchSelectAllHosts(true)">전체선택</button>
-            <button class="btn btn-xs btn-outline-secondary" onclick="patchSelectAllHosts(false)">해제</button>
+            <button class="btn btn-xs btn-outline-secondary" data-action="patchSelectAllHosts" data-args='[true]'>전체선택</button>
+            <button class="btn btn-xs btn-outline-secondary" data-action="patchSelectAllHosts" data-args='[false]'>해제</button>
           </span>
         </div>
         <div id="patch-hosts" class="d-flex flex-wrap gap-3">
@@ -56,11 +56,11 @@
 
       <!-- 일괄 패치 실행 -->
       <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
-        <button class="btn btn-sm btn-outline-cyan" onclick="patchPlaybook()">
+        <button class="btn btn-sm btn-outline-cyan" data-action="patchPlaybook">
           <i class="fa fa-file-code me-1"></i>플레이북 생성/보기</button>
-        <button class="btn btn-sm btn-outline-warning" onclick="patchRun('check')">
+        <button class="btn btn-sm btn-outline-warning" data-action="patchRun" data-args='["check"]'>
           <i class="fa fa-vial me-1"></i>Dry-run (선택 서버 점검)</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="patchRun('apply')">
+        <button class="btn btn-sm btn-outline-danger" data-action="patchRun" data-args='["apply"]'>
           <i class="fa fa-download me-1"></i>일괄 실제 적용</button>
         <span class="small text-muted ms-2">보안 패치만 대상 (권장)</span>
       </div>
@@ -71,10 +71,10 @@
         <div class="d-flex flex-wrap gap-2 align-items-center">
           <input type="text" id="patch-cmd-input" aria-label="실행할 점검 명령" class="form-control form-control-sm font-monospace flex-fill"
                  style="min-width:220px" placeholder="예: uptime · df -h · systemctl status trader"
-                 onkeydown="if(event.key==='Enter')patchCommand('check')">
-          <button class="btn btn-sm btn-outline-warning" onclick="patchCommand('check')">
+                 data-action-enter="patchCommand" data-args='["check"]'>
+          <button class="btn btn-sm btn-outline-warning" data-action="patchCommand" data-args='["check"]'>
             <i class="fa fa-eye me-1"></i>미리보기</button>
-          <button class="btn btn-sm btn-outline-danger" onclick="patchCommand('apply')">
+          <button class="btn btn-sm btn-outline-danger" data-action="patchCommand" data-args='["apply"]'>
             <i class="fa fa-bolt me-1"></i>실행</button>
         </div>
         <div class="small text-muted mt-2 fs-label">

@@ -39,13 +39,13 @@
         </div>
         <div class="col-auto d-flex align-items-center">
           <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="alert-tp-only" onchange="toggleTpOnly(this)">
+            <input class="form-check-input" type="checkbox" id="alert-tp-only" data-action-change="toggleTpOnly" data-args='["@el"]'>
             <label class="form-check-label small" for="alert-tp-only"
                    title="임계값 미만 저신뢰 알림 숨기기">고신뢰만 보기</label>
           </div>
         </div>
         <div class="col-auto ms-auto">
-          <button class="btn btn-sm btn-outline-info" onclick="analyzeTrafficAI()">
+          <button class="btn btn-sm btn-outline-info" data-action="analyzeTrafficAI">
             <i class="fa fa-robot me-1"></i>AI 트래픽 분석
           </button>
         </div>
@@ -58,7 +58,7 @@
         </li>
         <li class="nav-item">
           <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-alerts-suppressed"
-                  type="button" onclick="loadSuppressed(1)">
+                  type="button" data-action="loadSuppressed" data-args='[1]'>
             <i class="fa fa-layer-group me-1"></i>억제됨
             <span class="badge bg-secondary ms-1" id="dedup-suppressed-count">0</span>
           </button>
@@ -100,7 +100,7 @@
               <div class="stat-label">병합 윈도우</div></div></div>
             <div class="col-sm-2 d-flex align-items-center">
               <select class="form-select form-select-sm bg-dark text-white border-secondary"
-                      id="supp-kind-filter" aria-label="억제 종류로 거르기" onchange="loadSuppressed(1)">
+                      id="supp-kind-filter" aria-label="억제 종류로 거르기" data-action-change="loadSuppressed" data-args='[1]'>
                 <option value="">전체 종류</option>
                 <option value="duplicate">중복 병합</option>
                 <option value="suppressed">규칙 억제</option>

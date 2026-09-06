@@ -32,8 +32,8 @@
       return `<div class="border-bottom border-secondary py-2">
         <div class="d-flex align-items-center gap-2">
           <b style="color:var(--text-primary)">${escapeHtml(h.name)}</b>
-          <button class="btn btn-xs btn-purple ms-auto" onclick="runHunt(${Number(h.id)})">실행</button>
-          <button class="btn btn-xs btn-outline-secondary" onclick="deleteHunt(${Number(h.id)})"
+          <button class="btn btn-xs btn-purple ms-auto" ${act('runHunt', [Number(h.id)])}>실행</button>
+          <button class="btn btn-xs btn-outline-secondary" ${act('deleteHunt', [Number(h.id)])}
                   title="삭제">&times;</button>
         </div>
         <div class="small" style="color:var(--text-dim)">${escapeHtml(h.description || '')}</div>
@@ -73,8 +73,8 @@
         ? '반복 출발지: ' + tops.map(t =>
             `<span class="badge bg-dark border border-secondary me-1">${escapeHtml(t.ip)}
              <span class="text-muted">${Number(t.count)}</span>
-             <a href="javascript:;" class="ms-1 text-info"
-                onclick="promoteHunt('${escapeHtml(t.ip)}')" title="워치리스트로 승격">+</a></span>`).join('')
+             <a href="#" class="ms-1 text-info"
+                ${act('promoteHunt', [t.ip])} title="워치리스트로 승격">+</a></span>`).join('')
         : '';
     }
 

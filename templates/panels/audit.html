@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-clipboard-list me-2 text-cyan"></i>감사 로그 — 분석가 조치 이력
         <span class="badge bg-dark ms-2" id="audit-total-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="searchAudit(1)">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="searchAudit" data-args='[1]'>
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -40,10 +40,10 @@
             <input type="text" id="audit-actor" placeholder="사용자명" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
           <div class="col-12 col-md-3 d-flex gap-2">
-            <button class="btn btn-sm btn-cyan flex-fill" onclick="searchAudit(1)">
+            <button class="btn btn-sm btn-cyan flex-fill" data-action="searchAudit" data-args='[1]'>
               <i class="fa fa-magnifying-glass me-1"></i>검색
             </button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="resetAudit()">
+            <button class="btn btn-sm btn-outline-secondary" data-action="resetAudit">
               <i class="fa fa-rotate-left"></i>
             </button>
           </div>
@@ -66,9 +66,9 @@
       <div class="d-flex align-items-center justify-content-between mt-2 small">
         <span class="text-muted" id="audit-summary"></span>
         <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-xs btn-outline-secondary" id="audit-prev" onclick="pageAudit(-1)" disabled><i class="fa fa-chevron-left"></i></button>
+          <button class="btn btn-xs btn-outline-secondary" id="audit-prev" data-action="pageAudit" data-args='[-1]' disabled><i class="fa fa-chevron-left"></i></button>
           <span id="audit-page-label" class="text-muted">-</span>
-          <button class="btn btn-xs btn-outline-secondary" id="audit-next" onclick="pageAudit(1)" disabled><i class="fa fa-chevron-right"></i></button>
+          <button class="btn btn-xs btn-outline-secondary" id="audit-next" data-action="pageAudit" data-args='[1]' disabled><i class="fa fa-chevron-right"></i></button>
         </div>
       </div>
     </div>

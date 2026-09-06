@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-key me-2 text-cyan"></i>SSH 인증 로그 — 실시간 로그인 관제
         <span class="badge ms-2 badge-neutral" id="authlog-mode-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadAuthlog()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadAuthlog">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -52,7 +52,7 @@
             <div class="card-panel-header d-flex align-items-center">
               <i class="fa fa-list text-cyan me-2"></i>인증 이벤트
               <div class="form-check form-switch ms-auto small">
-                <input class="form-check-input" type="checkbox" id="auth-fail-only" onchange="renderAuthEvents()">
+                <input class="form-check-input" type="checkbox" id="auth-fail-only" data-action-change="renderAuthEvents">
                 <label class="form-check-label small" for="auth-fail-only">실패만 보기</label>
               </div>
             </div>

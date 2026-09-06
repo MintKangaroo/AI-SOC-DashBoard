@@ -53,7 +53,7 @@
       const hs = d.history || [];
       hist.innerHTML = hs.length
         ? hs.map(h => `
-          <div class="p-2 border-bottom border-secondary small" style="cursor:pointer" onclick="openReport('${h.id}')">
+          <div class="p-2 border-bottom border-secondary small" style="cursor:pointer" ${act('openReport', [h.id])}>
             <div style="color:var(--text-primary);font-weight:600"><i class="fa fa-file-lines me-1 text-cyan"></i>${escapeHtml(h.generated)}</div>
             <div class="text-muted" style="font-size:var(--fs-label)">
               알림 ${h.highlights?.alerts_total ?? 0} · 정탐 ${h.highlights?.true_positives ?? 0} · 오탐 ${h.highlights?.false_positives ?? 0}
@@ -124,7 +124,7 @@
             <td class="small" style="color:var(--text-primary)" title="${escapeHtml(r.id)}">${escapeHtml(r.title)}</td>
             <td class="small">${(r.mitre || []).map(m => `<span class="badge bg-dark" style="font-size:var(--fs-micro)">${escapeHtml(m)}</span>`).join(' ') || '-'}</td>
             <td><div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleSigma('${escapeHtml(r.id)}')">
+              <input class="form-check-input" type="checkbox" ${r.enabled ? 'checked' : ''} ${act('toggleSigma', [r.id], 'change')}>
             </div></td>
           </tr>`).join('')
         : '<tr><td colspan="4" class="text-muted text-center p-3">룰 없음</td></tr>';
@@ -600,7 +600,7 @@
     const statusColor = { success: 'var(--green)', simulated: 'var(--cyan)', failed: 'var(--red)', blocked: 'var(--orange)', running: 'var(--yellow,#d29922)' };
     box.innerHTML = jobs.length
       ? jobs.map(j => `
-        <div class="p-1 border-bottom border-secondary small" style="cursor:pointer" onclick='showPatchLog(${JSON.stringify(j).replace(/'/g, "&#39;")})'>
+        <div class="p-1 border-bottom border-secondary small" style="cursor:pointer" ${act('showPatchLog', [j])}>
           <span class="badge" style="background:${statusColor[j.status] || '#555'};font-size:var(--fs-micro)">${escapeHtml(j.status)}</span>
           <span style="color:var(--text-primary)" class="ms-1">#${j.id} ${j.kind === 'command'
             ? `<i class="fa fa-terminal me-1"></i><span class="font-monospace">${escapeHtml((j.command || '').slice(0, 32))}</span>`

@@ -108,8 +108,11 @@ scripts/loadtest.py     — 부하 시험(사람이 실행). 실데이터 사본
    (실체화 전엔 요소가 없다). 소켓 핸들러의 가시성 판단은 `isPanelVisible('{name}')` 만 쓴다 —
    `getElementById('panel-x')?.classList` 는 없는 패널을 '보인다'로 오판한다(테스트가 막는다)
    — 파일 전체를 `(function () { ... })();` 로 감싸고, 밖에서 부를 이름만 파일 끝
-     `Object.assign(window, { load{Name} })` 에 넣는다. **인라인 `onclick` 이 부르는 함수도
+     `Object.assign(window, { load{Name} })` 에 넣는다. **`data-action` 이 가리키는 함수도
      반드시 여기 넣어야 한다** (안 넣으면 클릭이 조용히 죽는다 — 테스트가 잡는다)
+   — **인라인 `onclick=` 은 금지다**(CSP `script-src 'self'` 가 실행을 거부한다). 템플릿은
+     `data-action="fn" data-args='[1,"x"]'`(change/input/Enter 는 `data-action-change/-input/-enter`),
+     JS 가 만드는 마크업은 `${act('fn', [args])}`. `"@el"` 인자는 요소 자신. 테스트가 잡는다
 6. 모듈 헬스에 표시하려면 `modules/system_health.py` 의 `SPECS` 에 한 줄 추가
 
 ## AI 분석 흐름

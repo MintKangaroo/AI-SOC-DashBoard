@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-binoculars me-2 text-purple"></i>IOC 워치리스트 — 능동 헌팅
         <span class="badge bg-dark ms-2" id="wl-total-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadWatchlist()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadWatchlist">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -40,7 +40,7 @@
               <label for="wl-note" class="form-label small text-muted mb-1">메모</label>
               <input type="text" id="wl-note" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="추적 사유(선택)">
             </div>
-            <button class="btn btn-sm btn-cyan w-100" onclick="addWatchlist()"><i class="fa fa-plus me-1"></i>워치리스트에 추가</button>
+            <button class="btn btn-sm btn-cyan w-100" data-action="addWatchlist"><i class="fa fa-plus me-1"></i>워치리스트에 추가</button>
             <div id="wl-add-msg" class="small mt-2"></div>
           </div>
         </div>

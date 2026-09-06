@@ -31,7 +31,13 @@ HARNESS = REPO / "tests" / "js" / "load_dashboard.js"
 
 # IIFE 안의 최상위 = 정확히 2칸 들여쓰기. 3칸 이상은 함수 내부 지역변수다.
 _TOP_DECL = re.compile(r"^  (?:async )?(function|const|let|var|class)\s+([A-Za-z_$][\w$]*)")
+# 인라인 on*= 는 CSP 때문에 금지다. 마크업은 data-action="fn" (템플릿) 또는
+# act('fn', ...) (JS 가 만드는 마크업) 으로 함수를 이름으로 가리킨다 — 그 이름이
+# window 에 공개돼 있어야 dispatchAction 이 부를 수 있다.
 _HANDLER = re.compile(r'\bon[a-z]+\s*=\s*[\\"\'"]([^"\'`]{0,400}?)[\\"\'"]')
+_ACTION_ATTR = re.compile(r'data-action(?:-[a-z]+)?="([A-Za-z_$][\w$]*)"')
+_ACT_CALL = re.compile(r"\bact\(\s*'([A-Za-z_$][\w$]*)'")
+_INLINE_ON = re.compile(r'\son(click|change|input|keydown|keyup|submit|load|error|mouseover|focus|blur)\s*=\s*["\']')
 _CALL = re.compile(r"\b([A-Za-z_$][\w$]*)\s*\(")
 
 
@@ -62,6 +68,10 @@ def _required_globals(srcs):
             for call in _CALL.finditer(handler.group(1)):
                 if call.group(1) in owner:
                     required.add(call.group(1))
+        for m in _ACTION_ATTR.finditer(text):
+            required.add(m.group(1))
+        for m in _ACT_CALL.finditer(text):
+            required.add(m.group(1))
 
     for tpl in TPL_DIR.rglob("*.html"):
         scan_handlers(tpl.read_text(encoding="utf-8"))
@@ -145,3 +155,34 @@ def test_all_files_load_and_export_what_handlers_need(tmp_path):
         f"핸들러·다른 파일이 필요로 하는데 공개되지 않은 이름: "
         f"{result['missingAfterLoad']}\n"
         f"— 해당 파일의 Object.assign(window, {{...}}) 에 추가할 것.")
+
+
+def test_no_inline_event_handlers_anywhere():
+    """CSP script-src 가 'self' 만이라 인라인 on*= 는 브라우저가 실행을 거부한다.
+    즉 새로 넣은 onclick 은 조용히 죽는다. 여기서 먼저 잡는다."""
+    hits = []
+    for tpl in TPL_DIR.rglob("*.html"):
+        for i, line in enumerate(tpl.read_text(encoding="utf-8").splitlines(), 1):
+            if _INLINE_ON.search(line):
+                hits.append(f"{tpl.relative_to(REPO)}:{i}")
+    for name, src in _sources().items():
+        for i, line in enumerate(src.splitlines(), 1):
+            if _INLINE_ON.search(line):
+                hits.append(f"static/js/dash/{name}:{i}")
+    assert hits == [], (
+        "인라인 이벤트 핸들러가 남아 있다(CSP 가 실행을 거부한다): " + ", ".join(hits)
+        + "\n— data-action=\"fn\" data-args='[...]' 또는 ${act('fn', [...])} 로 바꿀 것.")
+
+
+def test_every_data_action_target_is_published():
+    """data-action 이 가리키는 이름이 어느 파일에도 선언돼 있지 않으면 클릭이 죽는다."""
+    srcs = _sources()
+    owner = _owner_map(srcs)
+    referenced = set()
+    for tpl in TPL_DIR.rglob("*.html"):
+        referenced |= {m.group(1) for m in _ACTION_ATTR.finditer(tpl.read_text(encoding="utf-8"))}
+    for src in srcs.values():
+        referenced |= {m.group(1) for m in _ACT_CALL.finditer(src)}
+    assert referenced, "data-action 을 하나도 못 찾았다 — 검사기가 고장난 것"
+    unknown = sorted(n for n in referenced if n not in owner)
+    assert unknown == [], f"어느 dash 파일에도 선언되지 않은 data-action 대상: {unknown}"

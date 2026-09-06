@@ -515,7 +515,7 @@ Content-Type: application/json  {"ip":"203.0.113.9",...}
 
 검증: 감사에서 통과했던 4건(`rm -fr /`, `rm  -rf /`, `rm -rf --no-preserve-root /`, `find / -delete`)과 셸 이스케이프 9건 전부 차단, 정상 조회 명령 11건 전부 통과. 회귀 테스트 `tests/test_security_hardening.py` 에 우회 사례를 그대로 고정했다(이전엔 `_DANGEROUS_CMD` 검증 테스트가 0건이었다).
 
-### C-4. [~~P2~~ **부분 수정**] 보안 헤더 전무
+### C-4. [~~P2~~ **수정됨** — 2026-09-07 `'unsafe-inline'` 제거로 완결] 보안 헤더 전무
 
 실측: `Content-Security-Policy`·`X-Frame-Options`·`X-Content-Type-Options`·`Strict-Transport-Security` **전부 `None`**.
 
@@ -554,6 +554,15 @@ connect-src 'self' ws:   주입된 스크립트의 데이터 반출 대상 제�
 테스트 10건. 그중 `test_csp_documents_its_own_weakness` 는 `'unsafe-inline'` 의 존재를 **명시적으로 고정**한다 — 나중에 리팩터링으로 제거하면 그 테스트가 실패하며 이 문서 갱신을 요구한다.
 
 **남은 것**: 인라인 핸들러 132개 제거 (작업량 L) → 그 후 `'unsafe-inline'` 제거. E-1(CDN 자체 호스팅)을 하면 CDN 6개 호스트도 CSP 에서 뺄 수 있다.
+
+**2026-09-07 완결.** 인라인 핸들러 152개(템플릿 118 · JS 생성 34)를 전부
+`data-action="fn" data-args='[…]'` + 문서 수준 위임 리스너(`01-core.js dispatchAction`)로
+옮기고 `script-src` 에서 `'unsafe-inline'` 을 뺐다. 이제 CSP 가 실제로 XSS 스크립트
+주입을 막는다(C-6 의 백스톱). 위임은 대상에서 위로 올라가며 부르므로 버블링 순서가
+같고, `data-stop` 이 옛 `event.stopPropagation()` 을, `"@el"` 인자가 옛 `this` 를 대신한다.
+`test_no_inline_event_handlers_anywhere` 가 재유입을, `test_every_data_action_target_is_published`
+가 공개 누락을 막는다. 실제 브라우저 순회(`test_browser_sweep.py`)에서 CSP 위반은
+콘솔 오류로 찍히므로 그것도 잡힌다.
 
 ### C-5. REST API 인증 가드 — 누락 없음 ✅
 

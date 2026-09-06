@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-clock-rotate-left me-2 text-cyan"></i>알림 이력 검색
         <span class="badge bg-dark ms-2" id="ah-total-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="exportAlertHistory()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="exportAlertHistory">
           <i class="fa fa-file-csv me-1"></i>CSV 내보내기
         </button>
       </h2>
@@ -60,7 +60,7 @@
           <div class="col-6 col-md-2">
             <label for="ah-scope" class="form-label small text-muted mb-1">저장 범위</label>
             <select id="ah-scope" class="form-select form-select-sm bg-dark text-white border-secondary"
-                    onchange="searchAlertHistory(1)">
+                    data-action-change="searchAlertHistory" data-args='[1]'>
               <option value="all">전체 (활성+아카이브)</option>
               <option value="live">활성만</option>
               <option value="archive">아카이브만</option>
@@ -75,10 +75,10 @@
             <input type="text" id="ah-text" placeholder="설명에 포함된 단어" class="form-control form-control-sm bg-dark text-white border-secondary">
           </div>
           <div class="col-12 col-md-4 d-flex gap-2">
-            <button class="btn btn-sm btn-cyan flex-fill" onclick="searchAlertHistory(1)">
+            <button class="btn btn-sm btn-cyan flex-fill" data-action="searchAlertHistory" data-args='[1]'>
               <i class="fa fa-magnifying-glass me-1"></i>검색
             </button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="resetAlertHistory()">
+            <button class="btn btn-sm btn-outline-secondary" data-action="resetAlertHistory">
               <i class="fa fa-rotate-left me-1"></i>초기화
             </button>
           </div>
@@ -105,11 +105,11 @@
       <div class="d-flex align-items-center justify-content-between mt-2 small">
         <span class="text-muted" id="ah-summary"></span>
         <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-xs btn-outline-secondary" id="ah-prev" onclick="pageAlertHistory(-1)" disabled>
+          <button class="btn btn-xs btn-outline-secondary" id="ah-prev" data-action="pageAlertHistory" data-args='[-1]' disabled>
             <i class="fa fa-chevron-left"></i>
           </button>
           <span id="ah-page-label" class="text-muted">-</span>
-          <button class="btn btn-xs btn-outline-secondary" id="ah-next" onclick="pageAlertHistory(1)" disabled>
+          <button class="btn btn-xs btn-outline-secondary" id="ah-next" data-action="pageAlertHistory" data-args='[1]' disabled>
             <i class="fa fa-chevron-right"></i>
           </button>
         </div>

@@ -8,7 +8,7 @@
 
       <!-- SOC 파이프라인 상태: 탐지 → AI 판정 → 자동 대응 → 케이스 -->
       <div class="soc-pipeline mb-3">
-        <div role="button" tabindex="0" class="pipe-stage clickable" onclick="showPanel('siem')">
+        <div role="button" tabindex="0" class="pipe-stage clickable" data-action="showPanel" data-args='["siem"]'>
           <div class="pipe-icon text-cyan"><i class="fa fa-server"></i></div>
           <div class="pipe-body">
             <div class="pipe-label">① 수집·탐지 (SIEM)</div>
@@ -16,15 +16,15 @@
           </div>
         </div>
         <div class="pipe-arrow"><i class="fa fa-angle-right"></i></div>
-        <div role="button" tabindex="0" class="pipe-stage clickable" onclick="showPanel('ml')">
+        <div role="button" tabindex="0" class="pipe-stage clickable" data-action="showPanel" data-args='["ml"]'>
           <div class="pipe-icon text-purple"><i class="fa fa-brain"></i></div>
           <div class="pipe-body">
             <div class="pipe-label">② AI 트리아지</div>
-            <div class="pipe-value"><span id="pipe-ai-triage">0</span><span class="pipe-sub"> 판정 · 정탐 <span role="button" tabindex="0" id="pipe-ai-tp" class="text-warning verdict-link" onclick="event.stopPropagation(); showVerdictDetail('tp')" title="정탐 상세 내역">0</span> · 오탐 <span role="button" tabindex="0" id="pipe-ai-fp" class="text-success verdict-link" onclick="event.stopPropagation(); showVerdictDetail('fp')" title="오탐 상세 내역">0</span></span></div>
+            <div class="pipe-value"><span id="pipe-ai-triage">0</span><span class="pipe-sub"> 판정 · 정탐 <span role="button" tabindex="0" id="pipe-ai-tp" class="text-warning verdict-link" data-action="showVerdictDetail" data-args='["tp"]' data-stop title="정탐 상세 내역">0</span> · 오탐 <span role="button" tabindex="0" id="pipe-ai-fp" class="text-success verdict-link" data-action="showVerdictDetail" data-args='["fp"]' data-stop title="오탐 상세 내역">0</span></span></div>
           </div>
         </div>
         <div class="pipe-arrow"><i class="fa fa-angle-right"></i></div>
-        <div role="button" tabindex="0" class="pipe-stage clickable" onclick="showPanel('soar')">
+        <div role="button" tabindex="0" class="pipe-stage clickable" data-action="showPanel" data-args='["soar"]'>
           <div class="pipe-icon text-info"><i class="fa fa-robot"></i></div>
           <div class="pipe-body">
             <div class="pipe-label">③ 자동 대응 (SOAR)</div>
@@ -32,7 +32,7 @@
           </div>
         </div>
         <div class="pipe-arrow"><i class="fa fa-angle-right"></i></div>
-        <div role="button" tabindex="0" class="pipe-stage clickable" onclick="showPanel('incidents')">
+        <div role="button" tabindex="0" class="pipe-stage clickable" data-action="showPanel" data-args='["incidents"]'>
           <div class="pipe-icon text-danger"><i class="fa fa-folder-open"></i></div>
           <div class="pipe-body">
             <div class="pipe-label">④ 인시던트</div>
@@ -46,8 +46,8 @@
         <h3 class="card-panel-header">
           <i class="fa fa-sliders text-warning me-2"></i>AI 관제 흐름 제어
           <span class="small text-muted ms-2">핵심 조치는 여기서 · 상세 근거는 각 전문 탭에서</span>
-          <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('soar')">SOAR 상세</button>
-          <button class="btn btn-xs btn-outline-secondary ms-1" onclick="showPanel('incidents')">인시던트 상세</button>
+          <button class="btn btn-xs btn-outline-secondary ms-auto" data-action="showPanel" data-args='["soar"]'>SOAR 상세</button>
+          <button class="btn btn-xs btn-outline-secondary ms-1" data-action="showPanel" data-args='["incidents"]'>인시던트 상세</button>
         </h3>
         <div class="row g-2 p-2">
           <div class="col-lg-4">
@@ -60,7 +60,7 @@
             <div class="d-flex align-items-center mb-1">
               <span class="small fw-bold text-warning">승인 대기 조치</span>
               <span id="overview-approval-count" class="badge bg-secondary ms-2">0</span>
-              <button id="overview-approve-all" class="btn btn-xs btn-success ms-auto d-none" onclick="approveAllSoar()">
+              <button id="overview-approve-all" class="btn btn-xs btn-success ms-auto d-none" data-action="approveAllSoar">
                 <i class="fa fa-check-double me-1"></i>대기 전체 승인
               </button>
             </div>
@@ -71,7 +71,7 @@
         </div>
       </div>
 
-      <div role="button" tabindex="0" class="card-panel mb-3 clickable" onclick="showPanel('snort')">
+      <div role="button" tabindex="0" class="card-panel mb-3 clickable" data-action="showPanel" data-args='["snort"]'>
         <h3 class="card-panel-header">
           <i class="fa fa-shield-virus text-danger me-2"></i>탐지·방화벽 안전 상태
           <span class="small text-muted ms-2">Snort → 교차검증 → 승인 → UFW</span>
@@ -91,7 +91,7 @@
           <div class="card-panel h-100">
             <h3 class="card-panel-header">
               <i class="fa fa-fire text-danger me-2"></i>지금 처리할 인시던트
-              <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('incidents')">전체 보기</button>
+              <button class="btn btn-xs btn-outline-secondary ms-auto" data-action="showPanel" data-args='["incidents"]'>전체 보기</button>
             </h3>
             <div id="overview-active-incidents" class="priority-list">
               <div class="text-muted p-3 small text-center">활성 인시던트 확인 중…</div>
@@ -118,15 +118,15 @@
             <h3 class="card-panel-header">
               <i class="fa fa-wave-square text-cyan me-2"></i>통합 라이브 이벤트 스트림
               <span class="ms-auto d-flex gap-1">
-                <button class="btn btn-xs tp-toggle" onclick="toggleTpOnly(this)"
+                <button class="btn btn-xs tp-toggle" data-action="toggleTpOnly" data-args='["@el"]'
                         title="임계값 미만 저신뢰 알림 숨기기">
                   <i class="fa fa-filter me-1"></i>고신뢰만
                 </button>
                 <span class="mx-1" style="border-left:1px solid var(--border)"></span>
-                <button class="btn btn-xs live-filter active" data-lf="all" onclick="setLiveFilter('all',this)">전체</button>
-                <button class="btn btn-xs live-filter" data-lf="alert" onclick="setLiveFilter('alert',this)">알림</button>
-                <button class="btn btn-xs live-filter" data-lf="siem" onclick="setLiveFilter('siem',this)">SIEM</button>
-                <button class="btn btn-xs live-filter" data-lf="soar" onclick="setLiveFilter('soar',this)">대응</button>
+                <button class="btn btn-xs live-filter active" data-lf="all" data-action="setLiveFilter" data-args='["all","@el"]'>전체</button>
+                <button class="btn btn-xs live-filter" data-lf="alert" data-action="setLiveFilter" data-args='["alert","@el"]'>알림</button>
+                <button class="btn btn-xs live-filter" data-lf="siem" data-action="setLiveFilter" data-args='["siem","@el"]'>SIEM</button>
+                <button class="btn btn-xs live-filter" data-lf="soar" data-action="setLiveFilter" data-args='["soar","@el"]'>대응</button>
               </span>
             </h3>
             <div id="live-stream" class="live-stream flex-fill">
@@ -147,25 +147,25 @@
         <div class="col-12 col-xxl-3">
           <div class="row g-2 h-100 kpi-rail">
             <div class="col-6 col-md-2 col-xxl-6">
-              <div role="button" tabindex="0" class="stat-card stat-sm border-danger clickable h-100" onclick="showPanel('alerts')" title="전체 알림">
+              <div role="button" tabindex="0" class="stat-card stat-sm border-danger clickable h-100" data-action="showPanel" data-args='["alerts"]' title="전체 알림">
                 <div class="stat-value" id="stat-total-alerts">0</div>
                 <div class="stat-label">전체 알림</div>
               </div>
             </div>
             <div class="col-6 col-md-2 col-xxl-6">
-              <div role="button" tabindex="0" class="stat-card stat-sm border-warning clickable h-100" onclick="showPanel('alerts')" title="미처리 알림">
+              <div role="button" tabindex="0" class="stat-card stat-sm border-warning clickable h-100" data-action="showPanel" data-args='["alerts"]' title="미처리 알림">
                 <div class="stat-value" id="stat-open-alerts">0</div>
                 <div class="stat-label">미처리</div>
               </div>
             </div>
             <div class="col-6 col-md-2 col-xxl-6">
-              <div role="button" tabindex="0" class="stat-card stat-sm border-danger clickable h-100" onclick="filterAlerts('CRITICAL')" title="CRITICAL 알림만 보기">
+              <div role="button" tabindex="0" class="stat-card stat-sm border-danger clickable h-100" data-action="filterAlerts" data-args='["CRITICAL"]' title="CRITICAL 알림만 보기">
                 <div class="stat-value text-danger" id="kpi-critical">0</div>
                 <div class="stat-label">CRITICAL</div>
               </div>
             </div>
             <div class="col-6 col-md-2 col-xxl-6">
-              <div role="button" tabindex="0" class="stat-card stat-sm border-orange clickable h-100" onclick="filterAlerts('HIGH')" title="HIGH 알림만 보기">
+              <div role="button" tabindex="0" class="stat-card stat-sm border-orange clickable h-100" data-action="filterAlerts" data-args='["HIGH"]' title="HIGH 알림만 보기">
                 <div class="stat-value text-orange" id="kpi-high">0</div>
                 <div class="stat-label">HIGH</div>
               </div>
@@ -177,7 +177,7 @@
               </div>
             </div>
             <div class="col-6 col-md-2 col-xxl-6">
-              <div role="button" tabindex="0" class="stat-card stat-sm border-purple clickable h-100" onclick="showPanel('mitre')" title="MITRE ATT&CK">
+              <div role="button" tabindex="0" class="stat-card stat-sm border-purple clickable h-100" data-action="showPanel" data-args='["mitre"]' title="MITRE ATT&CK">
                 <div class="stat-value text-purple" id="kpi-mitre">0</div>
                 <div class="stat-label">MITRE 매핑</div>
               </div>
@@ -275,7 +275,7 @@
                 <span class="badge bg-secondary">실험적 · 비활성</span>
               </div>
               <div class="mt-2">
-                <button class="btn btn-xs btn-outline-cyan w-100" onclick="showPanel('ml')">
+                <button class="btn btn-xs btn-outline-cyan w-100" data-action="showPanel" data-args='["ml"]'>
                   <i class="fa fa-arrow-right-long me-1"></i>ML 패널로 이동
                 </button>
               </div>
@@ -286,7 +286,7 @@
           <div class="card-panel">
             <h3 class="card-panel-header">
               <i class="fa-solid fa-window-restore text-info me-2"></i>최근 Sysmon 이벤트
-              <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('sysmon')">전체 보기</button>
+              <button class="btn btn-xs btn-outline-secondary ms-auto" data-action="showPanel" data-args='["sysmon"]'>전체 보기</button>
             </h3>
             <div id="overview-sysmon-list" class="sysmon-mini-list"></div>
           </div>
@@ -299,7 +299,7 @@
           <div class="card-panel h-100">
             <h3 class="card-panel-header">
               <i class="fa fa-virus text-danger me-2"></i>위협 인텔리전스 (IoC 매칭)
-              <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('threat-intel')">전체 보기</button>
+              <button class="btn btn-xs btn-outline-secondary ms-auto" data-action="showPanel" data-args='["threat-intel"]'>전체 보기</button>
             </h3>
             <div class="row g-2 small mb-2 text-fg">
               <div class="col-4 text-center">
@@ -324,7 +324,7 @@
           <div class="card-panel h-100">
             <h3 class="card-panel-header">
               <i class="fa fa-bell text-danger me-2"></i>최근 위협 알림
-              <button class="btn btn-xs btn-outline-secondary ms-auto" onclick="showPanel('alerts')">전체 보기</button>
+              <button class="btn btn-xs btn-outline-secondary ms-auto" data-action="showPanel" data-args='["alerts"]'>전체 보기</button>
             </h3>
             <div id="recent-alerts-list" class="alert-list recent-alerts-white"></div>
           </div>

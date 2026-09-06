@@ -90,11 +90,11 @@
     const fields = [
       ['host', e.source], ['src_ip', e.ip], ['status', e.status],
       ['severity', sev], ['category', e.category], ['suspicious', e.suspicious],
-    ].map(([k, v]) => `<span class="spl-fv" onclick="siemSetSearch('${escapeHtml(String(v))}')">
+    ].map(([k, v]) => `<span class="spl-fv" ${act('siemSetSearch', [v])}>
         <span class="spl-fk">${k}</span>=<span class="spl-fvv">${escapeHtml(String(v))}</span></span>`).join('');
     return `
       <div class="spl-event ${e.suspicious ? 'spl-event-susp' : ''}" style="border-left-color:${sevColor}"
-           onclick="this.classList.toggle('open')">
+           ${act('toggleOpen')}>
         <div class="spl-event-top">
           <span class="spl-ts">${escapeHtml(e.timestamp)}</span>
           <span class="spl-raw">${escapeHtml(raw)}</span>
@@ -149,7 +149,7 @@
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
       const distinct = Object.keys(counts).length;
       const vals = top.map(([v, c]) => `
-        <div class="spl-field-val" onclick="siemSetSearch('${escapeHtml(v)}')">
+        <div class="spl-field-val" ${act('siemSetSearch', [v])}>
           <span class="spl-field-v">${escapeHtml(v)}</span><span class="spl-field-c">${c}</span>
         </div>`).join('');
       return `<div class="spl-field">
@@ -527,7 +527,7 @@
           <span class="text-muted">(${det.pid})</span></td>
         <td class="small" style="color:${sevColor(det.severity)}">${escapeHtml(det.description)}</td>
         <td class="small"><span class="badge bg-dark">${escapeHtml(det.mitre || '-')}</span></td>
-        <td><button class="btn btn-xs btn-outline-danger" onclick="edrKill(${det.pid})" title="프로세스 격리">
+        <td><button class="btn btn-xs btn-outline-danger" ${act('edrKill', [det.pid])} title="프로세스 격리">
           <i class="fa fa-ban"></i></button></td>
       </tr>`;
   }
@@ -790,7 +790,7 @@
           <td><span class="badge bg-dark" style="font-size:var(--fs-micro)">${escapeHtml(s.mitre)}</span></td>
           <td class="small text-muted">${escapeHtml(s.expect)}</td>
           <td class="small" style="color:var(--text-primary)">${r ? escapeHtml(r.detail) : '-'}</td>
-          <td><button class="btn btn-xs btn-outline-purple" onclick="runPurpleOne('${s.id}')" title="이 시나리오만 실행"><i class="fa fa-play"></i></button></td>
+          <td><button class="btn btn-xs btn-outline-purple" ${act('runPurpleOne', [s.id])} title="이 시나리오만 실행"><i class="fa fa-play"></i></button></td>
         </tr>`;
       }).join('');
     }

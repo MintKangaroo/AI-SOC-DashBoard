@@ -33,7 +33,7 @@
 <!-- ══════════════ NAVBAR ══════════════ -->
 <nav class="navbar navbar-dark navbar-soc px-3 py-2">
   <div class="d-flex align-items-center gap-2">
-    <button class="nav-toggle" id="nav-toggle" aria-label="메뉴" onclick="toggleSidebar()">
+    <button class="nav-toggle" id="nav-toggle" aria-label="메뉴" data-action="toggleSidebar">
       <i class="fa fa-bars"></i>
     </button>
     <i class="fa-solid fa-shield-halved fa-lg text-cyan"></i>
@@ -52,7 +52,7 @@
     </a>
   </div>
 </nav>
-<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop" data-action="closeSidebar"></div>
 
 <!-- ══════════════ LAYOUT ══════════════ -->
 <div class="d-flex" style="height: calc(100vh - 56px);">
@@ -63,7 +63,7 @@
       <i class="fa fa-satellite-dish"></i><span>AI 관제 센터</span>
     </a>
 
-    <button class="sidebar-group" id="sgroup-head-siem" onclick="toggleGroup('siem')">
+    <button class="sidebar-group" id="sgroup-head-siem" data-action="toggleGroup" data-args='["siem"]'>
       <i class="fa fa-server"></i><span>SIEM · 수집/탐지</span>
       <span class="badge bg-secondary ms-auto sgroup-badge" id="sgroup-badge-siem">0</span>
       <i class="fa fa-chevron-down sgroup-chevron"></i>
@@ -108,7 +108,7 @@
       </a>
     </div>
 
-    <button class="sidebar-group" id="sgroup-head-analysis" onclick="toggleGroup('analysis')">
+    <button class="sidebar-group" id="sgroup-head-analysis" data-action="toggleGroup" data-args='["analysis"]'>
       <i class="fa fa-brain"></i><span>위협 분석</span>
       <span class="badge bg-secondary ms-auto sgroup-badge" id="sgroup-badge-analysis">0</span>
       <i class="fa fa-chevron-down sgroup-chevron"></i>
@@ -157,7 +157,7 @@
       </a>
     </div>
 
-    <button class="sidebar-group" id="sgroup-head-soar" onclick="toggleGroup('soar')">
+    <button class="sidebar-group" id="sgroup-head-soar" data-action="toggleGroup" data-args='["soar"]'>
       <i class="fa fa-robot"></i><span>SOAR · 대응</span>
       <span class="badge bg-danger ms-auto sgroup-badge" id="sgroup-badge-soar">0</span>
       <i class="fa fa-chevron-down sgroup-chevron"></i>
@@ -180,7 +180,7 @@
       </a>
     </div>
 
-    <button class="sidebar-group" id="sgroup-head-audit" onclick="toggleGroup('audit')">
+    <button class="sidebar-group" id="sgroup-head-audit" data-action="toggleGroup" data-args='["audit"]'>
       <i class="fa fa-magnifying-glass-chart"></i><span>취약점 진단</span>
       <span class="badge bg-secondary ms-auto sgroup-badge" id="sgroup-badge-audit">0</span>
       <i class="fa fa-chevron-down sgroup-chevron"></i>
@@ -204,7 +204,7 @@
       </a>
     </div>
 
-    <button class="sidebar-group" id="sgroup-head-system" onclick="toggleGroup('system')">
+    <button class="sidebar-group" id="sgroup-head-system" data-action="toggleGroup" data-args='["system"]'>
       <i class="fa fa-gear"></i><span>시스템</span>
       <span class="badge bg-secondary ms-auto sgroup-badge d-none" id="sgroup-badge-system">0</span>
       <i class="fa fa-chevron-down sgroup-chevron"></i>

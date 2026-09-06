@@ -4,13 +4,13 @@
         <i class="fa fa-diagram-project me-2 text-danger"></i>공격 캠페인 — 킬체인 상관관계
         <span class="badge bg-dark ms-2" id="camp-total-badge">-</span>
         <select id="camp-hours" aria-label="캠페인 조회 기간" class="form-select form-select-sm bg-dark text-white border-secondary ms-3"
-                style="width:auto" onchange="loadCampaigns()">
+                style="width:auto" data-action-change="loadCampaigns">
           <option value="24" selected>최근 24시간</option>
           <option value="48">최근 48시간</option>
           <option value="72">최근 72시간</option>
           <option value="168">최근 7일</option>
         </select>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadCampaigns()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadCampaigns">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>

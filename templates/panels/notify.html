@@ -3,7 +3,7 @@
       <h2 class="panel-title">
         <i class="fa fa-bell me-2 text-cyan"></i>푸시 알림 — ntfy
         <span class="badge ms-2 badge-neutral" id="notify-mode-badge">-</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadNotify()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadNotify">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -39,7 +39,7 @@
       </div>
 
       <div class="mb-3">
-        <button class="btn btn-sm btn-outline-cyan" onclick="notifyTest()">
+        <button class="btn btn-sm btn-outline-cyan" data-action="notifyTest">
           <i class="fa fa-paper-plane me-1"></i>테스트 알림 보내기</button>
         <span id="notify-test-result" class="small ms-2 text-muted"></span>
       </div>

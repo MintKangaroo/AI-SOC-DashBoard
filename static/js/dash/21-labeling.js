@@ -91,9 +91,9 @@
           <input id="lab-reason-${i}" class="form-control form-control-sm bg-dark text-white border-secondary"
                  placeholder="판정 근거 (3자 이상 — 나중에 되짚을 수 있어야 합니다)">
           <button class="btn btn-xs btn-danger"
-                  onclick="labelGroup(${i}, 'TRUE_POSITIVE')">정탐</button>
+                  ${act('labelGroup', [i, 'TRUE_POSITIVE'])}>정탐</button>
           <button class="btn btn-xs btn-success"
-                  onclick="labelGroup(${i}, 'FALSE_POSITIVE')">오탐</button>
+                  ${act('labelGroup', [i, 'FALSE_POSITIVE'])}>오탐</button>
         </div>
         <div id="lab-msg-${i}" class="small mt-1"></div>
       </div>`;

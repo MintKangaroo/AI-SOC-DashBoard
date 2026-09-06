@@ -2,7 +2,7 @@
       <h2 class="panel-title">
         <i class="fa fa-magnifying-glass-chart me-2 text-cyan"></i>SIEM — 이벤트 검색·분석
         <span class="badge bg-dark border border-secondary ms-2 fs-meta" style="font-weight:400">Search &amp; Reporting</span>
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSiem()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadSiem">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -12,14 +12,14 @@
         <span class="spl-prompt">&gt;</span>
         <input type="text" id="siem-search" aria-label="SIEM 이벤트 검색" class="spl-search-input"
                placeholder='검색: ip, 요청, 분류, source (예: /.env  또는  185.220  또는  suspicious)'
-               oninput="renderSiemEvents()" onkeydown="if(event.key==='Enter')renderSiemEvents()">
-        <select id="siem-timerange" aria-label="조회 시간 범위" class="spl-timerange" onchange="renderSiemEvents()">
+               data-action-input="renderSiemEvents" data-action-enter="renderSiemEvents">
+        <select id="siem-timerange" aria-label="조회 시간 범위" class="spl-timerange" data-action-change="renderSiemEvents">
           <option value="0">전체 시간</option>
           <option value="5">최근 5분</option>
           <option value="15">최근 15분</option>
           <option value="60">최근 1시간</option>
         </select>
-        <button class="spl-search-btn" onclick="renderSiemEvents()"><i class="fa fa-magnifying-glass"></i></button>
+        <button class="spl-search-btn" data-action="renderSiemEvents"><i class="fa fa-magnifying-glass"></i></button>
       </div>
 
       <!-- 결과 요약 라인 -->
@@ -32,7 +32,7 @@
         <span class="spl-sep">·</span>
         <span><b id="siem-sources-ok">0</b> 소스 연결</span>
         <div class="ms-auto form-check form-switch small">
-          <input class="form-check-input" type="checkbox" id="siem-suspicious-only" onchange="renderSiemEvents()">
+          <input class="form-check-input" type="checkbox" id="siem-suspicious-only" data-action-change="renderSiemEvents">
           <label class="form-check-label small" for="siem-suspicious-only">의심만</label>
         </div>
       </div>

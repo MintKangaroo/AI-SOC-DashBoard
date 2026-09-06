@@ -92,13 +92,13 @@
              격자로 묶어 어느 폭에서도 가지런히 두 줄로 떨어지게 한다. -->
         <div class="row-actions">
           <button class="btn btn-xs btn-outline-info" aria-label="AI 분석"
-                  onclick="analyzeAlertAI(${alert.id})">
+                  ${act('analyzeAlertAI', [alert.id])}>
             <i class="fa fa-robot" aria-hidden="true"></i>
           </button>
-          <button class="btn btn-xs btn-outline-warning" onclick="updateAlertStatus(${alert.id},'ACK')">확인</button>
-          <button class="btn btn-xs btn-outline-danger" onclick="setAlertVerdict(${alert.id},'TRUE_POSITIVE')">정탐</button>
-          <button class="btn btn-xs btn-outline-success" onclick="setAlertVerdict(${alert.id},'FALSE_POSITIVE')">오탐</button>
-          <button class="btn btn-xs btn-outline-secondary" onclick="updateAlertStatus(${alert.id},'CLOSED')">종료</button>
+          <button class="btn btn-xs btn-outline-warning" ${act('updateAlertStatus', [alert.id, 'ACK'])}>확인</button>
+          <button class="btn btn-xs btn-outline-danger" ${act('setAlertVerdict', [alert.id, 'TRUE_POSITIVE'])}>정탐</button>
+          <button class="btn btn-xs btn-outline-success" ${act('setAlertVerdict', [alert.id, 'FALSE_POSITIVE'])}>오탐</button>
+          <button class="btn btn-xs btn-outline-secondary" ${act('updateAlertStatus', [alert.id, 'CLOSED'])}>종료</button>
         </div>
       </td>`;
     // 실시간 이벤트가 장시간 누적되어 DOM/DataTables가 느려지는 것을 방지한다.

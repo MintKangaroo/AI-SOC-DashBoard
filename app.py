@@ -218,11 +218,13 @@ def create_app():
     # 이전에는 CSP·X-Frame-Options·X-Content-Type-Options 가 전부 없었다
     # (docs/AUDIT.md C-4).
     #
-    # ⚠️ script-src 에 'unsafe-inline' 이 들어간다. 템플릿에 onclick 등
-    # 인라인 핸들러가 104개, JS 가 생성하는 것이 28개, 인라인 style 이 486개다.
-    # 이를 빼면 대시보드가 통째로 동작하지 않는다. 따라서 **이 CSP 는 XSS
-    # 스크립트 주입을 막지 못한다.** 132개 핸들러를 addEventListener 로 옮기는
-    # 리팩터링이 선행되어야 하며, 그때 'unsafe-inline' 을 제거한다.
+    # script-src 는 'self' 만이다. 예전엔 인라인 핸들러 152개 때문에
+    # 'unsafe-inline' 이 있었고 그래서 CSP 가 XSS 스크립트 주입을 전혀 막지
+    # 못했다. 핸들러를 전부 data-action 위임(01-core.js dispatchAction)으로
+    # 옮기고 뺐다(2026-09-07). 이제 주입된 <script>·onerror= 는 브라우저가 실행을
+    # 거부한다 — escapeHtml 이 한 곳이라도 빠졌을 때의 백스톱이다.
+    # style-src 의 'unsafe-inline' 은 남는다(인라인 style 60곳 + Chart.js 등
+    # 라이브러리가 style 속성을 직접 쓴다). 스타일 주입은 스크립트 실행이 아니다.
     #
     # 그럼에도 나머지 지시어는 실익이 있다:
     #   object-src 'none'    — 플러그인/오브젝트 주입 차단
@@ -244,8 +246,7 @@ def create_app():
         ext = (" " + extra) if extra else ""
         return "; ".join([
             "default-src 'self'",
-            # 인라인 핸들러 132개 때문에 불가피하다 — 위 주석 참조
-            f"script-src 'self' 'unsafe-inline'{ext}",
+            f"script-src 'self'{ext}",
             f"style-src 'self' 'unsafe-inline'{ext}",
             f"font-src 'self' data:{ext}",
             # 지도는 globe.gl + 로컬 GeoJSON 이라 외부 타일을 받지 않는다

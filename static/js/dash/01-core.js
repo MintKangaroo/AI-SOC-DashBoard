@@ -246,6 +246,57 @@
       c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  /* ─────────────────── 이벤트 위임 (인라인 핸들러 대체) ───────────────────
+     템플릿과 JS 가 만드는 마크업은 인라인 on* 속성 대신
+       data-action="함수명" data-args='[1,"x"]'       (click)
+       data-action-change / -input / -enter="함수명"  (change · input · Enter 키)
+     를 쓴다. 문서 수준 리스너 하나가 대상에서 위로 올라가며 부른다(버블링과
+     같은 순서). data-stop 이 있으면 거기서 멈춘다(옛 event.stopPropagation()).
+     인자 "@el" 은 그 요소 자신으로 바뀐다(옛 `this`). 함수는 this=요소 로 불린다.
+
+     왜: 인라인 핸들러 152개 때문에 CSP script-src 에 'unsafe-inline' 이 남아
+     있었고, 그래서 CSP 가 XSS 스크립트 주입을 전혀 막지 못했다(AUDIT C-4).
+     전부 걷어내고 'unsafe-inline' 을 뺐다 — 이제 주입된 <script> 나 onerror= 는
+     브라우저가 실행을 거부한다. 서버 문자열 escapeHtml 의 백스톱이다.
+
+     JS 가 마크업을 만들 때는 act() 를 쓴다:
+       `<button ${act('setAlertVerdict', [alert.id, 'TRUE_POSITIVE'])}>`
+       `<select ${act('soarTogglePb', [pb.id], 'change')}>`
+     인자는 JSON 으로 직렬화되고 escapeHtml 을 거치므로 어떤 문자열이든 안전하다. */
+  const ACTION_ATTR = { click: 'data-action', change: 'data-action-change',
+                        input: 'data-action-input', keydown: 'data-action-enter' };
+
+  function act(name, args = [], type = 'click', stop = false) {
+    let out = `${ACTION_ATTR[type]}="${name}"`;
+    if (args.length) out += ` data-args="${escapeHtml(JSON.stringify(args))}"`;
+    if (stop) out += ' data-stop';
+    return out;
+  }
+
+  function dispatchAction(ev) {
+    const attr = ACTION_ATTR[ev.type];
+    if (!attr || (ev.type === 'keydown' && ev.key !== 'Enter')) return;
+    for (let el = ev.target instanceof Element ? ev.target : null; el; el = el.parentElement) {
+      const name = el.getAttribute(attr);
+      if (!name) continue;
+      if (el.tagName === 'A' && el.getAttribute('href') === '#') ev.preventDefault();
+      const fn = window[name];
+      if (typeof fn !== 'function') { console.error('data-action 대상이 공개되지 않았다:', name); return; }
+      let args = [];
+      const raw = el.getAttribute('data-args');
+      if (raw) {
+        try { args = JSON.parse(raw); }
+        catch (e) { console.error('data-args 파싱 실패:', name, raw); return; }
+      }
+      fn.apply(el, args.map(a => (a === '@el' ? el : a)));
+      if (el.hasAttribute('data-stop')) { ev.stopPropagation(); return; }
+    }
+  }
+  Object.keys(ACTION_ATTR).forEach(t => document.addEventListener(t, dispatchAction));
+
+  /* 옛 인라인 this.classList.toggle('open') 의 대체 */
+  function toggleOpen() { this.classList.toggle('open'); }
+
   const socket = io();
 
   /* ════════════════════ API 오류 표면화 ════════════════════
@@ -697,7 +748,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    alarm, announce, cssVar, ensureTableLibs, loadScript, reconcileList,
+    act, alarm, announce, cssVar, ensureTableLibs, loadScript, reconcileList, toggleOpen,
     closeSidebar, escapeHtml, isPanelVisible, loadMyInfo, materializePanel, onPanelReady,
     protoColor, sevBadge, showPanel,
     socket, threatColor, toggleGroup, toggleSidebar,

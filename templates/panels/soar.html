@@ -2,7 +2,7 @@
     <div id="panel-soar" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-robot me-2 text-cyan"></i>SOAR — AI 기반 자동 대응 (Playbooks)
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSoar()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadSoar">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -39,13 +39,13 @@
           <div class="stat-label">차단된 IP</div>
         </div></div>
         <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-success clickable"
-             onclick="showVerdictDetail('fp')" title="클릭하면 오탐 종결 상세 내역">
+             data-action="showVerdictDetail" data-args='["fp"]' title="클릭하면 오탐 종결 상세 내역">
           <div class="stat-icon text-success"><i class="fa fa-circle-check"></i></div>
           <div class="stat-value text-success" id="soar-closed-fp">0</div>
           <div class="stat-label">오탐 자동 종결</div>
         </div></div>
         <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-warning clickable"
-             onclick="showVerdictDetail('tp')" title="클릭하면 정탐 에스컬레이션 상세 내역">
+             data-action="showVerdictDetail" data-args='["tp"]' title="클릭하면 정탐 에스컬레이션 상세 내역">
           <div class="stat-icon text-warning"><i class="fa fa-arrow-up-right-dots"></i></div>
           <div class="stat-value text-warning" id="soar-escalated">0</div>
           <div class="stat-label">정탐 에스컬레이션</div>
@@ -66,7 +66,7 @@
               <div class="ms-auto d-flex gap-1">
                 <input type="text" id="soar-block-ip-input" aria-label="수동 차단할 IP" class="form-control form-control-sm font-monospace fs-label"
                        placeholder="IP 수동 차단" style="width:150px">
-                <button class="btn btn-xs btn-outline-danger" onclick="soarManualBlock()">차단</button>
+                <button class="btn btn-xs btn-outline-danger" data-action="soarManualBlock">차단</button>
               </div>
             </div>
             <div class="scroll-y scroll-y-md" id="soar-blocklist">
@@ -80,10 +80,10 @@
             <h3 class="card-panel-header">
               <i class="fa fa-route text-cyan me-2"></i>플레이북 실행 현황
               <span class="ms-auto small" id="soar-vt-status"></span>
-              <button class="btn btn-xs btn-outline-cyan ms-2" onclick="testVirusTotal()">
+              <button class="btn btn-xs btn-outline-cyan ms-2" data-action="testVirusTotal">
                 <i class="fa fa-vial me-1"></i>EICAR 연결 테스트
               </button>
-              <button class="btn btn-xs btn-outline-success ms-1" onclick="approveAllSoar()">
+              <button class="btn btn-xs btn-outline-success ms-1" data-action="approveAllSoar">
                 <i class="fa fa-check-double me-1"></i>대기 일괄 승인
               </button>
             </h3>
@@ -98,12 +98,12 @@
               <i class="fa fa-scale-balanced text-purple me-2"></i>차단 결정 기록
               <span class="small text-muted ms-2">— 차단하지 <b>않은</b> 결정도 남긴다</span>
               <select id="bd-filter" aria-label="차단 결정 거르기" class="form-select form-select-sm bg-dark text-white border-secondary ms-auto"
-                      style="width:auto" onchange="loadBlockDecisions()">
+                      style="width:auto" data-action-change="loadBlockDecisions">
                 <option value="all">전체</option>
                 <option value="true">차단됨</option>
                 <option value="false">차단 안 함</option>
               </select>
-              <button class="btn btn-xs btn-outline-cyan ms-2" onclick="loadBlockDecisions()">
+              <button class="btn btn-xs btn-outline-cyan ms-2" data-action="loadBlockDecisions">
                 <i class="fa fa-sync"></i>
               </button>
             </h3>

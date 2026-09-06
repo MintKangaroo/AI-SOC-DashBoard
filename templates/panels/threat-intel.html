@@ -2,7 +2,7 @@
     <div id="panel-threat-intel" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-virus me-2 text-danger"></i>위협 인텔리전스 (Malicious IP / URL Feeds)
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="refreshThreatIntel()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="refreshThreatIntel">
           <i class="fa fa-sync me-1"></i>피드 갱신
         </button>
       </h2>
@@ -104,7 +104,7 @@
                 <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="ti-check-url" aria-label="평판 조회할 URL" placeholder="URL (예: http://evil.xyz/gate.php)"/>
               </div>
               <div class="col-md-2">
-                <button class="btn btn-sm btn-outline-cyan w-100" onclick="checkThreatIntel()">
+                <button class="btn btn-sm btn-outline-cyan w-100" data-action="checkThreatIntel">
                   <i class="fa fa-search me-1"></i>조회
                 </button>
               </div>

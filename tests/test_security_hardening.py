@@ -295,17 +295,18 @@ def test_csp_connect_src_limits_exfiltration(client):
     assert "connect-src 'self' ws: wss:" in csp
 
 
-def test_csp_documents_its_own_weakness(client):
-    """script-src 'unsafe-inline' 은 인라인 핸들러 132개 때문에 불가피하다.
+def test_csp_blocks_inline_scripts(client):
+    """script-src 는 'self' 만이어야 한다.
 
-    이 테스트는 그 사실을 **명시적으로 고정**한다. 나중에 핸들러를
-    addEventListener 로 옮기고 'unsafe-inline' 을 제거하면 이 테스트가
-    실패하며 docs/AUDIT.md C-4 갱신을 요구한다.
+    예전엔 인라인 핸들러 152개 때문에 'unsafe-inline' 이 있었고, 그래서 CSP 가
+    XSS 스크립트 주입을 전혀 막지 못했다(AUDIT C-4 가 그 사실을 고정해 두었다).
+    2026-09-07 핸들러를 전부 data-action 위임으로 옮기고 뺐다. 다시 들어오면
+    escapeHtml 의 백스톱이 사라지는 것이므로 여기서 막는다.
     """
     csp = _csp(client)
-    assert "'unsafe-inline'" in csp, (
-        "'unsafe-inline' 이 제거됐다면 인라인 핸들러 리팩터링이 끝났다는 뜻이다. "
-        "docs/AUDIT.md C-4 와 이 테스트를 갱신할 것.")
+    script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    assert "'unsafe-inline'" not in script_src, script_src
+    assert "'unsafe-eval'" not in script_src, script_src
 
 
 def test_dashboard_still_renders_with_csp(client):
@@ -404,7 +405,7 @@ def test_leaflet_is_fully_removed():
 
 
 @pytest.mark.parametrize("directive", [
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
     "img-src 'self' data: blob:",

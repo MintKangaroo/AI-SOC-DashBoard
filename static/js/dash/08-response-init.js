@@ -52,7 +52,7 @@
         <td>${blockers}</td>
         <td class="font-monospace">${escapeHtml(conf)}</td>
         <td><button class="btn btn-xs btn-outline-cyan"
-                    onclick="showBlockDecision(${Number(r.id)})">근거</button></td>
+                    ${act('showBlockDecision', [Number(r.id)])}>근거</button></td>
       </tr>`;
     }).join('');
   }
@@ -92,7 +92,7 @@
                 <input id="bd-replay-corr" class="form-check-input" type="checkbox"
                        ${rec.thresholds?.require_corroboration ? 'checked' : ''}> 독립 근거 요구
               </label>
-              <button class="btn btn-xs btn-cyan" onclick="replayBlockDecision(${Number(rec.id)})">재생</button>
+              <button class="btn btn-xs btn-cyan" ${act('replayBlockDecision', [Number(rec.id)])}>재생</button>
             </div>
             <div id="bd-replay-out" class="small mt-2"></div>
           </div>`;
@@ -158,7 +158,7 @@
         <div class="d-flex align-items-center gap-2 mb-1">
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" ${pb.enabled ? 'checked' : ''}
-                   onchange="soarTogglePb('${escapeHtml(pb.id)}')">
+                   ${act('soarTogglePb', [pb.id], 'change')}>
           </div>
           <span class="badge bg-dark border border-secondary font-monospace" style="font-size:var(--fs-micro)">${escapeHtml(pb.id)}</span>
           <span class="small fw-bold flex-fill" style="color:var(--text-primary)">${escapeHtml(pb.name)}</span>
@@ -232,7 +232,7 @@
               <span class="text-warning ms-1" style="font-size:var(--fs-micro); white-space:nowrap"
                     title="자동 만료 시각">${escapeHtml((b.expires || '').replace(/^\d{4}-/, ''))}</span>
               <button class="btn btn-xs btn-outline-secondary ms-auto" style="font-size:var(--fs-micro)"
-                      onclick="soarUnblock('${escapeHtml(b.ip)}')">해제</button>
+                      ${act('soarUnblock', [b.ip])}>해제</button>
             </div>`).join('')
         : '<div class="text-muted p-2">차단된 IP 없음</div>';
     }
@@ -266,8 +266,8 @@
           <strong style="color:var(--text-primary)">${escapeHtml(run.target)}</strong>
           <span class="ms-auto badge ${run.status === 'running' ? 'bg-info text-dark' : run.status === 'waiting_approval' ? 'bg-warning text-dark' : ['failed','rejected','expired'].includes(run.status) ? 'bg-danger' : run.status === 'cancelled' ? 'bg-secondary' : 'bg-success'}">${escapeHtml(SOAR_RUN_STATE[run.status] || run.status)}</span>
           ${run.attempt > 1 ? `<span class="badge bg-secondary">${run.attempt}차 시도</span>` : ''}
-          ${run.status === 'failed' && run.playbook === 'PB-MALWARE-ENRICH' ? `<button class="btn btn-xs btn-outline-warning" onclick="retrySoarExecution(${Number(run.id)})"><i class="fa fa-rotate-right me-1"></i>실패 단계 재시도</button>` : ''}
-          ${run.status === 'waiting_approval' ? `<button class="btn btn-xs btn-success" onclick="reviewSoarApproval(${Number(run.id)},'approve')">승인</button><button class="btn btn-xs btn-outline-danger" onclick="reviewSoarApproval(${Number(run.id)},'reject')">거절</button><button class="btn btn-xs btn-outline-secondary" onclick="reviewSoarApproval(${Number(run.id)},'cancel')">취소</button>` : ''}
+          ${run.status === 'failed' && run.playbook === 'PB-MALWARE-ENRICH' ? `<button class="btn btn-xs btn-outline-warning" ${act('retrySoarExecution', [Number(run.id)])}><i class="fa fa-rotate-right me-1"></i>실패 단계 재시도</button>` : ''}
+          ${run.status === 'waiting_approval' ? `<button class="btn btn-xs btn-success" ${act('reviewSoarApproval', [Number(run.id), 'approve'])}>승인</button><button class="btn btn-xs btn-outline-danger" ${act('reviewSoarApproval', [Number(run.id), 'reject'])}>거절</button><button class="btn btn-xs btn-outline-secondary" ${act('reviewSoarApproval', [Number(run.id), 'cancel'])}>취소</button>` : ''}
           <span class="text-muted font-monospace" style="font-size:var(--fs-micro)">${escapeHtml((run.started || '').split(' ')[1] || '')}</span>
         </div>
         <div class="soar-run-steps">${(run.steps || []).map(step => `
@@ -323,11 +323,11 @@
     const box = document.getElementById('overview-approvals');
     if (box) box.innerHTML = pending.length ? pending.map(run => `
       <div class="priority-item">
-        <div class="flex-fill clickable" onclick="showPanel('soar')">
+        <div class="flex-fill clickable" ${act('showPanel', ['soar'])}>
           <div class="priority-title"><span class="font-monospace">${escapeHtml(run.target)}</span> 차단 승인</div>
           <div class="priority-meta">${escapeHtml(run.approval?.requested_by || '')} · ${escapeHtml(run.approval?.expires_at || '')} 만료</div>
         </div>
-        <div class="d-flex gap-1 align-items-center"><button class="btn btn-xs btn-success" onclick="reviewSoarApproval(${Number(run.id)},'approve')">승인</button><button class="btn btn-xs btn-outline-danger" onclick="reviewSoarApproval(${Number(run.id)},'reject')">거절</button></div>
+        <div class="d-flex gap-1 align-items-center"><button class="btn btn-xs btn-success" ${act('reviewSoarApproval', [Number(run.id), 'approve'])}>승인</button><button class="btn btn-xs btn-outline-danger" ${act('reviewSoarApproval', [Number(run.id), 'reject'])}>거절</button></div>
       </div>`).join('') : '<div class="small text-muted py-2">대기 중인 조치 없음</div>';
   }
 
@@ -571,7 +571,7 @@
       const active = (incData.incidents || []).filter(i =>
         i.status === 'OPEN' || i.status === 'INVESTIGATING').slice(0, 5);
       if (incBox) incBox.innerHTML = active.length ? active.map(i => `
-        <div class="priority-item" onclick="showPanel('incidents'); selectIncident(${i.id})">
+        <div class="priority-item" ${act('openIncident', [i.id])}>
           <div>
             <div class="priority-title">#${i.id} ${escapeHtml(i.title)}</div>
             <div class="priority-meta">${escapeHtml(i.status)} · ${escapeHtml(i.assignee || '미배정')} · ${escapeHtml((i.updated || '').slice(5))}</div>
@@ -582,7 +582,7 @@
       const groupBox = document.getElementById('overview-alert-groups');
       const groups = groupData.groups || [];
       if (groupBox) groupBox.innerHTML = groups.length ? groups.map(g => `
-        <div class="priority-item" onclick="openAlertGroup('${escapeHtml(g.src_ip)}','${escapeHtml(g.threat_type)}')">
+        <div class="priority-item" ${act('openAlertGroup', [g.src_ip, g.threat_type])}>
           <div>
             <div class="priority-title font-monospace">${escapeHtml(g.src_ip)} · ${escapeHtml(g.threat_label)}</div>
             <div class="priority-meta">최종 ${escapeHtml((g.last_seen || '').slice(5))} · 미처리 ${g.open_count}건</div>
@@ -608,7 +608,7 @@
     const tbody = document.getElementById('inc-tbody');
     if (!tbody) return;
     const rows = (d.incidents || []).map(inc => `
-      <tr style="cursor:pointer" onclick="selectIncident(${inc.id})"
+      <tr style="cursor:pointer" ${act('selectIncident', [inc.id])}
           ${inc.id === selectedIncidentId ? 'class="table-active"' : ''}>
         <td class="small text-cyan">#${inc.id}</td>
         <td class="small" style="color:var(--text-primary)">${escapeHtml(inc.title)}</td>
@@ -622,6 +622,9 @@
 
     if (selectedIncidentId) loadIncidentDetail(selectedIncidentId);
   }
+
+  /* 개요의 진행 중 인시던트 카드 → 인시던트 패널을 열고 그 건을 선택 */
+  function openIncident(id) { showPanel('incidents'); selectIncident(id); }
 
   function selectIncident(id) {
     selectedIncidentId = id;
@@ -782,6 +785,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
+    openIncident,
     approveAllSoar, loadBlockDecisions, loadDecisionSupport, loadIncidents, loadSoar,
     replayBlockDecision, retrySoarExecution, reviewSoarApproval, saveIncident,
     schedulePriorityReload, selectIncident, showBlockDecision, showVerdictDetail,

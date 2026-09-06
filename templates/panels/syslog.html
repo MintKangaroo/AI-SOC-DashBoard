@@ -1,7 +1,7 @@
     <div id="panel-syslog" class="panel-section d-none">
       <h2 class="panel-title">
         <i class="fa fa-satellite-dish me-2 text-cyan"></i>Syslog 수신 — 원격 침해시도 수집
-        <button class="btn btn-xs btn-outline-cyan ms-auto" onclick="loadSyslog()">
+        <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadSyslog">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
@@ -80,7 +80,7 @@ logging.getLogger(&quot;werkzeug&quot;).addHandler(h)   # 접속 로그를 SOC �
               <i class="fa fa-list text-cyan me-2"></i>수신 이벤트
               <div class="form-check form-switch ms-auto small">
                 <input class="form-check-input" type="checkbox" id="syslog-suspicious-only"
-                       onchange="renderSyslogEvents()">
+                       data-action-change="renderSyslogEvents">
                 <label class="form-check-label small" for="syslog-suspicious-only">의심만 보기</label>
               </div>
             </div>
