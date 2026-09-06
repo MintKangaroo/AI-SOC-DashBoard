@@ -26,7 +26,6 @@
           alertsDataTable = $('#alerts-table').DataTable({
             order: [[0, 'desc']],
             pageLength: 20,
-            language: { url: '' },
           });
         }
       });

@@ -14,7 +14,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const dir=process.argv[2], required=JSON.parse(fs.readFileSync(process.argv[3],'utf8'));
 function mock(n){const f=function(){return f};return new Proxy(f,{get(t,p){if(p===Symbol.toPrimitive)return()=>0;if(p==='then')return undefined;if(p==='length')return 0;if(p==='name')return n;if(p===Symbol.iterator)return function*(){};if(p in t)return t[p];return mock(n+'.'+String(p))},set(){return true},apply(){return mock(n+'()')},construct(){return mock('new '+n)},has(){return true}})}
-const s={};s.globalThis=s;s.window=s;s.console=console;s.setTimeout=()=>0;s.clearTimeout=()=>{};s.setInterval=()=>0;s.clearInterval=()=>{};s.requestAnimationFrame=()=>0;
+const s={};s.globalThis=s;s.window=s;s.console=console;s.setTimeout=()=>0;s.clearTimeout=()=>{};s.setInterval=()=>0;s.clearInterval=()=>{};s.requestAnimationFrame=()=>0;s.addEventListener=()=>{};s.removeEventListener=()=>{};s.history={pushState(){},replaceState(){}};s.location={hash:'',href:'http://localhost/',search:''};
 s.fetch=()=>({then:()=>({then:()=>({catch:()=>{}}),catch:()=>{}}),catch:()=>{}});
 for(const g of ['document','navigator','location','localStorage','Chart','io','DataTable','bootstrap','Globe','THREE','CSS','URLSearchParams','Image','Blob','FormData','AbortController','WebSocket','alert','confirm','prompt','getComputedStyle','MutationObserver','IntersectionObserver','ResizeObserver','screen','history','performance'])s[g]=mock(g);
 s.$=mock('$');s.jQuery=s.$;

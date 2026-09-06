@@ -40,7 +40,9 @@
     }).join('');
 
     return `
-      <div class="card-panel mb-2" style="border-left:3px solid ${border}">
+      <div class="card-panel mb-2"
+           style="border-color:color-mix(in srgb, ${border} 45%, var(--border));
+                  background:linear-gradient(180deg, color-mix(in srgb, ${border} 6%, transparent), transparent), var(--bg-card)">
         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
           <i class="fa fa-user-secret text-orange"></i>
           <span class="font-monospace fw-bold">${escapeHtml(c.src_ip)}</span>

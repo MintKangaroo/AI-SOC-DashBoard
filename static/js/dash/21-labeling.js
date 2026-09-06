@@ -9,6 +9,18 @@
     fetch('/api/labeling/stats').then(r => r.json()).then(renderLabelStats).catch(() => {});
   }
 
+  // 큐 요약에서 받은 출처 내역을 통계 줄 뒤에 덧붙인다.
+  let lastQueueSummary = {};
+
+  function provenanceNote() {
+    const s = lastQueueSummary;
+    const excluded = Number(s.excluded_synthetic || 0);
+    const included = Number(s.synthetic_alerts || 0);
+    if (excluded > 0) return ` · 합성 ${excluded.toLocaleString()}건 제외됨(실측만 보는 중)`;
+    if (included > 0) return ` · 이 중 합성 ${included.toLocaleString()}건 — 정답지로 쓰지 말 것`;
+    return '';
+  }
+
   function renderLabelStats(d) {
     const box = document.getElementById('lab-stats');
     if (!box) return;
@@ -18,22 +30,22 @@
       `그룹 판정 <b>${Number(g.decisions || 0)}</b>건 → 알림 `
       + `<b>${Number(g.covers || 0).toLocaleString()}</b>건 덮음 `
       + `(정탐 ${Number(g.tp || 0)} / 오탐 ${Number(g.fp || 0)}) · `
-      + `개별 판정 <b>${Number(s.decisions || 0)}</b>건`;
+      + `개별 판정 <b>${Number(s.decisions || 0)}</b>건`
+      + escapeHtml(provenanceNote());
   }
 
   function renderLabeling(d) {
+    lastQueueSummary = d.summary || {};
+    // 통계 줄은 별도 fetch 라 이 응답보다 먼저 그려졌을 수 있다 — 출처 내역을
+    // 반영하려면 다시 그려야 한다.
+    fetch('/api/labeling/stats').then(r => r.json()).then(renderLabelStats).catch(() => {});
     const cov = document.getElementById('lab-coverage');
     if (cov) {
       const s = d.summary || {};
-      const parts = [`그룹 ${Number(s.groups || 0)}개`,
-                     `판정 ${Number(s.labeled_groups || 0)}개`,
-                     `덮인 알림 ${Number(s.covered_alerts || 0).toLocaleString()}건 (${s.coverage_pct || 0}%)`];
-      if (Number(s.excluded_synthetic || 0) > 0) {
-        parts.push(`합성 ${Number(s.excluded_synthetic).toLocaleString()}건 제외됨`);
-      } else if (Number(s.synthetic_alerts || 0) > 0) {
-        parts.push(`이 중 합성 ${Number(s.synthetic_alerts).toLocaleString()}건 포함`);
-      }
-      cov.textContent = parts.join(' · ');
+      // 제목 옆 뱃지는 짧게 — 길면 제목 줄이 접혀 컨트롤이 아래로 밀린다.
+      // 자세한 내역은 아래 통계 줄이 맡는다.
+      cov.textContent = `그룹 ${Number(s.groups || 0)} · 판정 ${Number(s.labeled_groups || 0)}`
+        + ` · ${s.coverage_pct || 0}%`;
     }
     const box = document.getElementById('lab-groups');
     if (!box) return;

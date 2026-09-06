@@ -8,7 +8,8 @@
 
   function reportKpiCards(hl) {
     const card = (label, val, color) =>
-      `<div class="col-4 col-md-3"><div class="stat-card stat-sm" style="border-left:3px solid ${color}">
+      `<div class="col-4 col-md-3"><div class="stat-card stat-sm"
+            style="border-color:color-mix(in srgb, ${color} 42%, var(--border))">
         <div class="stat-value" style="color:${color}">${(val ?? 0).toLocaleString()}</div>
         <div class="stat-label">${label}</div></div></div>`;
     return [

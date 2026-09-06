@@ -3,20 +3,24 @@
       <div class="panel-title">
         <i class="fa fa-tags me-2 text-warning"></i>라벨링 큐 — 정탐/오탐 확정
         <span class="badge bg-dark ms-2" id="lab-coverage">-</span>
-        <div class="form-check form-switch ms-auto me-3 small" style="padding-top:2px;">
-          <input class="form-check-input" type="checkbox" id="lab-real-only"
-                 onchange="loadLabeling()">
-          <label class="form-check-label" for="lab-real-only"
-                 title="허니팟 데모·퍼플팀 TEST-NET·데모 평판·SIMULATED 로그·데모 생성기 산출물을 제외한다">
-            합성 제외(실측만)
-          </label>
+        <!-- 제목·요약 뱃지가 길어 좁은 폭에서 줄이 바뀐다. 컨트롤은 한 덩어리로
+             묶어 같이 움직이게 한다(따로 두면 버튼만 아래로 떨어졌다). -->
+        <div class="d-flex align-items-center gap-3 ms-auto">
+          <div class="form-check form-switch small mb-0">
+            <input class="form-check-input" type="checkbox" id="lab-real-only"
+                   onchange="loadLabeling()">
+            <label class="form-check-label" for="lab-real-only"
+                   title="허니팟 데모·퍼플팀 TEST-NET·데모 평판·SIMULATED 로그·데모 생성기 산출물을 제외한다">
+              합성 제외(실측만)
+            </label>
+          </div>
+          <button class="btn btn-xs btn-outline-cyan flex-shrink-0" onclick="loadLabeling()">
+            <i class="fa fa-sync me-1"></i>새로고침
+          </button>
         </div>
-        <button class="btn btn-xs btn-outline-cyan" onclick="loadLabeling()">
-          <i class="fa fa-sync me-1"></i>새로고침
-        </button>
       </div>
 
-      <div class="card-panel mb-3" style="border-left:3px solid var(--warning, #d29922); background:rgba(210,153,34,.05);">
+      <div class="panel-note mb-3 panel-note--warning">
         <div class="card-panel-header" style="border:none; padding-bottom:4px;">
           <i class="fa fa-lightbulb text-warning me-2"></i>이 패널은 어떻게 봐야 할까?
         </div>

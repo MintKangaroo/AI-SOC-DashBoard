@@ -5,6 +5,45 @@
      SOC Dashboard — Main JS
   ══════════════════════════════════════════ */
 
+  /* DataTables 공통 설정.
+
+     언어: 대시보드는 전부 한국어인데 표 컨트롤만 "Show / entries / Search:" 였다.
+     한 곳에서 기본값으로 정한다.
+
+     ※ 알림 표에는 `language: { url: '' }` 가 들어가 있었다. DataTables 는 이걸
+       "언어 파일을 이 URL 에서 받아라" 로 읽어 빈 URL(=현재 페이지)을 JSON 으로
+       파싱하려다 실패했고, 그 바람에 길이 셀렉트의 `_MENU_` 가 치환되지 않아
+       **옵션 없는 빈 상자**로 떴다. 색 문제로 보였지만 설정이 깨진 것이었다.
+
+     컨트롤에 폼 유틸(.bg-dark 등)을 붙이는 이유: 이 저장소의 다른 폼 요소가
+     모두 그 관례를 쓰는데 DT 가 만드는 컨트롤에는 없어서 혼자 달라 보였다. */
+  if (window.jQuery && jQuery.fn.dataTable) {
+    jQuery.extend(true, jQuery.fn.dataTable.defaults, {
+      /* 기본 길이 메뉴는 [10,25,50,100] 인데 알림 표는 pageLength: 20 을 쓴다.
+         현재 값과 일치하는 option 이 없으면 셀렉트는 **아무것도 선택되지 않은
+         빈 상자**로 뜬다 — 흰 상자로 보였던 것의 정체가 이것이다. 20 을 넣고,
+         "전체" 도 함께 준다(관제에서 한 화면에 다 보고 싶을 때가 있다). */
+      lengthMenu: [[10, 20, 50, 100, -1], ['10', '20', '50', '100', '전체']],
+      language: {
+        lengthMenu: '_MENU_ 개씩 보기',
+        search: '검색:',
+        searchPlaceholder: '표 안에서 찾기',
+        info: '_TOTAL_건 중 _START_–_END_',
+        infoEmpty: '표시할 항목 없음',
+        infoFiltered: '(전체 _MAX_건에서 필터)',
+        zeroRecords: '조건에 맞는 항목이 없습니다',
+        emptyTable: '아직 데이터가 없습니다',
+        paginate: { first: '처음', last: '마지막', next: '다음', previous: '이전' },
+      },
+    });
+    jQuery(document).on('init.dt', function (e, settings) {
+      const api = new jQuery.fn.dataTable.Api(settings);
+      jQuery(api.table().container())
+        .find('select, input[type="search"], input[type="text"]')
+        .addClass('bg-dark text-white border-secondary');
+    });
+  }
+
   /* 세션 만료 감지: /api 응답이 401이면 로그인 페이지로 이동 */
   (function () {
     const _fetch = window.fetch;
@@ -96,7 +135,7 @@
     const item = document.createElement('div');
     item.className = 'api-error-toast';
     item.setAttribute('style',
-      'background:#2d1416;border:1px solid #f85149;border-left:3px solid #f85149;' +
+      'background:#2d1416;border:1px solid #f85149;' +
       'color:#e6edf3;border-radius:6px;padding:8px 10px;font-size:11.5px;' +
       'display:flex;gap:8px;align-items:flex-start;box-shadow:0 2px 8px rgba(0,0,0,.4)');
     item.innerHTML =
@@ -390,12 +429,48 @@
     return (d ? d + '일 ' : '') + (h ? h + '시간 ' : '') + m + '분';
   }
 
+  /* ── 패널 딥링크 ──
+     사이드바 링크는 href="#alerts" 를 갖고 있었지만 클릭 핸들러가 preventDefault
+     만 하고 주소를 바꾸지 않았다. 그래서 주소창은 언제나 첫 화면을 가리켰고,
+     동료에게 "MITRE 매트릭스 좀 봐" 하며 링크를 줄 수가 없었다. 뒤로가기도
+     대시보드를 통째로 벗어났다. 관제는 인수인계로 굴러가는 일이라 화면을
+     가리키는 주소가 있어야 한다. */
+  function panelExists(name) {
+    return !!(name && document.getElementById('panel-' + name));
+  }
+
+  function panelFromHash() {
+    const name = decodeURIComponent((location.hash || '').replace(/^#/, '')).trim();
+    return panelExists(name) ? name : null;
+  }
+
   document.querySelectorAll('.sidebar-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
-      showPanel(link.dataset.panel);
+      const name = link.dataset.panel;
+      showPanel(name);
+      // 같은 패널을 다시 누를 때 이력을 쌓지 않는다.
+      if (panelFromHash() !== name) history.pushState(null, '', '#' + name);
     });
   });
+
+  // 뒤로/앞으로, 그리고 주소창에 직접 입력한 해시.
+  window.addEventListener('popstate', () => showPanel(panelFromHash() || 'overview'));
+  window.addEventListener('hashchange', () => {
+    const name = panelFromHash();
+    if (name) showPanel(name);
+  });
+
+  // 첫 진입에 해시가 있으면 그 패널로 연다.
+  // **모든 스크립트가 로드된 뒤에** 열어야 한다. 이 파일은 01 번이라 패널 로더
+  // (loadMitreMatrix 등)를 정의하는 뒤 파일들보다 먼저 실행되고, 지금 showPanel 을
+  // 부르면 아직 없는 함수를 불러 ReferenceError 로 죽는다.
+  function openInitialPanel() {
+    const name = panelFromHash();
+    if (name && name !== 'overview') showPanel(name);
+  }
+  if (document.readyState === 'complete') openInitialPanel();
+  else window.addEventListener('load', openInitialPanel, { once: true });
 
   /* ─────────────────── 시간 표시 ─────────────────── */
   setInterval(() => {

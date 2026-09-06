@@ -3,13 +3,23 @@
 ══════════════════════════════════════════ */
 
 :root {
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card:      #1c2333;
-  --bg-hover:     #21262d;
-  --border:       #30363d;
-  --text-primary: #e6edf3;
-  --text-muted:   #aeb9c4;
+  /* 브라우저에게 이 페이지가 다크라고 알린다. 이걸 선언하지 않으면 크롬은 폼
+     위젯·기본 스크롤바·캐럿을 라이트 스킴으로 그린다. 배경색을 칠해도 위젯
+     자체가 밝게 렌더돼서, DataTables 의 "Show [ ] entries" 셀렉트가 흰 상자로
+     남아 값이 보이지 않았다. 색 규칙보다 먼저 와야 하는 선언이다. */
+  color-scheme: dark;
+
+  /* 중립 블랙 계열. 이전 팔레트(GitHub 다크: #0a0a0b/#17171a)는 파랑 성분이
+     섞여 있어 네이비로 읽혔다. 색상 성분을 빼고 명도만으로 층을 나눈다 —
+     관제 화면은 심각도 색(빨강·주황·노랑)이 정보를 나르므로, 배경이 색을
+     띠면 그 신호와 경쟁한다. */
+  --bg-primary:   #0a0a0b;
+  --bg-secondary: #121214;
+  --bg-card:      #17171a;
+  --bg-hover:     #202024;
+  --border:       #2c2c31;
+  --text-primary: #ececed;
+  --text-muted:   #b4b4b8;
   --cyan:         #39d0d8;
   --purple:       #9d79f2;
   --orange:       #f79000;
@@ -17,6 +27,13 @@
   --red:          #f85149;
   --yellow:       #e3b341;
   --blue:         #58a6ff;
+  /* 정의 없이 var(--info) 가 쓰이고 있었다 — 색이 안 잡혀 border 가 currentColor 로
+     떨어지면서 그 카드만 글자색 테두리가 됐다. 실제 쓰임에 맞춰 blue 계열로 정의. */
+  --info:         #58a6ff;
+  --warning:      #d29922;
+
+  /* 패널 안내 카드의 강조색. 각 패널이 --note-accent 만 바꿔 쓴다. */
+  --note-accent:  var(--cyan);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -32,7 +49,7 @@ html, body {
 
 /* ── Navbar ── */
 .navbar-soc {
-  background: #0d1117;
+  background: #0a0a0b;
   border-bottom: 1px solid var(--border);
   height: 56px;
   z-index: 1000;
@@ -155,6 +172,55 @@ html, body {
   border-radius: 8px;
   padding: 14px;
 }
+/* ── 패널 안내 카드 ──
+   패널마다 "이건 어떻게 보는 화면인가" 를 설명하는 카드가 있다. 이전에는 패널
+   30곳에 인라인 스타일로 복붙돼 있었고 강조색·배경 알파가 제각각이었다(14가지
+   변형, 그중 하나는 정의되지 않은 토큰). 하나의 컴포넌트로 모은다.
+
+   강조는 3px 좌측 띠가 아니라 **은은한 표면 + 1px 테두리 + 아이콘 색**으로 준다.
+   좌측 띠는 관제 화면에서 심각도(alert-item)가 이미 쓰는 언어라, 안내 카드까지
+   같은 신호를 쓰면 "급한 것" 과 "설명" 이 구분되지 않는다. */
+.panel-note {
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--note-accent) 7%, transparent),
+      color-mix(in srgb, var(--note-accent) 3%, transparent)),
+    var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--note-accent) 28%, var(--border));
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.panel-note .card-panel-header {
+  border: none;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  color: color-mix(in srgb, var(--note-accent) 72%, var(--text-primary));
+}
+.panel-note .card-panel-header > i:first-child { color: var(--note-accent); }
+.panel-note-body {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+/* 안내 카드 안에 한 번 더 들어가는 보조 설명. 같은 언어를 한 단계 약하게 쓴다. */
+.panel-subnote {
+  background: color-mix(in srgb, var(--note-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--note-accent) 22%, transparent);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+
+.panel-note--cyan   { --note-accent: var(--cyan); }
+.panel-note--blue   { --note-accent: var(--blue); }
+.panel-note--info   { --note-accent: var(--info); }
+.panel-note--red    { --note-accent: var(--red); }
+.panel-note--orange { --note-accent: var(--orange); }
+.panel-note--purple { --note-accent: var(--purple); }
+.panel-note--green  { --note-accent: var(--green); }
+.panel-note--warning{ --note-accent: var(--warning); }
+
 .card-panel-header {
   display: flex;
   align-items: center;
@@ -169,8 +235,10 @@ html, body {
 /* ── Stat Cards ── */
 .stat-card {
   background: var(--bg-card);
+  /* 강조는 좌측 3px 이 아니라 테두리 전체가 받는다(.border-danger 등 유틸이 색을
+     칠한다). KPI 타일이 한 줄에 예닐곱 개 늘어서는 화면이라, 좌측 띠만 색이면
+     숫자가 아니라 색 막대가 먼저 읽힌다. 우상단 광원(::after)이 강도를 더한다. */
   border: 1px solid var(--border);
-  border-left-width: 3px;
   border-radius: 8px;
   padding: 14px;
   text-align: center;
@@ -190,7 +258,7 @@ html, body {
 
 /* 최근 위협 알림 — 본문 글씨 밝게 */
 .recent-alerts-white .alert-item,
-.recent-alerts-white .alert-item .text-muted { color: #e6edf3 !important; }
+.recent-alerts-white .alert-item .text-muted { color: #ececed !important; }
 .recent-alerts-white .alert-item .text-muted { opacity: .75; }
 
 /* ── Alert List (overview) ── */
@@ -200,21 +268,37 @@ html, body {
   align-items: flex-start;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 5px;
+  border-radius: 6px;
   margin-bottom: 4px;
-  border-left: 3px solid;
-  background: rgba(255,255,255,.03);
-  transition: background .12s;
+  /* 심각도는 좌측 띠가 아니라 **선행 점 + 색조 표면 + 1px 테두리** 로 읽힌다.
+     3px 띠는 목록이 길어질수록 색 막대만 남아 오히려 스캔을 방해했다. 점은
+     시선이 먼저 닿는 자리에 있고, 표면 색조가 심각도를 배경째로 알려준다. */
+  --sev: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--sev) 26%, var(--border));
+  background: color-mix(in srgb, var(--sev) 6%, var(--bg-card));
+  transition: background .15s ease, border-color .15s ease;
 }
-.alert-item:hover { background: rgba(255,255,255,.06); }
-.alert-item.CRITICAL { border-color: var(--red); }
-.alert-item.HIGH     { border-color: var(--orange); }
-.alert-item.MEDIUM   { border-color: var(--yellow); }
-.alert-item.LOW      { border-color: var(--blue); }
+.alert-item::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px; height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--sev);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sev) 18%, transparent);
+}
+.alert-item:hover {
+  background: color-mix(in srgb, var(--sev) 12%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--sev) 45%, var(--border));
+}
+.alert-item.CRITICAL { --sev: var(--red); }
+.alert-item.HIGH     { --sev: var(--orange); }
+.alert-item.MEDIUM   { --sev: var(--yellow); }
+.alert-item.LOW      { --sev: var(--blue); }
 
 /* ── Tables ── */
 .table-dark { background: var(--bg-card); color: var(--text-primary); }
-.table-dark th { background: #1c2333; color: var(--text-muted); font-size: 11px; text-transform: uppercase; border-color: var(--border) !important; font-weight: 600; }
+.table-dark th { background: #17171a; color: var(--text-muted); font-size: 11px; text-transform: uppercase; border-color: var(--border) !important; font-weight: 600; }
 .table-dark td { border-color: var(--border) !important; vertical-align: middle; font-size: 12px; }
 .table-dark tbody tr:hover td { background: var(--bg-hover) !important; }
 .table-monospace td { font-family: 'Cascadia Code', 'Consolas', monospace; }
@@ -338,7 +422,7 @@ html, body {
 }
 .priority-item:last-child { border-bottom: 0; }
 .priority-item:hover { background: rgba(57, 208, 216, .06); }
-.priority-item .priority-title { color: #e6edf3; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.priority-item .priority-title { color: #ececed; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .priority-item .priority-meta { color: var(--muted); font-size: 10px; }
 .priority-item .priority-count { align-self: center; font-size: 12px; color: var(--orange); }
 
@@ -349,7 +433,7 @@ html, body {
 .soar-run-steps { display: flex; gap: 5px; align-items: stretch; overflow-x: auto; padding-top: 7px; }
 .soar-run-step { min-width: 100px; flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 5px; font-size: 9px; color: var(--muted); }
 .soar-run-step.completed { border-color: #3fb950; color: #b7e4c1; background: rgba(63,185,80,.09); }
-.soar-run-step.running { border-color: var(--cyan); color: #e6edf3; background: rgba(57,208,216,.13); box-shadow: 0 0 10px rgba(57,208,216,.2); }
+.soar-run-step.running { border-color: var(--cyan); color: #ececed; background: rgba(57,208,216,.13); box-shadow: 0 0 10px rgba(57,208,216,.2); }
 .soar-run-step.failed { border-color: var(--red); color: #ffb3ad; background: rgba(248,81,73,.1); }
 .soar-run-step.skipped { opacity: .55; border-style: dashed; }
 .soar-run-step .step-state { display:block; font-size:8px; text-transform:uppercase; margin-bottom:2px; }
@@ -421,7 +505,7 @@ html, body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
+::-webkit-scrollbar-thumb:hover { background: #54545c; }
 
 /* ── MITRE ATT&CK 매트릭스 ── */
 .mitre-matrix-wrapper {
@@ -467,11 +551,11 @@ html, body {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   font-size: 10.5px;
-  color: #e6edf3;
+  color: #ececed;
   cursor: default;
   transition: all .1s;
 }
-.mitre-technique .tech-name { color: #e6edf3; }
+.mitre-technique .tech-name { color: #ececed; }
 .mitre-technique:last-child { border-bottom: none; }
 .mitre-technique:hover { background: var(--bg-hover); color: var(--text-primary); }
 .mitre-technique .tech-id {
@@ -492,23 +576,25 @@ html, body {
   margin-left: 4px;
 }
 /* 탐지된 Technique 강조 */
+/* 히트 강도는 배경 농도와 글자 굵기로 읽는다. 매트릭스는 셀이 수백 개라
+   셀마다 좌측 띠를 두면 격자 전체가 붉은 줄무늬가 되고 정작 강한 셀이 묻힌다. */
 .mitre-technique.hit-low {
-  background: rgba(248,81,73,.1);
-  border-left: 3px solid #f85149;
+  background: rgba(248,81,73,.12);
+  border-color: rgba(248,81,73,.35);
   color: var(--text-primary);
 }
 .mitre-technique.hit-med {
-  background: rgba(248,81,73,.2);
-  border-left: 3px solid #f85149;
+  background: rgba(248,81,73,.24);
+  border-color: rgba(248,81,73,.55);
   color: #fff;
   font-weight: 600;
 }
 .mitre-technique.hit-high {
-  background: rgba(248,81,73,.35);
-  border-left: 3px solid #ff2d2d;
+  background: rgba(248,81,73,.42);
+  border-color: #ff2d2d;
   color: #fff;
   font-weight: 700;
-  animation: pulseRed 2s infinite;
+  box-shadow: 0 0 0 1px rgba(255,45,45,.45), 0 2px 10px rgba(255,45,45,.28);
 }
 @keyframes pulseRed {
   0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 45, 0); }
@@ -666,8 +752,8 @@ html, body {
    ════════════════════════════════════════════════════ */
 
 :root {
-  --bg-gradient: linear-gradient(180deg, #0a0f17 0%, #0d1117 100%);
-  --panel-gradient: linear-gradient(180deg, rgba(28,35,51,.95), rgba(22,27,34,.95));
+  --bg-gradient: linear-gradient(180deg, #000 0%, #0a0a0b 100%);
+  --panel-gradient: linear-gradient(180deg, rgba(26,26,30,.95), rgba(18,18,20,.95));
   --accent-glow: 0 0 24px rgba(57,208,216,.15);
   --shadow-soft: 0 2px 8px rgba(0,0,0,.35);
   --shadow-hover: 0 6px 20px rgba(0,0,0,.45), 0 0 0 1px rgba(57,208,216,.2);
@@ -685,8 +771,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(57,208,216,.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(57,208,216,.02) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
   background-size: 32px 32px;
   z-index: 0;
 }
@@ -695,7 +781,7 @@ body::before {
 
 /* Navbar 업그레이드 */
 .navbar-soc {
-  background: linear-gradient(90deg, #0a0f17 0%, #10161f 100%);
+  background: linear-gradient(90deg, #000000 0%, #141416 100%);
   border-bottom: 1px solid rgba(57,208,216,.15);
   box-shadow: 0 1px 0 rgba(57,208,216,.08), 0 4px 18px rgba(0,0,0,.3);
 }
@@ -801,6 +887,21 @@ body::before {
   background: radial-gradient(circle at top right, rgba(57,208,216,.12), transparent 70%);
   pointer-events: none;
 }
+/* Bootstrap 의 .border-* 는 테두리를 풀 채도로 칠한다. 좌측 3px 일 때는 가는 띠라
+   견뎠지만 사방을 두르니 KPI 타일이 전부 경고 상자처럼 읽혔다. 강조는 유지하되
+   테두리는 낮추고, 값 색과 우상단 광원이 강도를 맡는다. */
+.stat-card[class*="border-"] {
+  border-color: color-mix(in srgb, var(--kpi-accent, var(--border)) 42%, var(--border)) !important;
+}
+.stat-card.border-danger  { --kpi-accent: var(--red); }
+.stat-card.border-warning { --kpi-accent: var(--yellow); }
+.stat-card.border-orange  { --kpi-accent: var(--orange); }
+.stat-card.border-purple  { --kpi-accent: var(--purple); }
+.stat-card.border-success { --kpi-accent: var(--green); }
+.stat-card.border-info    { --kpi-accent: var(--info); }
+.stat-card.border-primary { --kpi-accent: var(--blue); }
+.stat-card.border-cyan    { --kpi-accent: var(--cyan); }
+
 .stat-card.border-danger::after  { background: radial-gradient(circle at top right, rgba(248,81,73,.15), transparent 70%); }
 .stat-card.border-warning::after { background: radial-gradient(circle at top right, rgba(227,179,65,.15), transparent 70%); }
 .stat-card.border-orange::after  { background: radial-gradient(circle at top right, rgba(247,144,0,.15), transparent 70%); }
@@ -889,7 +990,7 @@ body::before {
   letter-spacing: .02em;
 }
 .myinfo-hero-sub {
-  color: #e6edf3;
+  color: #ececed;
   font-size: 12px;
   opacity: .9;
 }
@@ -908,21 +1009,21 @@ body::before {
   min-height: 86px;
 }
 .myinfo-mini-label {
-  color: #8b949e;
+  color: #94949b;
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 .myinfo-mini-val {
-  color: #e6edf3;
+  color: #ececed;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.2;
   word-break: break-all;
 }
 .myinfo-mini-sub {
-  color: #8b949e;
+  color: #94949b;
   font-size: 11px;
   margin-top: 2px;
 }
@@ -946,19 +1047,19 @@ body::before {
 }
 .kv-row:hover { background: rgba(57,208,216,.06); }
 .kv-key {
-  color: #8b949e;
+  color: #94949b;
   font-size: 11.5px;
   display: flex; align-items: center; gap: 8px;
 }
 .kv-key i { color: var(--cyan); width: 14px; text-align: center; }
 .kv-val {
-  color: #e6edf3;
+  color: #ececed;
   font-size: 12.5px;
   word-break: break-all;
 }
 .kv-placeholder {
   text-align: center;
-  color: #8b949e;
+  color: #94949b;
   padding: 20px;
   font-size: 12px;
 }
@@ -968,7 +1069,7 @@ body::before {
 .res-item { display: flex; flex-direction: column; gap: 4px; }
 .res-head {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 12.5px; color: #e6edf3;
+  font-size: 12.5px; color: #ececed;
 }
 .res-bar {
   height: 8px;
@@ -980,7 +1081,9 @@ body::before {
 .res-fill {
   height: 100%;
   border-radius: 4px;
-  transition: width .5s ease;
+  /* transition 을 걸어 뒀었지만 01-core.js 가 매 렌더마다 이 노드를 새로 만든다.
+     새 노드에는 전이할 이전 값이 없으므로 애니메이션은 한 번도 동작한 적이 없고,
+     width 전이라 레이아웃 비용만 냈다. */
   box-shadow: 0 0 8px rgba(57,208,216,.3);
 }
 .res-fill.bar-low  { background: linear-gradient(90deg, #3fb950, #39d0d8); }
@@ -990,7 +1093,7 @@ body::before {
   box-shadow: 0 0 12px rgba(248,81,73,.5);
 }
 .res-foot {
-  font-size: 10.5px; color: #8b949e;
+  font-size: 10.5px; color: #94949b;
   text-align: right;
 }
 
@@ -1006,7 +1109,7 @@ body::before {
   border-radius: 8px;
   padding: 10px 12px;
   transition: all .15s;
-  border-left: 3px solid #484f58;
+  border-left: 3px solid #54545c;
 }
 .iface-card:hover {
   border-color: rgba(57,208,216,.25);
@@ -1014,7 +1117,7 @@ body::before {
   box-shadow: var(--shadow-soft);
 }
 .iface-card.up   { border-left-color: #3fb950; }
-.iface-card.down { border-left-color: #484f58; opacity: .7; }
+.iface-card.down { border-left-color: #54545c; opacity: .7; }
 .iface-head {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 8px;
@@ -1023,7 +1126,7 @@ body::before {
 }
 .iface-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #484f58;
+  background: #54545c;
 }
 .iface-card.up .iface-dot {
   background: #3fb950;
@@ -1032,7 +1135,7 @@ body::before {
 }
 .iface-name {
   flex: 1;
-  color: #e6edf3;
+  color: #ececed;
   font-size: 12.5px;
   font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1045,7 +1148,7 @@ body::before {
   letter-spacing: .05em;
 }
 .iface-card.up   .iface-status { background: rgba(63,185,80,.18);  color: #3fb950; }
-.iface-card.down .iface-status { background: rgba(139,148,158,.2); color: #8b949e; }
+.iface-card.down .iface-status { background: rgba(139,148,158,.2); color: #94949b; }
 .iface-row {
   display: grid;
   grid-template-columns: 44px 1fr;
@@ -1053,9 +1156,9 @@ body::before {
   padding: 3px 0;
   font-size: 11.5px;
 }
-.iface-k { color: #8b949e; font-size: 10.5px; }
+.iface-k { color: #94949b; font-size: 10.5px; }
 .iface-v {
-  color: #e6edf3;
+  color: #ececed;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -1389,32 +1492,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .pb-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px; }
 .pb-step {
   display: inline-flex; flex-direction: column; min-width: 96px; max-width: 160px;
-  border: 1px solid var(--border); border-left-width: 3px; border-radius: 5px;
+  border: 1px solid var(--border); border-radius: 5px;
   overflow: hidden; background: rgba(255,255,255,.02);
 }
 .pb-step-kind {
-  font-size: 8.5px; font-weight: 700; color: #0d1117;
+  font-size: 8.5px; font-weight: 700; color: #0a0a0b;
   padding: 1px 5px; letter-spacing: .5px;
 }
 .pb-step-label {
-  font-size: 10.5px; color: #cdd9e5; padding: 4px 6px; line-height: 1.35;
+  font-size: 10.5px; color: #d4d4d6; padding: 4px 6px; line-height: 1.35;
 }
 .pb-arrow { align-self: center; color: #6e7681; font-weight: 700; padding: 0 1px; }
 
 /* ══════════════ SIEM — Splunk 스타일 검색 UI ══════════════ */
 .spl-searchbar {
   display: flex; align-items: center; gap: 8px;
-  background: #0d1117; border: 1px solid #2f4562; border-radius: 6px;
+  background: #0a0a0b; border: 1px solid #33333a; border-radius: 6px;
   padding: 8px 12px; margin-bottom: 8px;
 }
 .spl-prompt { color: #39d0d8; font-family: monospace; font-weight: 700; }
 .spl-search-input {
   flex: 1; background: transparent; border: none; outline: none;
-  color: #e6edf3; font-family: monospace; font-size: 13px;
+  color: #ececed; font-family: monospace; font-size: 13px;
 }
 .spl-search-input::placeholder { color: #6e7681; }
 .spl-timerange {
-  background: #161b22; color: #cdd9e5; border: 1px solid #2f4562;
+  background: #121214; color: #d4d4d6; border: 1px solid #33333a;
   border-radius: 5px; font-size: 12px; padding: 4px 8px;
 }
 .spl-search-btn {
@@ -1424,66 +1527,72 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .spl-search-btn:hover { background: #2ea043; }
 .spl-resultbar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 12px; color: #aeb9c4; padding: 4px 4px 8px; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: #b4b4b8; padding: 4px 4px 8px; border-bottom: 1px solid var(--border);
 }
-.spl-resultbar b { color: #e6edf3; }
+.spl-resultbar b { color: #ececed; }
 .spl-sep { color: #3d444d; }
 
 .spl-timeline-card {
-  background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+  background: #0a0a0b; border: 1px solid var(--border); border-radius: 6px;
   padding: 8px 10px; margin-top: 10px;
 }
-.spl-timeline-head { font-size: 11px; color: #cdd9e5; margin-bottom: 2px; }
+.spl-timeline-head { font-size: 11px; color: #d4d4d6; margin-bottom: 2px; }
 
 /* 필드 사이드바 */
 .spl-fields, .spl-events {
-  background: #0d1117; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  background: #0a0a0b; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
 }
 .spl-fields-head, .spl-events-head {
-  display: flex; align-items: center; background: #161b22; color: #8b949e;
+  display: flex; align-items: center; background: #121214; color: #94949b;
   font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 7px 10px;
   border-bottom: 1px solid var(--border);
 }
 .spl-field { border-bottom: 1px solid var(--border); padding: 6px 10px; }
 .spl-field-name { font-size: 11px; color: #58a6ff; font-weight: 600; margin-bottom: 3px; }
 .spl-field-distinct {
-  background: #21262d; color: #8b949e; border-radius: 8px; font-size: 9px;
+  background: #202024; color: #94949b; border-radius: 8px; font-size: 9px;
   padding: 0 6px; margin-left: 4px;
 }
 .spl-field-val {
   display: flex; justify-content: space-between; font-size: 11px;
   padding: 2px 4px; cursor: pointer; border-radius: 3px;
 }
-.spl-field-val:hover { background: #161b22; }
-.spl-field-v { color: #cdd9e5; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.spl-field-val:hover { background: #121214; }
+.spl-field-v { color: #d4d4d6; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 .spl-field-c { color: #6e7681; }
 
 /* raw 이벤트 스트림 */
 .spl-events-body { max-height: 620px; overflow-y: auto; }
+/* 행마다 초록 띠가 붙어 있었는데, 정작 의심 이벤트(.spl-event-susp)는 옅은
+   배경뿐이라 정상 행이 더 눈에 띄었다. 기본은 조용히, 의심 행만 드러낸다. */
 .spl-event {
-  border-left: 3px solid #3fb950; border-bottom: 1px solid #161b22;
-  padding: 6px 10px; cursor: pointer;
+  border-bottom: 1px solid #121214;
+  padding: 6px 10px 6px 12px; cursor: pointer;
+  position: relative;
 }
-.spl-event:hover { background: #161b22; }
-.spl-event-susp { background: rgba(248,81,73,.05); }
+.spl-event:hover { background: #121214; }
+.spl-event-susp {
+  background: rgba(248,81,73,.07);
+  box-shadow: inset 2px 0 0 var(--red);
+}
 .spl-event-top { display: flex; align-items: baseline; gap: 10px; }
 .spl-ts { color: #7ee787; font-family: monospace; font-size: 11px; white-space: nowrap; }
 .spl-raw {
-  flex: 1; color: #cdd9e5; font-family: monospace; font-size: 12px;
+  flex: 1; color: #d4d4d6; font-family: monospace; font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.spl-sev { color: #0d1117; font-size: 8.5px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.spl-sev { color: #0a0a0b; font-size: 8.5px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
 .spl-event-fields { display: none; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding-left: 4px; }
 .spl-event.open .spl-event-fields { display: flex; }
 .spl-event.open .spl-raw { white-space: normal; }
 .spl-fv {
-  font-family: monospace; font-size: 10.5px; color: #8b949e;
-  background: #161b22; border: 1px solid var(--border); border-radius: 3px;
+  font-family: monospace; font-size: 10.5px; color: #94949b;
+  background: #121214; border: 1px solid var(--border); border-radius: 3px;
   padding: 1px 6px; cursor: pointer;
 }
 .spl-fv:hover { border-color: #58a6ff; }
 .spl-fk { color: #58a6ff; }
-.spl-fvv { color: #e6edf3; }
+.spl-fvv { color: #ececed; }
 
 /* 탐지 커버리지 자가 진단 (docs/AUDIT.md 3단계 제안 A) */
 .cov-legend { display:inline-block; width:16px; height:10px; vertical-align:middle;
@@ -1497,9 +1606,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .mitre-technique.cov-gap       { background:rgba(248,81,73,.10)  !important; border-color:rgba(248,81,73,.45) !important;
                                  border-style:dashed !important; opacity:.75; }
 .cov-gap-row { display:flex; gap:8px; padding:3px 6px; border-bottom:1px solid var(--border); }
-.cov-gap-row .tac  { min-width:92px; color:#8b949e; }
+.cov-gap-row .tac  { min-width:92px; color:#94949b; }
 .cov-gap-row .tid  { min-width:64px; font-family:monospace; color:#f85149; }
-.cov-gap-row .tko  { color:#e6edf3; }
+.cov-gap-row .tko  { color:#ececed; }
 
 /* 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) */
 .bd-gate { display:inline-block; padding:1px 6px; margin:1px 2px 1px 0; border-radius:3px;
@@ -1511,7 +1620,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 
 /* 자기 관측성 (docs/AUDIT.md 3단계 제안 B) */
 .tel-probe { display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; border-radius:4px;
-             border:1px solid var(--border); font-size:11px; color:#e6edf3; }
+             border:1px solid var(--border); font-size:11px; color:#ececed; }
 .tel-probe.warn { border-color:#d29922; background:rgba(210,153,34,.12); color:#f0c674; }
 .tel-probe .v { font-family:monospace; font-weight:700; margin-left:4px; }
 .tel-slow { color:#d29922; font-weight:700; }
@@ -1522,8 +1631,151 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 
 /* 라벨링 큐 */
 .lab-group { border:1px solid var(--border); border-radius:6px; padding:10px; margin-bottom:8px; }
-.lab-group .meta { color:#8b949e; font-size:11px; }
-.lab-group .desc { color:#e6edf3; font-family:monospace; font-size:12px; word-break:break-all; }
+.lab-group .meta { color:#94949b; font-size:11px; }
+.lab-group .desc { color:#ececed; font-family:monospace; font-size:12px; word-break:break-all; }
 .lab-cover { font-size:18px; font-weight:700; color:#d29922; }
 .lab-actions { display:flex; gap:6px; align-items:center; margin-top:6px; flex-wrap:wrap; }
 .lab-actions input { flex:1; min-width:220px; }
+
+/* ══════════════════════════════════════════
+   브라우저가 그리는 표면 — 여기까지 테마를 입혀야 화면이 '조립' 이 아니라
+   '설계' 로 읽힌다. 선택 영역·캐럿·파이어폭스 스크롤바는 기본값이 남아 있었다.
+══════════════════════════════════════════ */
+::selection {
+  background: color-mix(in srgb, var(--cyan) 32%, transparent);
+  color: #fff;
+}
+html { scrollbar-color: var(--border) var(--bg-primary); scrollbar-width: thin; }
+input, textarea, select, [contenteditable] { caret-color: var(--cyan); }
+
+/* 관제 화면은 하루 종일 켜 둔다. 무한 반복 애니메이션(펄스·라이브 점)은
+   주의를 계속 끌어당기므로, 모션을 줄이겠다고 한 사용자에게는 전부 멈춘다.
+   상태는 색과 굵기로 이미 읽히므로 정보가 사라지지는 않는다. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════
+   폼 컨트롤 — 부트스트랩 기본은 라이트 테마다.
+   `.form-control`/`.form-select` 에 아무 규칙도 없어서, 템플릿에서 일일이
+   `.bg-dark .text-white .border-secondary` 유틸을 붙인 것만 어둡고 나머지는
+   흰 상자로 떴다. 폼은 관제에서 필터를 거는 손잡이라 전역으로 한 번에 잡는다.
+══════════════════════════════════════════ */
+/* !important 인 이유: 이 대시보드는 이미 폼 요소에 부트스트랩 유틸(.bg-dark
+   .text-white .border-secondary)을 붙여 쓰고 있고 그 유틸이 !important 다.
+   같은 층위로 올리지 않으면 유틸이 붙은 것과 안 붙은 것(DataTables 가 스스로
+   만드는 컨트롤)이 서로 다른 색으로 뜬다 — 실제로 "Show [ ] entries" 셀렉트만
+   흰 상자로 남아 값이 보이지 않았다. 색은 여기 한 곳에서 정한다. */
+.form-control,
+.form-select,
+.input-group-text {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border);
+  color: var(--text-primary) !important;
+}
+.form-control::placeholder { color: var(--text-muted); opacity: 1; }
+.form-control:hover,
+.form-select:hover { border-color: #54545c; }
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.form-control:disabled,
+.form-select:disabled,
+.form-control[readonly] {
+  background-color: var(--bg-primary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+/* 부트스트랩의 캐럿 SVG 는 어두운 색이라 이 배경에서 안 보인다 — 밝게 다시 그린다. */
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23aeb9c4' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+.form-select option { background: var(--bg-secondary); color: var(--text-primary); }
+
+.form-check-input {
+  background-color: var(--bg-secondary);
+  border-color: #54545c;
+}
+.form-check-input:checked {
+  background-color: var(--cyan);
+  border-color: var(--cyan);
+}
+.form-check-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.form-check-input:checked[type="checkbox"] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23001417' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+.form-check-input:checked[type="radio"] {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23001417'/%3e%3c/svg%3e");
+}
+.form-switch .form-check-input {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23aeb9c4'/%3e%3c/svg%3e");
+}
+.form-switch .form-check-input:checked {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23001417'/%3e%3c/svg%3e");
+}
+.form-label, .form-check-label, .col-form-label { color: var(--text-muted); }
+
+/* DataTables 의 부트스트랩5 통합은 위 클래스로 렌더되므로 함께 잡힌다.
+   남는 것은 페이지네이션뿐. */
+.dataTables_wrapper .page-link {
+  background: var(--bg-secondary); border-color: var(--border); color: var(--text-muted);
+}
+.dataTables_wrapper .page-item.active .page-link {
+  background: var(--cyan); border-color: var(--cyan); color: #001417;
+}
+.dataTables_wrapper .page-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.dataTables_wrapper .page-item.disabled .page-link { background: var(--bg-primary); color: #54545c; }
+
+/* DataTables 가 스스로 만들어 넣는 컨트롤. 벤더 CSS 는 폭·정렬만 정하고 색은
+   손대지 않으므로 여기서 나머지(여백·모서리·포커스)를 맞춘다.
+   ※ 한때 이 셀렉트가 빈 흰 상자로 떴는데 그건 색 문제가 아니라 설정 문제였다
+     (01-core.js 의 lengthMenu/language 주석 참조). 색만 고치려 들면 못 고친다. */
+.dataTables_wrapper select, .dataTables_wrapper input,
+.dt-container select, .dt-container input,
+div.dataTables_wrapper div.dataTables_length select,
+div.dataTables_wrapper div.dataTables_filter input {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+.dataTables_wrapper select:focus, .dataTables_wrapper input:focus,
+.dt-container select:focus, .dt-container input:focus {
+  outline: none;
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.dataTables_wrapper label, .dt-container label { color: var(--text-muted); }
+
+/* ══════════════════════════════════════════
+   한국어 줄바꿈 — 브라우저 기본값(break-word)은 한글을 **단어 중간에서** 끊는다.
+   좁은 폭에서 "AI 관제 센터" 가 "AI 관 / 제 센 / 터" 로 갈라졌다. keep-all 은
+   어절 단위로 끊어 준다. 다만 IP·URL·해시처럼 띄어쓰기 없는 긴 문자열은
+   keep-all 이면 넘쳐 나가므로, 그런 값이 들어가는 곳은 anywhere 로 되돌린다.
+══════════════════════════════════════════ */
+body,
+.panel-title, .card-panel-header, .panel-note-body,
+.stat-label, .sidebar-link, .btn, .badge, label, th {
+  word-break: keep-all;
+}
+/* 제목 줄이 좁아지면 뱃지·컨트롤이 다음 줄로 내려가게 한다(잘리지 않도록). */
+.panel-title { flex-wrap: wrap; row-gap: 6px; }
+
+/* IP·도메인·해시·명령줄이 들어가는 곳: 어디서든 끊어서라도 넘치지 않게. */
+td, .alert-item, .stream-item, .desc, code, pre, .mono, .table-monospace td {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
