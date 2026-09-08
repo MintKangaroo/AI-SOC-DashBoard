@@ -106,6 +106,7 @@ flowchart LR
 - **Sysmon** — 프로세스 생성·네트워크·자격증명 접근 이벤트 (`sysmon_parser`)
 - **네트워크 관제** — 활성 연결·리스닝 포트·대역폭, 서비스 헬스체크 (`net_monitor`)
 - **Syslog 수신** — 원격 서버(자동매매 KR/USA)의 접속 시도를 UDP/TCP로 실시간 수집·분류 (`syslog_receiver`)
+- **IDS 연동** — Snort fast-alert · Suricata `eve.json`(alert 만 알림, 분류·앱프로토콜·HTTP/DNS 맥락 동반). IDS 는 근거만 주고 차단은 SOAR 게이트가 결정 (`snort_monitor` · `suricata_monitor`)
 
 ### ② 탐지 · Detection Engineering
 - **위협 탐지** — DDoS · 포트스캔 · 악성코드 C2, 신뢰도 스코어링 (`threat_detector`)
