@@ -171,6 +171,8 @@ packet_analyzer.get_stats() → ml_analyst.feed_traffic() (3초 주기)
    `data/models/iso_forest_real.json`. 기동 시 실모델이 있으면 우선 로드. 진입점은
    `POST /api/ml/retrain`(패널 버튼) 또는 `scripts/retrain_ml.py`(파일만 갱신 → 재기동).
    오염률은 측정값이 아니라 **가정**(0.05)이며 메타데이터에 그렇게 적힌다.
+   **자동 재학습**(`ML_AUTO_RETRAIN`, 기본 True): 10분마다 확인해 실피처 3,000건이
+   차면 한 번, 그 뒤 24시간마다 갱신(`_auto_retrain_loop`, 수동과 겹치면 건너뜀).
 ※ RF·LSTM·Q-Learning 은 실데이터 미학습·출력 미사용으로 experimental/ 에 격리.
    격리 사유와 복귀 조건은 experimental/README.md 참조.
 ※ 성능 수치는 scripts/eval_ml.py 가 출력한 값으로만 주장한다. 현재는 실트래픽

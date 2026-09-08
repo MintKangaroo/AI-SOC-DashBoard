@@ -150,6 +150,7 @@ pps). 3,000건이 차면 아래 경로로 IF 를 실트래픽으로 다시 학�
 |---|---|
 | ML 패널 "실트래픽으로 재학습" / `POST /api/ml/retrain` | 떠 있는 서버의 모델을 즉시 교체, 감사 로그 기록 |
 | `python scripts/retrain_ml.py` | 파일만 갱신 — 서버는 재기동해야 새 모델을 든다(기동 시 실모델 우선) |
+| **자동**(`ML_AUTO_RETRAIN=True`, 기본) | 10분마다 확인 → 실피처 3,000건이 차면 한 번 학습, 그 뒤 `ML_AUTO_RETRAIN_INTERVAL_HOURS`(24) 마다 최신 구간으로 갱신. 수동 재학습과 겹치면 건너뛴다 |
 
 `MLAnalyst.retrain_from_store()` 가 지키는 것:
 - **demo 피처는 세지도 학습하지도 않는다.** 합성 5,000건이 있어도 실측 200건이면 거부.

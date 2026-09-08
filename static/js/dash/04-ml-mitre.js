@@ -127,8 +127,9 @@
     const box = document.getElementById('ml-real-model');
     if (!box) return;
     const m = s.real_model, r = s.retrain || {};
-    const ready = r.ready ? '<span class="badge bg-success">재학습 가능</span>'
-                          : `<span class="badge badge-neutral">피처 ${Number(r.have || 0).toLocaleString()} / ${Number(r.min_samples || 0).toLocaleString()}</span>`;
+    const auto = r.auto ? ` <span class="badge badge-neutral" title="실피처 ${Number(r.min_samples||0).toLocaleString()}건이 차면 자동으로 한 번, 그 뒤 ${Number(r.auto_interval_hours||24)}시간마다 갱신">자동 ${Number(r.auto_interval_hours||24)}h</span>` : '';
+    const ready = (r.ready ? '<span class="badge bg-success">재학습 가능</span>'
+                          : `<span class="badge badge-neutral">피처 ${Number(r.have || 0).toLocaleString()} / ${Number(r.min_samples || 0).toLocaleString()}</span>`) + auto;
     if (!m) {
       box.innerHTML = `현재 <b class="text-warning">합성 부트스트랩</b> 모델 — 실트래픽 모델 없음. ${ready}`;
       return;

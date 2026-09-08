@@ -95,7 +95,7 @@ def build_services(app, socketio):
     sysmon_parser   = SysmonParser(socketio, app.config, mitre_tracker=mitre_tracker)
     hash_checker    = HashChecker(app.config.get("MALICIOUS_HASH_DB"))
     virustotal      = VirusTotalClient(app.config)
-    ml_analyst      = MLAnalyst(socketio, demo=app.config.get("DEMO_MODE", True))
+    ml_analyst      = MLAnalyst(socketio, demo=app.config.get("DEMO_MODE", True), config=app.config)
     ai_analyst      = AIAnalyst(socketio, ml_analyst=ml_analyst, config=app.config)
     threat_intel    = ThreatIntel(socketio, packet_analyzer=packet_analyzer,
                                   mitre_tracker=mitre_tracker)

@@ -116,3 +116,30 @@ def test_eval_script_reports_model_state(tmp_path, monkeypatch):
                                                          "distribution_shift_suspected": True}), encoding="utf-8")
     ms = ev.model_state()
     assert ms["trained_on"] == "real" and "분포 이동" in ms["detail"] and "3,200" in ms["detail"]
+
+
+def test_auto_retrain_due_logic(env):
+    from datetime import datetime, timedelta
+    a, store = env
+    assert a.auto_retrain_due() is None                      # 피처 없음
+    _fill(store, 120)
+    assert a.auto_retrain_due() is None                      # MIN 미만
+    a.store.count = lambda origin=None: 5000                 # MIN 이상으로 가장
+    assert a.auto_retrain_due() == "first_real_model"        # 실모델 없음 → 첫 학습
+    a.stats["real_model"] = {"trained_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    assert a.auto_retrain_due() is None                      # 방금 학습 → 대기
+    old = (datetime.now() - timedelta(hours=25)).strftime("%Y-%m-%d %H:%M:%S")
+    a.stats["real_model"] = {"trained_at": old}
+    assert a.auto_retrain_due() == "refresh"                 # 24h 경과 → 갱신
+
+
+def test_auto_retrain_config_is_read(tmp_path):
+    s = MLFeatureStore(db_path=str(tmp_path / "f.db"))
+    try:
+        a = ma.MLAnalyst(FakeSocketIO(), feature_store=s, config={
+            "ML_AUTO_RETRAIN": "False", "ML_AUTO_RETRAIN_CHECK_MINUTES": "1",
+            "ML_AUTO_RETRAIN_INTERVAL_HOURS": "6"})
+        assert a.auto_retrain is False and a.auto_check_seconds == 60 and a.auto_interval_seconds == 6 * 3600
+        assert a.get_stats()["retrain"]["auto"] is False
+    finally:
+        s.close()

@@ -88,11 +88,16 @@ class MLAnalyst:
 
     WINDOW = 30   # 피처 슬라이딩 윈도우 길이
 
-    def __init__(self, socketio, feature_store=None, demo=False):
+    def __init__(self, socketio, feature_store=None, demo=False, config=None):
         self.socketio = socketio
         self.running = False
         self.demo = demo
         self._lock = threading.Lock()
+        cfg = config or {}
+        self.auto_retrain = str(cfg.get("ML_AUTO_RETRAIN", "True")) == "True"
+        self.auto_check_seconds = max(30.0, float(cfg.get("ML_AUTO_RETRAIN_CHECK_MINUTES", 10)) * 60)
+        self.auto_interval_seconds = max(3600.0, float(cfg.get("ML_AUTO_RETRAIN_INTERVAL_HOURS", 24)) * 3600)
+        self._retrain_lock = threading.Lock()
 
         # 트래픽 피처 영속화 — 실트래픽 재학습·평가의 전제 조건.
         # 이게 없으면 모델 입력 공간에 데이터가 한 건도 남지 않는다.
@@ -177,7 +182,9 @@ class MLAnalyst:
         real = int((out["feature_store"] or {}).get("real") or 0)
         out["retrain"] = {"min_samples": MIN_REAL_SAMPLES, "have": real,
                           "ready": real >= MIN_REAL_SAMPLES,
-                          "contamination": REAL_CONTAMINATION}
+                          "contamination": REAL_CONTAMINATION,
+                          "auto": self.auto_retrain,
+                          "auto_interval_hours": self.auto_interval_seconds / 3600}
         return out
 
     # ──────────────────── 실트래픽 재학습 ────────────────────
@@ -312,6 +319,54 @@ class MLAnalyst:
             return
 
         threading.Thread(target=self._analysis_loop, daemon=True).start()
+        if self.auto_retrain:
+            threading.Thread(target=self._auto_retrain_loop, daemon=True,
+                             name="ml-auto-retrain").start()
+
+    # ──────────────────── 자동 재학습 ────────────────────
+
+    def auto_retrain_due(self, now=None):
+        """지금 자동 재학습을 해야 하는가. (해야 하면 이유, 아니면 None)
+
+        - 실모델이 없고 실피처가 MIN 이상 → 첫 학습
+        - 실모델이 있고 학습한 지 INTERVAL 이 지났고 실피처가 MIN 이상 → 갱신
+        """
+        try:
+            have = int(self.store.count("real"))
+        except Exception:
+            return None
+        if have < MIN_REAL_SAMPLES:
+            return None
+        meta = self.stats.get("real_model")
+        if not meta:
+            return "first_real_model"
+        try:
+            trained_at = datetime.strptime(meta.get("trained_at", ""), "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return "refresh"
+        age = ((now or datetime.now()) - trained_at).total_seconds()
+        return "refresh" if age >= self.auto_interval_seconds else None
+
+    def _auto_retrain_loop(self):
+        while self.running:
+            time.sleep(self.auto_check_seconds)
+            if not self.running:
+                break
+            try:
+                why = self.auto_retrain_due()
+                if not why:
+                    continue
+                if not self._retrain_lock.acquire(blocking=False):   # 수동 재학습과 겹치면 건너뜀
+                    continue
+                try:
+                    _log.info(f"[MLAnalyst] 자동 재학습 시작 ({why})")
+                    r = self.retrain_from_store()
+                    if not r.get("ok"):
+                        _log.warning(f"[MLAnalyst] 자동 재학습 안 함: {r.get('detail') or r.get('reason')}")
+                finally:
+                    self._retrain_lock.release()
+            except Exception as e:
+                _log.error(f"[MLAnalyst] 자동 재학습 루프 오류: {e}")
 
     def _train_isolation_forest(self):
         # 실트래픽으로 학습한 모델이 있으면 그것이 우선이다.

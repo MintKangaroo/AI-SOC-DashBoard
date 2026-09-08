@@ -174,6 +174,10 @@ class Config:
 
     # ML 트래픽 피처 보존 — 재학습 소스라 알림보다 길게 잡는다
     ML_FEATURE_RETENTION_DAYS = int(os.getenv("ML_FEATURE_RETENTION_DAYS", 180))
+    # IF 자동 재학습 — 실피처가 MIN_REAL_SAMPLES 를 넘으면 한 번, 그 뒤 INTERVAL 마다
+    ML_AUTO_RETRAIN = os.getenv("ML_AUTO_RETRAIN", "True")
+    ML_AUTO_RETRAIN_CHECK_MINUTES = float(os.getenv("ML_AUTO_RETRAIN_CHECK_MINUTES", 10))
+    ML_AUTO_RETRAIN_INTERVAL_HOURS = float(os.getenv("ML_AUTO_RETRAIN_INTERVAL_HOURS", 24))
 
     # 파일 로그·리포트·생성 플레이북 보존 (DB 보존과 분리)
     DATA_RETENTION_DAYS = int(os.getenv("DATA_RETENTION_DAYS", 30))
