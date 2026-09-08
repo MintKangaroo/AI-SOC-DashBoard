@@ -26,6 +26,8 @@
 
   function showReport(rep) {
     if (!rep) return;
+    document.querySelectorAll('#report-history .report-item').forEach(el =>
+      el.classList.toggle('active', el.dataset.rid === String(rep.id)));
     const t = document.getElementById('report-title');
     if (t) t.textContent = `리포트 ${rep.id}`;
     const g = document.getElementById('report-generated');
@@ -53,7 +55,7 @@
       const hs = d.history || [];
       hist.innerHTML = hs.length
         ? hs.map(h => `
-          <div class="p-2 border-bottom border-secondary small" style="cursor:pointer" ${act('openReport', [h.id])}>
+          <div class="p-2 border-bottom border-secondary small report-item" role="button" tabindex="0" data-rid="${escapeHtml(String(h.id))}" ${act('openReport', [h.id])}>
             <div style="color:var(--text-primary);font-weight:600"><i class="fa fa-file-lines me-1 text-cyan"></i>${escapeHtml(h.generated)}</div>
             <div class="text-muted" style="font-size:var(--fs-label)">
               알림 ${h.highlights?.alerts_total ?? 0} · 정탐 ${h.highlights?.true_positives ?? 0} · 오탐 ${h.highlights?.false_positives ?? 0}
@@ -65,7 +67,11 @@
   }
 
   function openReport(rid) {
-    fetch('/api/report/' + rid).then(r => r.json()).then(showReport).catch(() => {});
+    fetch('/api/report/' + rid).then(r => r.json()).then(rep => {
+      showReport(rep);
+      // 좁은 화면에서는 본문이 화면 밖에 있다 — 선택했으면 거기로 데려간다
+      if (window.innerWidth < 992) document.getElementById('report-view')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(() => {});
   }
 
   function generateReport() {

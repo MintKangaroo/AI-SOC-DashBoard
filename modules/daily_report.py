@@ -69,9 +69,14 @@ class DailyReport:
         self.running = False
 
     def _schedule_loop(self):
-        # 시작 직후 최초 리포트 1회 (데모/미리보기)
+        # 시작 직후 최초 리포트 1회 — **오늘 리포트가 하나도 없을 때만**.
+        # 예전엔 메모리가 비어 있으면 무조건 만들어서 재기동할 때마다 '리포트' 가
+        # 한 장씩 늘었다(하루 4번 재기동 → 4장, 실측). 리포트는 하루 단위 브리핑이지
+        # 프로세스 생명주기 기록이 아니다.
         time.sleep(8)
-        if self.running and not self.reports:
+        today = datetime.now().strftime("%Y-%m-%d")
+        has_today = any(str(r.get("generated", "")).startswith(today) for r in self.reports)
+        if self.running and not has_today:
             try:
                 self.generate(trigger="startup")
             except Exception as e:
