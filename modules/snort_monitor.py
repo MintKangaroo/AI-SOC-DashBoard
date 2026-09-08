@@ -18,7 +18,8 @@ _log = get_logger(__name__)
 _FAST_ALERT = re.compile(
     r"^\s*(?P<timestamp>\d{2}/\d{2}-\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+"
     r"\[\*\*\]\s+\[(?P<gid>\d+):(?P<sid>\d+):(?P<rev>\d+)\]\s+"
-    r"(?P<message>.*?)\s+\[\*\*\].*?"
+    r"(?P<message>.*?)\s+\[\*\*\]\s*"
+    r"(?:\[Classification:\s*(?P<classification>[^\]]*)\]\s*)?"
     r"\[Priority:\s*(?P<priority>\d+)\]\s+"
     r"\{(?P<protocol>[^}]+)\}\s+"
     r"(?P<src>\S+)\s+->\s+(?P<dst>\S+)\s*$",
@@ -45,6 +46,7 @@ def parse_fast_alert(line):
     data = match.groupdict()
     src_ip, src_port = _split_endpoint(data.pop("src"))
     dst_ip, dst_port = _split_endpoint(data.pop("dst"))
+    data["classification"] = (data.get("classification") or "").strip()
     data.update({
         "gid": int(data["gid"]), "sid": int(data["sid"]),
         "rev": int(data["rev"]), "priority": int(data["priority"]),
@@ -133,6 +135,7 @@ class SnortMonitor:
                 "source": "snort", "sensor": "snort", "signature_id": event["sid"],
                 "generator_id": event["gid"], "revision": event["rev"],
                 "priority": priority, "protocol": event["protocol"],
+                "category": event.get("classification") or "",
                 "src_port": event["src_port"], "dst_port": event["dst_port"],
                 "evidence": ["snort_signature"], "demo": False,
             }

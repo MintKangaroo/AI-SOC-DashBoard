@@ -4,6 +4,7 @@ MITRE ATT&CK 매트릭스 모듈
 - 탐지 이벤트 → ATT&CK 기법 자동 매핑
 - 매트릭스 셀별 탐지 카운트 집계
 """
+import re
 import threading
 from collections import defaultdict
 from datetime import datetime
@@ -129,6 +130,66 @@ THREAT_MAPPING = {
     "PROC_INJECTION":  [("TA0004", "T1055"), ("TA0005", "T1055")],
     "PS_ENCODED":      [("TA0002", "T1059"), ("TA0005", "T1027")],
 }
+
+# IDS(Snort/Suricata) 시그니처 분류 → 기법. 룰 하나하나가 아니라 **분류(classtype)**
+# 단위로만 매핑한다 — 시그니처는 수만 개라 개별 매핑은 불가능하고, 분류는 40여 종의
+# 고정 어휘라 검증할 수 있다. 근거가 약한 분류(Misc Attack·Potentially Bad Traffic·
+# Not Suspicious·Unknown·Generic Protocol Command Decode·Possibly Unwanted Program·
+# Executable code was detected)는 **의도적으로 비워 둔다** — 거짓 히트가 빈칸보다 나쁘다.
+# 키는 Suricata 표기(사람이 읽는 이름)와 Snort classtype 단축명을 모두 소문자로 받는다.
+IDS_CATEGORY_MAPPING = {
+    # 정찰
+    "detection of a network scan":              [("TA0043", "T1595")],
+    "network-scan":                             [("TA0043", "T1595")],
+    "attempted information leak":               [("TA0043", "T1595")],
+    "attempted-recon":                          [("TA0043", "T1595")],
+    # 초기 접근 — 공개 서비스 익스플로잇
+    "web application attack":                   [("TA0001", "T1190")],
+    "web-application-attack":                   [("TA0001", "T1190")],
+    "access to a potentially vulnerable web application": [("TA0001", "T1190")],
+    "web-application-activity":                 [("TA0001", "T1190")],
+    "attempted administrator privilege gain":   [("TA0001", "T1190")],
+    "attempted-admin":                          [("TA0001", "T1190")],
+    "attempted user privilege gain":            [("TA0001", "T1190")],
+    "attempted-user":                           [("TA0001", "T1190")],
+    # 권한 상승 성공
+    "successful administrator privilege gain":  [("TA0004", "T1068")],
+    "successful-admin":                         [("TA0004", "T1068")],
+    "successful user privilege gain":           [("TA0004", "T1068")],
+    "successful-user":                          [("TA0004", "T1068")],
+    # 자격증명
+    "attempt to login by a default username and password": [("TA0006", "T1110")],
+    "default-login-attempt":                    [("TA0006", "T1110")],
+    "unsuccessful user privilege gain":         [("TA0006", "T1110")],
+    "unsuccessful-user":                        [("TA0006", "T1110")],
+    # C2 · 악성코드 통신
+    "a network trojan was detected":            [("TA0011", "T1071")],
+    "trojan-activity":                          [("TA0011", "T1071")],
+    "malware command and control activity detected": [("TA0011", "T1071")],
+    "command-and-control":                      [("TA0011", "T1071")],
+    "known malware command and control traffic": [("TA0011", "T1071")],
+    "domain observed used for c2 detected":     [("TA0011", "T1071")],
+    "targeted malicious activity was detected": [("TA0011", "T1071")],
+    "malicious file transfer":                  [("TA0011", "T1105")],
+    "malware-cnc":                              [("TA0011", "T1071")],
+    # 서비스 거부
+    "attempted denial of service":              [("TA0040", "T1498")],
+    "attempted-dos":                            [("TA0040", "T1498")],
+    "denial of service":                        [("TA0040", "T1498")],
+    "denial-of-service":                        [("TA0040", "T1498")],
+    # 사회공학
+    "possible social engineering attempted":    [("TA0001", "T1566")],
+    "social-engineering":                       [("TA0001", "T1566")],
+    # 반출
+    "potential corporate privacy violation":    [("TA0010", "T1041")],
+    "policy-violation":                         [],   # 정책 위반은 기법이 아니다 — 비움
+}
+
+
+def ids_category_mappings(category):
+    """분류 문자열 → [(tactic, technique)]. 모르는 분류는 빈 목록(히트 없음)."""
+    key = re.sub(r"\s+", " ", str(category or "").strip().lower())
+    return list(IDS_CATEGORY_MAPPING.get(key, []))
 
 
 # ─────────────────────────────────────────
@@ -280,6 +341,16 @@ class MitreTracker:
         for tac, tech in mappings:
             self._record(tac, tech, f"{threat_type}: {description}",
                          src_ip, dst_ip, sev, source=threat_type)
+
+    def map_ids_category(self, sensor, category, src_ip=None, dst_ip=None,
+                         description="", severity=None):
+        """Snort/Suricata 시그니처의 분류를 기법으로. 매핑 없는 분류는 조용히 건너뛴다."""
+        mappings = ids_category_mappings(category)
+        sev = severity or "MEDIUM"
+        for tac, tech in mappings:
+            self._record(tac, tech, f"{sensor}: {description}", src_ip, dst_ip, sev,
+                         source=f"{sensor}:{category}")
+        return len(mappings)
 
     def map_sysmon_event(self, event_id, process=None, message="",
                          src_ip=None, dst_ip=None, severity=None):

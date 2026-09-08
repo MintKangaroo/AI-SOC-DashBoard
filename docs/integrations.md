@@ -240,9 +240,15 @@ sudo -n /usr/local/sbin/soc-ufw status
 프로토콜·HTTP 호스트/URL·DNS 질의가 함께 온다. 알림 설명에 `— shop.example/wp-login.php`
 처럼 맥락이 붙어 분석가가 SID 를 찾아보지 않아도 무슨 요청인지 안다.
 
-**MITRE 매핑은 하지 않는다**(Snort 도 같다). IDS 시그니처의 분류는 수십 종이라
-대표 기법 하나로 뭉뚱그리면 커버리지 매트릭스에 거짓 히트를 만든다. 카테고리별
-매핑표를 검증한 뒤에 붙이는 것이 맞다.
+**MITRE 매핑은 시그니처가 아니라 분류(classtype) 단위다** (2026-09-08, Snort 도 같다).
+시그니처는 수만 개라 개별 매핑이 불가능하고, 분류는 40여 종의 고정 어휘라 검증할 수
+있다. `mitre_attack.IDS_CATEGORY_MAPPING` — 정찰(T1595)·공개 서비스 익스플로잇(T1190)·
+권한 상승 성공(T1068)·기본 계정 로그인 시도(T1110)·C2/트로이(T1071)·악성 파일
+전송(T1105)·DoS(T1498)·사회공학(T1566)·반출(T1041). 근거가 약한 분류(Misc Attack·
+Potentially Bad Traffic·Not Suspicious·Unknown·Generic Protocol Command Decode·
+Possibly Unwanted Program·Executable code was detected)는 **의도적으로 비워 둔다** —
+거짓 히트가 빈칸보다 나쁘다. 표의 모든 (전술, 기법) 조합이 매트릭스에 실재하는지
+`test_ids_mitre_mapping.py` 가 검사한다. Snort 파서도 `[Classification: …]` 을 읽는다.
 
 설치(Ubuntu):
 ```bash

@@ -690,12 +690,17 @@ class ThreatDetector:
             except Exception:
                 pass
 
-        # MITRE ATT&CK 매핑
+        # MITRE ATT&CK 매핑 — IDS 알림은 유형이 아니라 시그니처 분류(classtype)로 맵핑한다
         if self.mitre:
             try:
-                self.mitre.map_threat(
-                    alert.threat_type, alert.src_ip, alert.dst_ip, alert.description
-                )
+                src = alert.details.get("source") if isinstance(alert.details, dict) else None
+                if src in ("snort", "suricata") and alert.details.get("category"):
+                    self.mitre.map_ids_category(src, alert.details["category"], alert.src_ip,
+                                                alert.dst_ip, alert.description, alert.severity)
+                else:
+                    self.mitre.map_threat(
+                        alert.threat_type, alert.src_ip, alert.dst_ip, alert.description
+                    )
             except Exception:
                 pass
 
