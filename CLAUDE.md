@@ -44,14 +44,14 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `data/sigma/*.yml` | Sigma 탐지 룰. **각 룰은 `tests:` 블록에 positive/negative 샘플을 함께 담는다** — CI 가 강제 |
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
-| `modules/suricata_monitor.py` | Suricata EVE JSON tail — **alert 만** 알림(`SURICATA_ALERT`), 나머지 이벤트는 카운트. Snort 와 같은 원칙: IDS 는 근거만, 차단은 SOAR. MITRE 매핑 없음(거짓 히트 방지) |
+| `modules/suricata_monitor.py` | Suricata EVE JSON tail — **alert 만** 알림(`SURICATA_ALERT`), 나머지 이벤트는 카운트. Snort 와 같은 원칙: IDS 는 근거만, 차단은 SOAR. MITRE 는 시그니처가 아니라 **분류(classtype)** 단위로 매핑(`IDS_CATEGORY_MAPPING`, 약한 분류는 의도적으로 비움) |
 | `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브. 조회는 `scope`(all/live/archive)로 활성+아카이브 통합 |
 | `modules/alert_dedup.py` | 중복제거·억제 레이어 — 핑거프린트 병합·규칙 억제·스톰 요약 |
 | `modules/soc_metrics.py` | SOC 운영 지표(MTTR/MTTA/오탐율/히트맵/TOP) 집계 |
 | `modules/audit_log.py` | 전역 감사 로그(append-only audit.db) |
 | `modules/watchlist.py` | IOC 워치리스트(watchlist.db) — 능동 헌팅 매칭 |
 | `modules/ocsf_export.py` | OCSF 1.1.0 Detection Finding 매핑 — 내보내기 전용. 스키마 상수는 schema.ocsf.io 에서 확인한 값, 준수는 py-ocsf-models 로 독립 검증 |
-| `modules/labeling.py` | 라벨링 큐 — 알림을 그룹으로 묶어 한 번에 판정. **그룹 라벨과 개별 라벨을 나눠 센다**(그룹은 약한 증거 — 합치면 평가 문턱을 속이게 된다). `classify_provenance()` 가 합성/실측을 가른다 — 실측 결과 알림 11만 건 중 **합성 표지가 없는 것은 183건(0.17%)** 뿐이다 |
+| `modules/labeling.py` | 라벨링 큐 — 알림을 그룹으로 묶어 한 번에 판정. **그룹 라벨과 개별 라벨을 나눠 센다**(그룹은 약한 증거 — 합치면 평가 문턱을 속이게 된다). `classify_provenance()` 가 합성/실측을 가른다(details.demo·TEST-NET·Demo ISP·허니넷·데모 카탈로그·EDR 데모 cmdline·**허니팟 전부·2026-09-06 이전 auth.log**) |
 | `modules/hunt.py` | 위협 헌팅 콘솔 — 저장된 쿼리·델타(지난 실행 이후)·워치리스트 승격. 기본 scope=all(아카이브 포함) |
 | `modules/correlation.py` | 킬체인 상관관계 — 같은 IP를 MITRE 전술 순서 캠페인으로 구성 |
 | `modules/system_health.py` | 전 모듈 헬스 중앙 집계(방어적 조회, SPECS 리스트) |

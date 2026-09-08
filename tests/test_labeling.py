@@ -255,3 +255,16 @@ def test_authlog_detects_simulated_source(tmp_path):
     real = tmp_path / "real.log"
     real.write_text("Sep  5 10:00:00 host sshd[1]: Accepted password for u\n", encoding="utf-8")
     assert AuthLogMonitor._looks_simulated(str(real)) is False
+
+
+def test_provenance_marks_honeypot_and_old_authlog_as_synthetic():
+    """라벨링 큐 실측 조사(2026-09-08)에서 잡힌 두 구멍.
+    허니팟은 공개 노출된 적이 없고(전부 데모 생성기), auth.log 알림은 2026-09-06 전엔
+    시뮬레이터 로그(soc_monitor)에서 왔다 — 112.85.42.91 이 그 로그에 98,895번 나온다."""
+    import json as _json
+    from modules.labeling import classify_provenance, PROVENANCE_SYNTHETIC, PROVENANCE_REAL
+    assert classify_provenance("[Honeypot] Redis 접촉", _json.dumps({"source": "honeypot"}))[0] == PROVENANCE_SYNTHETIC
+    d = _json.dumps({"source": "auth.log", "demo": "False"})
+    assert classify_provenance("SSH 무차별 대입", d, timestamp="2026-07-22 11:04:59")[0] == PROVENANCE_SYNTHETIC
+    assert classify_provenance("SSH 무차별 대입", d, timestamp="2026-09-07 01:00:00")[0] == PROVENANCE_REAL
+    assert classify_provenance("SSH 무차별 대입", d)[0] == PROVENANCE_REAL   # 시각 모르면 보수적으로 실측

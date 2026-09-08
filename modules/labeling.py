@@ -63,6 +63,12 @@ _TESTNET = re.compile(r"\b(?:192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)")
 PROVENANCE_SYNTHETIC = "synthetic"
 PROVENANCE_REAL = "real"
 
+# AUTH_LOG_PATH 가 시뮬레이터 로그(soc_monitor/logs/auth.log, 헤더에 SIMULATED)에서
+# 실제 /var/log/auth.log 로 바뀐 날(커밋 7b84b3e). 그 전의 auth.log 알림은 전부
+# 시뮬레이터 산출물이다 — 실측 확인: 112.85.42.91 등이 시뮬레이터 로그에 98,895번,
+# 실제 auth.log 에는 0번 나온다.
+AUTHLOG_REAL_SINCE = "2026-09-06"
+
 _demo_descriptions = None
 
 
@@ -110,7 +116,8 @@ def _demo_cmdline_catalog():
     return _demo_cmdlines
 
 
-def classify_provenance(description, details_json, details=None, stored_origin=None):
+def classify_provenance(description, details_json, details=None, stored_origin=None,
+                        timestamp=None):
     """이 알림이 실측인가 합성인가 — **라벨의 값어치를 정하는 정보**다.
 
     이 저장소는 실제 센서와 합성 생성기를 함께 돌린다(허니팟 데모, 퍼플팀
@@ -153,6 +160,13 @@ def classify_provenance(description, details_json, details=None, stored_origin=N
     cmdline = details.get("cmdline")
     if cmdline and cmdline in _demo_cmdline_catalog():
         return PROVENANCE_SYNTHETIC, "EDR 데모 주입 프로세스 cmdline"
+    source = str(details.get("source") or "")
+    # 허니팟은 공개 인터넷에 노출된 적이 없다(Tailscale 바인드) — 플래그 없는
+    # 접촉 알림도 전부 데모 생성기 산출물이다(CASE_STUDIES 0절). 기능은 2026-09-08 제거.
+    if source == "honeypot" or str(description or "").startswith("[Honeypot]"):
+        return PROVENANCE_SYNTHETIC, "허니팟은 공개 노출된 적 없음(데모 생성기)"
+    if source == "auth.log" and timestamp and str(timestamp) < AUTHLOG_REAL_SINCE:
+        return PROVENANCE_SYNTHETIC, f"{AUTHLOG_REAL_SINCE} 이전 auth.log = 시뮬레이터 로그"
     return PROVENANCE_REAL, "합성 표지 없음"
 
 
@@ -291,7 +305,7 @@ def build_queue(alert_store, label_store=None, limit=50, include_labeled=False,
     for (alert_id, threat_type, severity, src_ip, description, details, ts,
          stored_origin) in rows:
         origin, why = classify_provenance(description, details,
-                                          stored_origin=stored_origin)
+                                          stored_origin=stored_origin, timestamp=ts)
         if provenance == PROVENANCE_REAL and origin == PROVENANCE_SYNTHETIC:
             skipped_synthetic += 1
             continue

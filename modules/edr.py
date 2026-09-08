@@ -290,8 +290,11 @@ class EDRSensor:
         exe = (pr.get("exe_path") or "").lower()
 
         # 1) 알려진 악성/도구 바이너리
+        # 정확히 그 바이너리일 때만. endswith 로 비교하던 시절 'runc'(도커 런타임)가
+        # 'nc' 에 걸려 실측 108건이 netcat 으로 올라갔다 — 라벨링 큐 1위였다.
+        cmd_bin = os.path.basename(cmd.split(" ")[0]) if cmd else ""
         for bin_name, (desc, sev, tech) in SUSPICIOUS_BINARIES.items():
-            if name == bin_name or f"/{bin_name}" in exe or cmd.split(" ")[0].endswith(bin_name):
+            if name == bin_name or exe.endswith(f"/{bin_name}") or cmd_bin == bin_name:
                 ioas.append({"rule": f"IOA-BIN-{bin_name}", "desc": desc,
                              "severity": sev, "mitre": tech})
                 risk += {"CRITICAL": 70, "HIGH": 45, "MEDIUM": 25}.get(sev, 20)
