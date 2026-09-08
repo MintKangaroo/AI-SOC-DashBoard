@@ -555,21 +555,102 @@ class VulnScanner:
     #  nmap 기반 스캔 (있을 때 — -sV 서비스/버전, vulners 있으면 CVE)
     # ------------------------------------------------------------------ #
 
+    _SYSTEM_VULNERS = "/usr/share/nmap/scripts/vulners.nse"
+    _BUNDLED_VULNERS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                    "data", "nse", "vulners.nse")
+
+    @classmethod
+    def vulners_script(cls):
+        """nmap --script 에 넘길 vulners 지정자. 시스템 설치본이 있으면 이름, 없으면
+        저장소에 내장한 사본의 경로, 둘 다 없으면 None.
+
+        nmap 7.80(Ubuntu 22.04)은 vulners 를 탑재하지 않고, 시스템 경로에 넣으려면
+        sudo 가 필요하다. nmap 은 --script 에 파일 경로도 받으므로 사본을 data/nse/ 에
+        두면 권한 없이도 CVE 조회가 된다(스크립트가 vulners.com 에 질의하므로 인터넷 필요).
+        """
+        if os.path.exists(cls._SYSTEM_VULNERS):
+            return "vulners"
+        if os.path.exists(cls._BUNDLED_VULNERS):
+            return cls._BUNDLED_VULNERS
+        return None
+
     def _nmap_scan(self, addr):
         ports_arg = ",".join(str(p) for p in self.ports)
-        has_vulners = os.path.exists("/usr/share/nmap/scripts/vulners.nse")
+        script = self.vulners_script()
         cmd = [self.nmap_bin, "-sT", "-sV", "-Pn", "-T4",
                "-p", ports_arg, "--open", "-oX", "-", addr]
-        if has_vulners:
-            cmd[4:4] = ["--script", "vulners", "--script-args", "mincvss=5.0"]
+        if script:
+            cmd[4:4] = ["--script", script, "--script-args", "mincvss=5.0"]
+        env = dict(os.environ)
+        key = str(self.config.get("VULNERS_API_KEY", "") or "").strip()
+        if key:
+            env["VULNERS_API_KEY"] = key
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180, env=env)
             if r.returncode != 0 and not r.stdout:
                 return None
             return self._parse_nmap_xml(r.stdout)
         except (subprocess.TimeoutExpired, OSError) as e:
             _log.error(f"[VulnScan] nmap 실패: {e}")
             return None
+
+    @staticmethod
+    def _parse_vulners_script(script_el):
+        """vulners 스크립트 결과 → CVE 목록.
+
+        스키마 2.0(2025~)은 <table> 에 항목별 id·type·cvss·href·is_exploit 를 구조화해
+        준다 — 그걸 읽는다. CVE 가 아닌 항목(githubexploit·packetstorm 등)은 CVE 로
+        세지 않고, 대신 그 존재를 'exploit_known' 으로 기록해 판정 근거에 남긴다.
+        구형 출력(한 줄에 "CVE-… 9.8 https://…")은 정규식으로 받는다.
+        """
+        def _sev(cvss):
+            return ("critical" if cvss >= 9 else "high" if cvss >= 7 else
+                    "medium" if cvss >= 4 else "low")
+
+        found = {}
+        exploits = 0
+        for entry in script_el.iter("table"):
+            elems = {e.get("key"): (e.text or "").strip() for e in entry.findall("elem")}
+            if not elems.get("id"):
+                continue
+            etype = (elems.get("type") or "").lower()
+            if etype and etype != "cve" and not elems["id"].startswith("CVE-"):
+                if elems.get("is_exploit") == "true" or elems.get("exploit_known") == "true":
+                    exploits += 1
+                continue
+            cid = elems["id"]
+            if not re.fullmatch(r"CVE-\d{4}-\d+", cid):
+                continue
+            try:
+                cvss = float(elems.get("cvss") or "")
+            except ValueError:
+                continue
+            if not (0 <= cvss <= 10):
+                continue
+            if cid not in found or cvss > found[cid]["cvss"]:
+                found[cid] = {"cvss": cvss, "exploit": elems.get("is_exploit") == "true"
+                              or elems.get("exploit_known") == "true"}
+        if not found:   # 구형 출력 폴백
+            for cid, score in re.findall(r"(CVE-\d{4}-\d+)\s+([\d.]+)\s+https?://",
+                                         script_el.get("output", "")):
+                try:
+                    cvss = float(score)
+                except ValueError:
+                    continue
+                if 0 <= cvss <= 10:
+                    found[cid] = {"cvss": cvss, "exploit": False}
+        out = []
+        for cid, info in found.items():
+            cvss = info["cvss"]
+            base = _CVE_DESC.get(cid)
+            desc = f"{base} · CVSS {cvss}" if base else f"CVSS {cvss}"
+            if info["exploit"]:
+                desc += " · 공개 익스플로잇"
+            out.append({"cve": cid, "severity": _sev(cvss), "desc": desc,
+                        "cvss": cvss, "exploit_known": info["exploit"]})
+        if exploits and out:
+            out[0]["desc"] += f" · 관련 익스플로잇 자료 {exploits}건(vulners)"
+        return out
 
     def _parse_nmap_xml(self, xml):
         import xml.etree.ElementTree as ET
@@ -592,21 +673,7 @@ class VulnScanner:
             for script in port_el.iter("script"):
                 if script.get("id") != "vulners":
                     continue
-                # vulners 출력: "\tCVE-2023-38408\t9.8\thttps://vulners.com/..."
-                # URL 앵커로 CVSS 오탐(URL 내 숫자 등) 방지
-                for cid, score in re.findall(
-                        r"(CVE-\d{4}-\d+)\s+([\d.]+)\s+https?://", script.get("output", "")):
-                    try:
-                        cvss = float(score)
-                    except ValueError:
-                        continue
-                    if not (0 <= cvss <= 10):        # 이상값 제거
-                        continue
-                    sev = "critical" if cvss >= 9 else "high" if cvss >= 7 else \
-                          "medium" if cvss >= 4 else "low"
-                    base = _CVE_DESC.get(cid)
-                    desc = f"{base} · CVSS {cvss}" if base else f"CVSS {cvss}"
-                    cves.append({"cve": cid, "severity": sev, "desc": desc})
+                cves += self._parse_vulners_script(script)
             # 배너 휴리스틱도 보강 후 CVE 중복 제거(최고 심각도 유지)
             cves += self._match_cves(f"{service} {version}")
             cves = self._dedup_cves(cves)

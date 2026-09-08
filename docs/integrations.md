@@ -47,6 +47,22 @@ AI 관제 센터와 SOAR 상세 탭의 `대기 전체 승인`은 버튼을 누�
 
 ---
 
+## nmap vulners — CVE 조회 (2026-09-08 내장)
+
+취약점 스캔의 CVE 매핑은 nmap `-sV` + `vulners` NSE 스크립트가 맡는다. nmap 7.80
+(Ubuntu 22.04)은 이 스크립트를 탑재하지 않아 그동안 CVE 없이 배너 휴리스틱만
+돌았다. 시스템 경로(`/usr/share/nmap/scripts/`)에 넣으려면 sudo 가 필요하므로
+저장소 `data/nse/vulners.nse` 에 사본을 두고 `VulnScanner.vulners_script()` 가
+시스템 설치본 → 사본 순으로 골라 `--script <경로>` 로 넘긴다.
+
+- 결과는 스키마 2.0 의 구조화 `<table>`(id·type·cvss·href·is_exploit)로 읽는다.
+  CVE 가 아닌 항목(githubexploit·packetstorm)은 CVE 로 세지 않고 "공개 익스플로잇"
+  표지로만 남긴다. 구형 한 줄 출력도 폴백으로 받는다.
+- 스크립트가 vulners.com 에 질의하므로 **인터넷이 필요**하다. 격리망에서는 서비스
+  식별만 된다. `VULNERS_API_KEY` 는 선택(없어도 CVE·CVSS 는 나온다).
+- 실측(127.0.0.1:22, OpenSSH 8.9p1 Ubuntu): CVE 114건 보고 → 교차검증(`apt` 백포트
+  대조)이 "패치됨·오탐유력" 으로 걸러야 하는 값이다. vulners 는 업스트림 버전만 본다.
+
 ## 방화벽 연동
 
 ### 지원 예정 시스템

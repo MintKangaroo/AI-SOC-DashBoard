@@ -92,6 +92,9 @@ class Config:
 
     # VirusTotal v3 — 파일 업로드 없이 MD5/SHA1/SHA256 기존 리포트 조회
     VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")
+    # nmap vulners 스크립트의 API 키(선택). 없어도 CVE 는 나오고, 있으면 제목·악용
+    # 상태 등 상세가 붙는다. https://vulners.com/userinfo
+    VULNERS_API_KEY = os.getenv("VULNERS_API_KEY", "")
     VIRUSTOTAL_TIMEOUT = float(os.getenv("VIRUSTOTAL_TIMEOUT", 8))
     VIRUSTOTAL_CACHE_HOURS = float(os.getenv("VIRUSTOTAL_CACHE_HOURS", 6))
 
