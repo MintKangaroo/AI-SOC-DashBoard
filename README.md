@@ -32,13 +32,14 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **취약점 교차검증** | `vuln_scanner` — nmap/vulners CVE를 실제 apt 패치상태와 대조 | 백포트 패치된 CVE를 오탐으로 판별 |
 | **AI 트리아지** | `soar` — 정탐→에스컬레이션/자동차단, 오탐→자동 종결 | 분석가 피로도 감소 |
 | **알림 중복제거·억제** | `alert_dedup` 핑거프린트 병합 + 규칙 억제 + 스톰 요약 | 아카이브 110,748건 리플레이 기준 **31.2% 감축**, 병합분 전량 복구 가능 |
-| **ML 이상탐지** | `ml_analyst` Isolation Forest — 트래픽 이상 점수(참고용) | 피처는 `ml_features.db` 에 영속화되어 재학습·평가 가능 |
+| **ML 이상탐지** | `ml_analyst` Isolation Forest — 트래픽 이상 점수(참고용). 실피처 3,000건이 차면 **실트래픽으로 자동 재학습**(24h 갱신, 홀드아웃 이상률로 분포 이동 표시) | 합성 모델은 실트래픽 48%를 이상으로 봤고 실모델은 0% — 피처는 `ml_features.db` 에 영속화되어 재학습·평가 가능 |
 | **퍼플팀 회귀검증** | `purple_team` — 7종 모의공격을 실제 탐지엔진에 주입 | 룰 변경 후 탐지 커버리지 검증 |
 | **킬체인 상관관계** | `correlation` — 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
 | **SOC 운영 지표** | `soc_metrics` — MTTD/MTTR/MTTA·오탐율·처리량 계량 | 관제 성숙도를 수치로 관리 |
 | **detection-as-code** | Sigma·YARA 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 — 실제로 **정상 프로세스를 HIGH 로 올리던 룰**을 잡아냄 |
+| **IDS 분류→MITRE** | `mitre_attack.IDS_CATEGORY_MAPPING` — Snort/Suricata 시그니처를 개별이 아니라 **분류(classtype)** 단위로 기법에 매핑, 근거 약한 분류는 의도적으로 비움 | 거짓 히트 없이 커버리지 매트릭스가 IDS 를 반영 |
 | **커버리지 자가 진단** | `coverage` — 룰·퍼플팀검증·히트 3축을 MITRE 매트릭스에 겹침 | 히트 0 이 *공격이 없었다*인지 ***룰이 없어 못 본다*** 인지 구분 |
-| **라벨링 큐** | `labeling` — 11만 건을 (유형·룰·설명패턴)으로 묶으면 **서로 다른 그룹 67개**. 한 번의 판정이 수천 건을 덮음 | ML 성능 *측정*의 병목인 사람 라벨을 실행 가능한 규모로 |
+| **라벨링 큐 + 출처 판별** | `labeling` — 알림을 (유형·룰·설명패턴) 그룹으로 묶어 한 번에 판정. `classify_provenance()` 가 합성(데모·TEST-NET·시뮬레이터 로그·허니팟)을 걸러 **실측 후보 459건/129그룹**만 남김 | 합성 데이터로 정답지를 만들지 않음. 1차 판정으로 347건 라벨, 그 과정에서 오탐 근원 2건(EDR `nc` 부분일치·pytest 임시경로) 발견·수정 |
 | **차단 결정 재현** | `block_decision` — 결정 시점 신호를 고정, 임계값 replay | **왜 안 막았나**까지 남아 임계값을 실데이터로 튜닝 |
 
 ---
@@ -175,11 +176,11 @@ flowchart LR
 ## 기술 스택
 
 - **백엔드** — Flask 3 · Flask-SocketIO(threading) · Blueprint REST API
-- **탐지·분석** — PyShark · Scapy · nmap/vulners · Sigma · psutil · scikit-learn · (선택)TensorFlow
+- **탐지·분석** — PyShark · Scapy · nmap + vulners(내장) · Snort · Suricata · Sigma · YARA · psutil · scikit-learn
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · globe.gl · Socket.IO(전부 자체 호스팅)
-- **테스트** — pytest **821개** (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **849개** + 실제 브라우저 순회(Playwright, 36패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -203,13 +204,17 @@ PORT=5055 ./venv/bin/python app.py
 
 브라우저에서 `http://localhost:5055` 접속 (로그인: `.env`의 `DASH_USERNAME` / `DASH_PASSWORD`).
 
+Docker 로 띄우려면(데모 모드, 센서 없이 전체 화면): `docker compose up --build` → `http://localhost:5055`.
+아이폰 Safari 에서 "홈 화면에 추가" 하면 웹앱 아이콘으로 열린다.
+
 ### 선택 연동 (없어도 데모로 동작)
 
 | 기능 | 활성화 방법 |
 |------|-------------|
 | Claude AI 분석 | `.env ANTHROPIC_API_KEY` |
 | IP 평판 실조회 | `.env ABUSEIPDB_API_KEY` (무료 1000/일) |
-| 취약점 스캔(정밀) | `apt install nmap` + vulners 스크립트 |
+| 취약점 스캔 CVE | `apt install nmap` — vulners 스크립트는 `data/nse/` 에 내장(인터넷 필요, `VULNERS_API_KEY` 선택) |
+| Suricata IDS | `apt install suricata && suricata-update` — `eve.json` 이 생기면 자동 수집 |
 | 원격 서버 관제 | `.env ANSIBLE_TARGETS="이름=user@host;..."` + SSH 키 |
 | 폰 푸시 알림 | ntfy 앱 설치 + `.env NTFY_ENABLED=True NTFY_TOPIC=...` |
 | 외부 접속 | Tailscale(`HOST=0.0.0.0`) |
@@ -250,7 +255,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (36개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~22, 순서대로 로드)
-├── tests/                    # pytest 821개
+├── tests/                    # pytest 849개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
@@ -270,8 +275,9 @@ SOC_DashBoard/
 
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
-| 단위·통합 | 821건 (대부분 Flask `test_client`) | `pytest` |
+| 단위·통합 | 849건 (대부분 Flask `test_client`) | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
+| **브라우저** | Playwright 로 36패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py` (`-m "not browser"` 로 제외) |
 | **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
 
 `test_client` 는 프로세스도 소켓도 없고 작업 디렉터리가 항상 저장소입니다. 실제로
