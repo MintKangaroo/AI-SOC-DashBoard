@@ -35,7 +35,11 @@ def store(tmp_path):
 
 
 @pytest.fixture
-def analyst(tmp_path):
+def analyst(tmp_path, monkeypatch):
+    # 모델 디렉터리를 격리한다 — 저장소의 data/models 에 실트래픽 모델이 생긴 뒤로는
+    # 격리하지 않으면 그것을 읽어 '합성 부트스트랩' 전제가 깨진다(실제로 깨졌다).
+    import modules.ml_analyst as _ma
+    monkeypatch.setattr(_ma, "MODEL_DIR", str(tmp_path / "models"))
     s = MLFeatureStore(db_path=str(tmp_path / "feat.db"), flush_every=1)
     a = MLAnalyst(FakeSocketIO(), feature_store=s, demo=True)
     a._train_isolation_forest()

@@ -118,6 +118,10 @@ class MLAnalyst:
             "training_done": False,
             "trained_on":    "synthetic",   # synthetic | real
             "real_model":    None,          # 실트래픽 모델 메타데이터(있을 때)
+            # 현재 모델로 분석한 건수·이상 건수. 재학습 시 0 부터 다시 센다 —
+            # 누적 카운터는 옛 모델의 판정과 섞여 "이 모델이 얼마나 자주 이상이라
+            # 하는가"를 못 보여준다(실측: 합성 모델 48% → 실모델 0%).
+            "since_model":   {"analyses": 0, "anomalies": 0, "since": None},
             "feedback":      {"true_positive": 0, "false_positive": 0},
         }
         self.analysis_log = deque(maxlen=100)
@@ -259,6 +263,7 @@ class MLAnalyst:
             self.stats["real_model"] = meta
             self.stats["model_status"] = "정상 운영 (실트래픽)"
             self.stats["training_done"] = True
+            self.stats["since_model"] = {"analyses": 0, "anomalies": 0, "since": meta["trained_at"]}
         _log.info(f"[MLAnalyst] IF 실트래픽 재학습: {meta['n_samples']:,}건 "
                   f"({meta['span'][0]} ~ {meta['span'][1]}), 홀드아웃 이상률 {holdout_rate:.1%}")
         try:
@@ -453,9 +458,12 @@ class MLAnalyst:
         scaled = self.scaler.transform(feat_arr)
         anomaly = bool(self.iso_forest.predict(scaled)[0] == -1)
         if_score = float(self.iso_forest.score_samples(scaled)[0])
-        if anomaly:
-            with self._lock:
+        with self._lock:
+            sm = self.stats["since_model"]
+            sm["analyses"] += 1
+            if anomaly:
                 self.stats["if_anomalies"] += 1
+                sm["anomalies"] += 1
         result["isolation_forest"] = {
             "anomaly": anomaly,
             "score": round(if_score, 4),

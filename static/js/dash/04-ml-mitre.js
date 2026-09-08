@@ -136,7 +136,9 @@
     }
     const shift = m.distribution_shift_suspected
       ? ' <span class="badge bg-warning text-dark" title="홀드아웃 이상률이 오염률 가정의 3배 초과 — 학습 구간이 대표성이 없을 수 있음">분포 이동 의심</span>' : '';
-    box.innerHTML = `실트래픽 모델 <b class="text-success">${Number(m.n_samples).toLocaleString()}건</b> · ${escapeHtml(m.span?.[0] || '')} ~ ${escapeHtml(m.span?.[1] || '')}<br>` +
+    const sm = s.since_model || {};
+    const liveRate = sm.analyses ? ` · 이 모델의 판정 <b>${Number(sm.analyses).toLocaleString()}</b>건 중 이상 <b class="${sm.anomalies ? 'text-warning' : 'text-success'}">${Number(sm.anomalies).toLocaleString()}</b>건 (${(100 * sm.anomalies / sm.analyses).toFixed(1)}%)` : '';
+    box.innerHTML = `실트래픽 모델 <b class="text-success">${Number(m.n_samples).toLocaleString()}건</b> · ${escapeHtml(m.span?.[0] || '')} ~ ${escapeHtml(m.span?.[1] || '')}${liveRate}<br>` +
       `학습 ${escapeHtml(m.trained_at || '')} · 오염률 ${(Number(m.contamination) * 100).toFixed(1)}% <span class="text-muted">(가정)</span> · ` +
       `홀드아웃 이상률 ${(Number(m.holdout_anomaly_rate) * 100).toFixed(1)}%${shift}` +
       (m.dropped_zero ? ` · <span class="text-muted">캡처 공백 ${Number(m.dropped_zero)}건 제외</span>` : '') + ` ${ready}`;

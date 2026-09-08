@@ -143,3 +143,16 @@ def test_auto_retrain_config_is_read(tmp_path):
         assert a.get_stats()["retrain"]["auto"] is False
     finally:
         s.close()
+
+
+def test_since_model_counters_reset_on_retrain(env):
+    a, store = env
+    x = np.array([100, 5e4, .6, .3, .02, 5, 5, 600], dtype=np.float32)
+    for _ in range(3):
+        a._run_models(x)
+    assert a.stats["since_model"]["analyses"] == 3
+    _fill(store, 300)
+    assert a.retrain_from_store(min_samples=100)["ok"]
+    assert a.stats["since_model"] == {"analyses": 0, "anomalies": 0, "since": a.stats["real_model"]["trained_at"]}
+    a._run_models(x)
+    assert a.stats["since_model"]["analyses"] == 1
