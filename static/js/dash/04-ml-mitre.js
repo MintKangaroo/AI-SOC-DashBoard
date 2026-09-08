@@ -118,7 +118,39 @@
         const f = s.feedback || {};
         fb.textContent = `정탐 ${f.true_positive || 0} · 오탐 ${f.false_positive || 0}`;
       }
+      renderRealModel(s);
     });
+  }
+
+  /* 실트래픽 모델 메타데이터 — 이 숫자만이 이 모델에 대해 주장할 수 있는 전부다 */
+  function renderRealModel(s) {
+    const box = document.getElementById('ml-real-model');
+    if (!box) return;
+    const m = s.real_model, r = s.retrain || {};
+    const ready = r.ready ? '<span class="badge bg-success">재학습 가능</span>'
+                          : `<span class="badge badge-neutral">피처 ${Number(r.have || 0).toLocaleString()} / ${Number(r.min_samples || 0).toLocaleString()}</span>`;
+    if (!m) {
+      box.innerHTML = `현재 <b class="text-warning">합성 부트스트랩</b> 모델 — 실트래픽 모델 없음. ${ready}`;
+      return;
+    }
+    const shift = m.distribution_shift_suspected
+      ? ' <span class="badge bg-warning text-dark" title="홀드아웃 이상률이 오염률 가정의 3배 초과 — 학습 구간이 대표성이 없을 수 있음">분포 이동 의심</span>' : '';
+    box.innerHTML = `실트래픽 모델 <b class="text-success">${Number(m.n_samples).toLocaleString()}건</b> · ${escapeHtml(m.span?.[0] || '')} ~ ${escapeHtml(m.span?.[1] || '')}<br>` +
+      `학습 ${escapeHtml(m.trained_at || '')} · 오염률 ${(Number(m.contamination) * 100).toFixed(1)}% <span class="text-muted">(가정)</span> · ` +
+      `홀드아웃 이상률 ${(Number(m.holdout_anomaly_rate) * 100).toFixed(1)}%${shift}` +
+      (m.dropped_zero ? ` · <span class="text-muted">캡처 공백 ${Number(m.dropped_zero)}건 제외</span>` : '') + ` ${ready}`;
+  }
+
+  function retrainML() {
+    const msg = document.getElementById('ml-retrain-msg');
+    if (msg) msg.textContent = '재학습 중…';
+    fetch('/api/ml/retrain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(r => r.json()).then(d => {
+        if (msg) msg.textContent = d.ok
+          ? `완료 — ${Number(d.n_samples).toLocaleString()}건, 홀드아웃 이상률 ${(d.holdout_anomaly_rate * 100).toFixed(1)}%`
+          : (d.detail || d.error || d.reason || '실패');
+        loadMLStatus();
+      }).catch(() => { if (msg) msg.textContent = '요청 실패'; });
   }
 
   function triggerMLAnalysis() {
@@ -450,6 +482,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
+    retrainML,
     MITRE_LOG_MAX, initMLCharts, loadMitreCoverage, loadMitreMatrix, mitreLogBuffer,
     renderMitreLog, sendFeedback, setMitreView, showTechniqueDetail, triggerMLAnalysis,
   });

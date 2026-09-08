@@ -12,6 +12,7 @@ Q-Learning(임계값 튜닝)이 함께 있었으나, 셋 모두 실데이터로 
 실트래픽으로 재학습할 수 있는 유일한 모델이라서 남겼을 뿐, 지금 시점의 출력은
 정상 프로파일 근사치 이상의 의미가 없다. 성능을 주장하지 않는다.
 """
+import json
 import os
 import threading
 import time
@@ -20,6 +21,7 @@ from datetime import datetime
 
 import joblib
 import numpy as np
+import sklearn
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
@@ -54,6 +56,19 @@ _NORMAL_RANGES = [
 ]
 _INT_FEATURES = (5, 6)
 _BOOTSTRAP_SAMPLES = 200
+
+# 실트래픽 재학습 — scripts/eval_ml.py 의 MIN_FEATURES_FOR_RETRAIN 과 같은 값.
+# 3초 주기 피처 3,000건 = 약 2.5시간 가동분. 그보다 적으면 하루 중 한 시간대의
+# 프로파일만 배워 다른 시간대를 전부 이상으로 본다.
+MIN_REAL_SAMPLES = 3000
+# 오염률은 **측정값이 아니라 가정**이다. 비지도 학습이라 "실트래픽의 몇 %가
+# 이상인가"를 알 수 없고, 이 값이 곧 이상 판정 비율이 된다. 5% 로 두고 메타데이터에
+# 남겨 나중에 라벨이 생기면 다시 정한다. 합성 부트스트랩의 8% 보다 낮게 잡은 이유:
+# 실트래픽에서는 8% 가 하루 2시간을 '이상'으로 만든다.
+REAL_CONTAMINATION = 0.05
+REAL_MODEL = "iso_forest_real.pkl"
+REAL_SCALER = "scaler_real.pkl"
+REAL_META = "iso_forest_real.json"
 
 
 def _synthetic_normal_profile(seed=42, n=_BOOTSTRAP_SAMPLES):
@@ -97,6 +112,7 @@ class MLAnalyst:
             "model_status":  "초기화 중...",
             "training_done": False,
             "trained_on":    "synthetic",   # synthetic | real
+            "real_model":    None,          # 실트래픽 모델 메타데이터(있을 때)
             "feedback":      {"true_positive": 0, "false_positive": 0},
         }
         self.analysis_log = deque(maxlen=100)
@@ -158,7 +174,95 @@ class MLAnalyst:
             out["feature_store"] = self.store.stats()
         except Exception:
             out["feature_store"] = {"total": 0, "real": 0, "demo": 0, "pending": 0}
+        real = int((out["feature_store"] or {}).get("real") or 0)
+        out["retrain"] = {"min_samples": MIN_REAL_SAMPLES, "have": real,
+                          "ready": real >= MIN_REAL_SAMPLES,
+                          "contamination": REAL_CONTAMINATION}
         return out
+
+    # ──────────────────── 실트래픽 재학습 ────────────────────
+
+    def retrain_from_store(self, min_samples=MIN_REAL_SAMPLES,
+                           contamination=REAL_CONTAMINATION, force=False):
+        """피처 저장소의 **실트래픽(origin=real)** 만으로 IF 를 다시 학습한다.
+
+        - demo 피처는 절대 섞지 않는다(합성 생성기를 학습하게 된다).
+        - pps·bps 가 둘 다 0 인 창은 뺀다. 캡처가 죽어 있던 구간이 '정상 프로파일'
+          이 되면 살아 있는 트래픽 전부가 이상으로 보인다(실측: 표준입력 캡처 사고).
+        - 시간순 뒤쪽 20% 를 홀드아웃으로 두고 앞 80% 로 학습해 홀드아웃 이상률을
+          잰다. 라벨이 없으니 정확도가 아니라 **분포 이동의 냄새**를 보는 것이다 —
+          오염률 가정보다 훨씬 높으면 학습 구간이 대표성이 없다는 뜻이다.
+        - 그 뒤 전체로 다시 학습해 저장한다. 메타데이터(json)에 표본 수·구간·
+          오염률·홀드아웃 이상률·sklearn 버전을 남긴다 — 이 숫자만이 이 모델에
+          대해 주장할 수 있는 전부다.
+        """
+        try:
+            self.store.flush()
+        except Exception:
+            pass
+        rows = self.store.load(origin="real")
+        X_all = np.array([r[2:] for r in rows], dtype=np.float32) if rows else np.zeros((0, len(FEATURE_NAMES)), dtype=np.float32)
+        live = (X_all[:, 0] > 0) | (X_all[:, 1] > 0) if len(X_all) else np.zeros(0, dtype=bool)
+        X = X_all[live]
+        dropped_zero = int(len(X_all) - len(X))
+        if len(X) < min_samples and not force:
+            return {"ok": False, "reason": "insufficient_real_features",
+                    "have": int(len(X)), "need": int(min_samples), "dropped_zero": dropped_zero,
+                    "detail": f"실트래픽 피처 {len(X):,}건 — 최소 {min_samples:,}건 필요"
+                              f"({max(0, min_samples - len(X)):,}건 부족, 3초 주기로 약 "
+                              f"{max(0, min_samples - len(X)) * 3 / 3600:.1f}시간 가동분)"}
+        if len(X) < 50:
+            return {"ok": False, "reason": "too_few_for_holdout", "have": int(len(X)),
+                    "detail": "홀드아웃을 나눌 수 없을 만큼 적다(50건 미만)"}
+
+        contamination = float(contamination)
+        split = int(len(X) * 0.8)
+        X_tr, X_ho = X[:split], X[split:]
+        sc = StandardScaler().fit(X_tr)
+        probe = IsolationForest(n_estimators=200, contamination=contamination,
+                                random_state=42, n_jobs=-1).fit(sc.transform(X_tr))
+        holdout_rate = float(np.mean(probe.predict(sc.transform(X_ho)) == -1))
+
+        scaler = StandardScaler().fit(X)
+        model = IsolationForest(n_estimators=200, contamination=contamination,
+                                random_state=42, n_jobs=-1).fit(scaler.transform(X))
+        train_rate = float(np.mean(model.predict(scaler.transform(X)) == -1))
+
+        live_rows = [r for r, keep in zip(rows, live) if keep]
+        meta = {
+            "trained_on": "real", "trained_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "n_samples": int(len(X)), "dropped_zero": dropped_zero,
+            "span": [live_rows[0][0], live_rows[-1][0]],
+            "contamination": contamination, "contamination_is_assumption": True,
+            "holdout_fraction": 0.2, "holdout_anomaly_rate": round(holdout_rate, 4),
+            "train_anomaly_rate": round(train_rate, 4),
+            "distribution_shift_suspected": bool(holdout_rate > contamination * 3),
+            "features": list(FEATURE_NAMES), "sklearn": sklearn.__version__,
+            "forced": bool(force and len(X) < min_samples),
+        }
+        os.makedirs(MODEL_DIR, exist_ok=True)
+        joblib.dump(model, os.path.join(MODEL_DIR, REAL_MODEL))
+        joblib.dump(scaler, os.path.join(MODEL_DIR, REAL_SCALER))
+        with open(os.path.join(MODEL_DIR, REAL_META), "w", encoding="utf-8") as f:
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+
+        with self._lock:
+            self.iso_forest, self.scaler = model, scaler
+            self.stats["trained_on"] = "real"
+            self.stats["real_model"] = meta
+            self.stats["model_status"] = "정상 운영 (실트래픽)"
+            self.stats["training_done"] = True
+        _log.info(f"[MLAnalyst] IF 실트래픽 재학습: {meta['n_samples']:,}건 "
+                  f"({meta['span'][0]} ~ {meta['span'][1]}), 홀드아웃 이상률 {holdout_rate:.1%}")
+        try:
+            self.socketio.emit("ml_model_ready", {
+                "message": f"IF 실트래픽 재학습 완료 ({meta['n_samples']:,}건)",
+                "models": ["Isolation Forest"], "trained_on": "real",
+                "timestamp": datetime.now().strftime("%H:%M:%S"),
+            })
+        except Exception:
+            pass
+        return {"ok": True, **meta}
 
     def get_log(self, limit=20) -> list:
         with self._lock:
@@ -210,6 +314,27 @@ class MLAnalyst:
         threading.Thread(target=self._analysis_loop, daemon=True).start()
 
     def _train_isolation_forest(self):
+        # 실트래픽으로 학습한 모델이 있으면 그것이 우선이다.
+        real_model = os.path.join(MODEL_DIR, REAL_MODEL)
+        real_scaler = os.path.join(MODEL_DIR, REAL_SCALER)
+        real_meta = os.path.join(MODEL_DIR, REAL_META)
+        if os.path.exists(real_model) and os.path.exists(real_scaler):
+            try:
+                model, scaler = joblib.load(real_model), joblib.load(real_scaler)
+                meta = None
+                if os.path.exists(real_meta):
+                    with open(real_meta, encoding="utf-8") as f:
+                        meta = json.load(f)
+                with self._lock:
+                    self.iso_forest, self.scaler = model, scaler
+                    self.stats["trained_on"] = "real"
+                    self.stats["real_model"] = meta
+                _log.info("[MLAnalyst] IF 실트래픽 모델 로드"
+                          + (f" ({meta['n_samples']:,}건, {meta['trained_at']})" if meta else ""))
+                return
+            except Exception as e:
+                _log.warning(f"[MLAnalyst] 실트래픽 모델 로드 실패({e}) — 합성 부트스트랩으로")
+
         model_path = os.path.join(MODEL_DIR, "iso_forest.pkl")
         scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
 

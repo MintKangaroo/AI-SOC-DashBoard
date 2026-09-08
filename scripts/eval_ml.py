@@ -37,6 +37,7 @@ import numpy as np
 from modules.ml_feature_store import MLFeatureStore
 
 # ── 평가 가능 최소 요건 ──
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MIN_FEATURES_FOR_RETRAIN = 3000   # IF 실트래픽 재학습 (3초 주기 ≈ 2.5시간)
 MIN_LABELS_FOR_EVAL = 100         # precision/recall 신뢰구간이 의미를 갖는 최소치
 MIN_LABELS_PER_CLASS = 30         # RF 복귀 조건 (클래스당)
@@ -429,6 +430,25 @@ def _fmt_synthetic(s):
     ])
 
 
+def model_state():
+    """지금 운영 중인 IF 가 무엇으로 학습됐는지 — 메타데이터 파일이 유일한 근거다."""
+    meta_path = os.path.join(REPO, "data", "models", "iso_forest_real.json")
+    if not os.path.exists(meta_path):
+        return {"trained_on": "synthetic", "detail": "실트래픽 모델 없음 — 합성 부트스트랩(200샘플) 운영 중. "
+                                                    "피처가 차면 `python scripts/retrain_ml.py` 또는 ML 패널의 '실트래픽으로 재학습'"}
+    try:
+        with open(meta_path, encoding="utf-8") as f:
+            m = json.load(f)
+    except (OSError, ValueError) as e:
+        return {"trained_on": "unknown", "detail": f"메타데이터 읽기 실패: {e}"}
+    return {"trained_on": "real", "meta": m,
+            "detail": (f"실트래픽 {m.get('n_samples', 0):,}건 ({(m.get('span') or ['?', '?'])[0]} ~ "
+                       f"{(m.get('span') or ['?', '?'])[1]}) · 학습 {m.get('trained_at')} · "
+                       f"오염률 {m.get('contamination')} (가정) · 홀드아웃 이상률 "
+                       f"{m.get('holdout_anomaly_rate', 0):.1%}"
+                       + (" · ⚠ 분포 이동 의심" if m.get("distribution_shift_suspected") else ""))}
+
+
 def main():
     ap = argparse.ArgumentParser(description="ML 평가 — 데이터 부족 시 숫자를 만들지 않는다")
     ap.add_argument("--json", action="store_true", help="기계 판독용 JSON 출력")
@@ -442,6 +462,7 @@ def main():
         return 0
 
     data = survey()
+    data["model_state"] = model_state()
     data["real_evaluation"] = real_evaluation(data)
     data["synthetic_control"] = synthetic_control()
 
@@ -453,6 +474,12 @@ def main():
     print("=" * 60)
     print()
     print(_fmt_survey(data))
+    print()
+    ms = data["model_state"]
+    print("═══ 1.5 운영 모델 ═══")
+    print()
+    print(f"  학습 데이터: {ms['trained_on']}")
+    print(f"  {ms['detail']}")
     print()
     ev = data["real_evaluation"]
     print("═══ 2. 실데이터 평가 (룰 베이스라인 대비) ═══")

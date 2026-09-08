@@ -166,6 +166,11 @@ packet_analyzer.get_stats() → ml_analyst.feed_traffic() (3초 주기)
 
 ※ ML 판정은 참고용이다(summary.advisory_only=true). threat_detector·soar 의
    탐지·차단 결정에 연결되어 있지 않다.
+※ **실트래픽 재학습**: `MLAnalyst.retrain_from_store()` — origin=real 만, pps·bps 0 인
+   캡처 공백 창 제외, 시간순 뒤 20% 홀드아웃 이상률로 분포 이동 냄새 확인, 메타데이터
+   `data/models/iso_forest_real.json`. 기동 시 실모델이 있으면 우선 로드. 진입점은
+   `POST /api/ml/retrain`(패널 버튼) 또는 `scripts/retrain_ml.py`(파일만 갱신 → 재기동).
+   오염률은 측정값이 아니라 **가정**(0.05)이며 메타데이터에 그렇게 적힌다.
 ※ RF·LSTM·Q-Learning 은 실데이터 미학습·출력 미사용으로 experimental/ 에 격리.
    격리 사유와 복귀 조건은 experimental/README.md 참조.
 ※ 성능 수치는 scripts/eval_ml.py 가 출력한 값으로만 주장한다. 현재는 실트래픽

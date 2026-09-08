@@ -93,6 +93,28 @@ def ml_decision():
     return jsonify(ds.get_summary())
 
 
+@api_bp.route("/ml/retrain", methods=["POST"])
+def ml_retrain():
+    """IF 를 저장소의 실트래픽 피처만으로 재학습한다. 부족하면 ok=False 와 사유."""
+    ml = ml_analyst()
+    data = request.get_json(silent=True) or {}
+    kwargs = {"force": bool(data.get("force", False))}
+    if data.get("contamination") is not None:
+        try:
+            c = float(data["contamination"])
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "contamination 은 0~0.5 사이 실수"}), 400
+        if not 0 < c <= 0.5:
+            return jsonify({"ok": False, "error": "contamination 은 0~0.5 사이 실수"}), 400
+        kwargs["contamination"] = c
+    result = ml.retrain_from_store(**kwargs)
+    if result.get("ok"):
+        audit_record("ml_retrain", "isolation_forest",
+                     f"{result['n_samples']}건 · 오염률 {result['contamination']} · "
+                     f"홀드아웃 이상률 {result['holdout_anomaly_rate']}")
+    return jsonify(result)
+
+
 @api_bp.route("/ml/feedback", methods=["POST"])
 def ml_feedback():
     ml = ml_analyst()
