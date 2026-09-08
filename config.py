@@ -106,6 +106,9 @@ class Config:
     EDR_SCAN_INTERVAL = float(os.getenv("EDR_SCAN_INTERVAL", 5))
     EDR_RESPONSE_MODE = os.getenv("EDR_RESPONSE_MODE", "simulate")  # simulate | kill
     EDR_HOST_LABEL = os.getenv("EDR_HOST_LABEL", "")
+    # 임시 경로 실행(IOA-TMPEXEC) 에서 제외할 경로 접두(쉼표). 기본은 pytest 의
+    # 임시 디렉터리 — 실측 라벨링에서 오탐 118그룹의 근원이었다. /tmp 탐지 자체는 유지.
+    EDR_TMPEXEC_ALLOW_PREFIXES = os.getenv("EDR_TMPEXEC_ALLOW_PREFIXES", "/tmp/pytest-of-")
 
     # 네트워크 모니터링 관제
     NET_MONITOR_INTERVAL = float(os.getenv("NET_MONITOR_INTERVAL", 5))

@@ -74,6 +74,12 @@ class EDRSensor:
                  mitre_tracker=None, ai_analyst=None, ip_reputation=None):
         self.socketio = socketio
         self.config = config or {}
+        raw = str(self.config.get("EDR_TMPEXEC_ALLOW_PREFIXES", "/tmp/pytest-of-") or "")
+        # 임시 경로 실행 예외 — 반드시 임시 경로 아래의 접두여야 한다. "/" 같은 값을
+        # 넣으면 규칙이 통째로 꺼지므로 TEMP_DIRS 아래가 아닌 접두는 무시한다.
+        self.tmpexec_allow = tuple(
+            p.strip().lower() for p in raw.split(",")
+            if p.strip() and p.strip().lower().startswith(TEMP_DIRS) and len(p.strip()) > 5)
         self.threat_detector = threat_detector
         self.mitre = mitre_tracker
         self.ai = ai_analyst
@@ -305,8 +311,10 @@ class EDRSensor:
                          "severity": "CRITICAL", "mitre": "T1059"})
             risk += 65
 
-        # 3) 임시 경로에서 실행 (드로퍼/스테이징)
-        if exe.startswith(TEMP_DIRS) or any(cmd.startswith(t) for t in TEMP_DIRS):
+        # 3) 임시 경로에서 실행 (드로퍼/스테이징) — 허용 접두(pytest 임시 디렉터리 등)는 제외
+        in_tmp = exe.startswith(TEMP_DIRS) or any(cmd.startswith(t) for t in TEMP_DIRS)
+        allowed = any(exe.startswith(p) or cmd.startswith(p) for p in self.tmpexec_allow)
+        if in_tmp and not allowed:
             ioas.append({"rule": "IOA-TMPEXEC", "desc": "임시 디렉터리에서 실행",
                          "severity": "HIGH", "mitre": "T1036"})
             risk += 40

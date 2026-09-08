@@ -27,3 +27,19 @@ def test_real_netcat_forms_still_match():
                {"name": "x", "cmdline": "", "exe_path": "/opt/tools/nc"}):
         _, ioas = s._evaluate(pr)
         assert any(i["rule"] == "IOA-BIN-nc" for i in ioas), pr
+
+
+def test_tmpexec_skips_pytest_sandbox_but_keeps_other_tmp():
+    """실측 라벨링 오탐 118그룹의 근원 — pytest 임시 디렉터리 산출물. 예외는 그 접두만."""
+    s = _sensor()
+    ok = {"name": "fmt_target", "cmdline": "/tmp/pytest-of-mintkangaroo/pytest-59/test_x0/fmt_target", "exe_path": "/tmp/pytest-of-mintkangaroo/pytest-59/test_x0/fmt_target"}
+    bad = {"name": "xmrig", "cmdline": "/tmp/.x/xmrig -o pool:4444", "exe_path": "/tmp/.x/xmrig"}
+    assert not any(i["rule"] == "IOA-TMPEXEC" for i in s._evaluate(ok)[1])
+    assert any(i["rule"] == "IOA-TMPEXEC" for i in s._evaluate(bad)[1])
+
+
+def test_tmpexec_allow_prefix_must_live_under_temp_dirs():
+    """'/' 나 '/usr' 같은 값으로 규칙을 통째로 끄는 실수를 막는다."""
+    s = EDRSensor(Sock(), {"EDR_TMPEXEC_ALLOW_PREFIXES": "/, /usr, /tmp/ok-"})
+    assert s.tmpexec_allow == ("/tmp/ok-",)
+    assert any(i["rule"] == "IOA-TMPEXEC" for i in s._evaluate({"name": "x", "cmdline": "/tmp/evil", "exe_path": "/tmp/evil"})[1])
