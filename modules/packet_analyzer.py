@@ -82,6 +82,14 @@ class PacketAnalyzer:
         self.running = True
 
         if not demo and (PYSHARK_AVAILABLE or SCAPY_AVAILABLE):
+            # 인터페이스 미지정이면 기본 라우트 장치를 고른다. PyShark 에 None 을
+            # 넘기면 "모든 인터페이스" 인데, WSL 처럼 도커 브리지가 20개 넘게 있는
+            # 호스트에서 그 목록이 '-'(표준입력) 하나로 무너져 dumpcap 이 -i - 로
+            # 떠서 패킷 0건이었다(실측 2026-09-08). 실모드인데 0 pps 면 실패다.
+            if not interface:
+                interface = self.default_interface()
+                _log.info(f"[PacketAnalyzer] 캡처 인터페이스 자동 선택: {interface or '(전체)'}")
+            self.interface = interface
             target = self._capture_pyshark if PYSHARK_AVAILABLE else self._capture_scapy
             self.source_mode = "real"
             self.thread = threading.Thread(
@@ -104,6 +112,24 @@ class PacketAnalyzer:
     def stop(self):
         self.running = False
 
+    @staticmethod
+    def default_interface(route_table=None):
+        """기본 라우트(목적지 0.0.0.0)의 장치명. 없으면 None(=백엔드 기본값).
+
+        route_table: /proc/net/route 내용(테스트용). 기본은 실제 파일을 읽는다.
+        """
+        try:
+            text = route_table if route_table is not None else open("/proc/net/route").read()
+        except OSError:
+            return None
+        for line in text.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) >= 4 and parts[1] == "00000000":
+                flags = int(parts[3], 16)
+                if flags & 0x1:            # RTF_UP
+                    return parts[0]
+        return None
+
     def get_stats(self):
         with self._lock:
             stats = dict(self.stats)
@@ -115,6 +141,7 @@ class PacketAnalyzer:
         )
         # 소비자(ml_analyst)가 합성/실측을 구분할 수 있어야 한다.
         stats["source_mode"] = self.source_mode
+        stats["interface"] = getattr(self, "interface", None)
         return stats
 
     def get_recent_packets(self, limit=50):
