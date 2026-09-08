@@ -88,10 +88,6 @@
         <i class="fa fa-satellite-dish"></i><span>Syslog 수신</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-syslog-count">0</span>
       </a>
-      <a href="#honeypot" class="sidebar-link" data-panel="honeypot">
-        <i class="fa fa-shield-halved"></i><span>허니팟</span>
-        <span class="badge bg-secondary ms-auto" id="sidebar-honeypot-count">0</span>
-      </a>
       <a href="#snort" class="sidebar-link" data-panel="snort">
         <i class="fa fa-shield-virus"></i><span>Snort · UFW</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-snort-count">0</span>
@@ -280,7 +276,6 @@
     <template data-panel="myinfo">{% include "panels/myinfo.html" %}</template>
     <template data-panel="siem">{% include "panels/siem.html" %}</template>
     <template data-panel="syslog">{% include "panels/syslog.html" %}</template>
-    <template data-panel="honeypot">{% include "panels/honeypot.html" %}</template>
     <template data-panel="snort">{% include "panels/snort.html" %}</template>
     <template data-panel="suricata">{% include "panels/suricata.html" %}</template>
     <template data-panel="authlog">{% include "panels/authlog.html" %}</template>
@@ -319,7 +314,6 @@
 <script defer src="/static/js/dash/13-watchlist.js"></script>
 <script defer src="/static/js/dash/14-campaigns.js"></script>
 <script defer src="/static/js/dash/15-syslog.js"></script>
-<script defer src="/static/js/dash/16-honeypot.js"></script>
 <script defer src="/static/js/dash/17-siem-correlation.js"></script>
 <script defer src="/static/js/dash/18-snort.js"></script>
 <script defer src="/static/js/dash/19-yara.js"></script>

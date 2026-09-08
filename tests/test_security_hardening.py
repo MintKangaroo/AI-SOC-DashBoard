@@ -144,14 +144,13 @@ def app_module(tmp_path_factory):
     workdir = tmp_path_factory.mktemp("app_isolated")
     saved_cwd = os.getcwd()
     saved_env = {k: os.environ.get(k) for k in (
-        "AUTH_ENABLED", "SOAR_BLOCK_MODE", "SOAR_AUTO_BLOCK", "SYSLOG_ENABLED",
-        "HONEYPOT_ENABLED", "DEMO_MODE", "NTFY_ENABLED", "SNORT_ENABLED",
+        "AUTH_ENABLED", "SOAR_BLOCK_MODE", "SOAR_AUTO_BLOCK", "SYSLOG_ENABLED", "DEMO_MODE", "NTFY_ENABLED", "SNORT_ENABLED",
         "SIEM_ACCESS_LOGS", "AUTH_LOG_PATH", "ANSIBLE_TARGETS",
         "NET_MONITOR_TARGETS", "FUZZ_TARGETS")}
 
     os.environ.update(
         AUTH_ENABLED="False", SOAR_BLOCK_MODE="simulate", SOAR_AUTO_BLOCK="False",
-        SYSLOG_ENABLED="False", HONEYPOT_ENABLED="False", DEMO_MODE="True",
+        SYSLOG_ENABLED="False", DEMO_MODE="True",
         NTFY_ENABLED="False", SNORT_ENABLED="False",
         SIEM_ACCESS_LOGS="none=/nonexistent/access.log",   # 실로그를 읽지 않는다
         AUTH_LOG_PATH="/nonexistent/auth.log",

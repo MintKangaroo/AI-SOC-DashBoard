@@ -18,14 +18,13 @@ def app_module(tmp_path_factory):
     """실제 앱을 임시 디렉터리에서 띄운다 — 실제 data/ 를 건드리지 않는다."""
     workdir = tmp_path_factory.mktemp("app_errors")
     saved_cwd = os.getcwd()
-    keys = ("AUTH_ENABLED", "SOAR_BLOCK_MODE", "SOAR_AUTO_BLOCK", "SYSLOG_ENABLED",
-            "HONEYPOT_ENABLED", "DEMO_MODE", "SNORT_ENABLED", "NTFY_ENABLED",
+    keys = ("AUTH_ENABLED", "SOAR_BLOCK_MODE", "SOAR_AUTO_BLOCK", "SYSLOG_ENABLED", "DEMO_MODE", "SNORT_ENABLED", "NTFY_ENABLED",
             "SIEM_ACCESS_LOGS", "AUTH_LOG_PATH", "ANSIBLE_TARGETS",
             "NET_MONITOR_TARGETS", "FUZZ_TARGETS", "DEBUG")
     saved_env = {k: os.environ.get(k) for k in keys}
     os.environ.update(
         AUTH_ENABLED="False", SOAR_BLOCK_MODE="simulate", SOAR_AUTO_BLOCK="False",
-        SYSLOG_ENABLED="False", HONEYPOT_ENABLED="False", DEMO_MODE="True",
+        SYSLOG_ENABLED="False", DEMO_MODE="True",
         SNORT_ENABLED="False", NTFY_ENABLED="False", DEBUG="False",
         SIEM_ACCESS_LOGS="none=/nonexistent/access.log",
         AUTH_LOG_PATH="/nonexistent/auth.log",

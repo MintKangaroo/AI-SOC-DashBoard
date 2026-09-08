@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **50개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -35,7 +35,6 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **ML 이상탐지** | `ml_analyst` Isolation Forest — 트래픽 이상 점수(참고용) | 피처는 `ml_features.db` 에 영속화되어 재학습·평가 가능 |
 | **퍼플팀 회귀검증** | `purple_team` — 7종 모의공격을 실제 탐지엔진에 주입 | 룰 변경 후 탐지 커버리지 검증 |
 | **킬체인 상관관계** | `correlation` — 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
-| **허니팟** | `honeypot` — 유인 서비스 접촉은 오탐이 거의 없는 고신뢰 침해지표 | 진짜 공격자를 확실하게 식별 |
 | **SOC 운영 지표** | `soc_metrics` — MTTD/MTTR/MTTA·오탐율·처리량 계량 | 관제 성숙도를 수치로 관리 |
 | **detection-as-code** | Sigma·YARA 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 — 실제로 **정상 프로세스를 HIGH 로 올리던 룰**을 잡아냄 |
 | **커버리지 자가 진단** | `coverage` — 룰·퍼플팀검증·히트 3축을 MITRE 매트릭스에 겹침 | 히트 0 이 *공격이 없었다*인지 ***룰이 없어 못 본다*** 인지 구분 |
@@ -106,7 +105,6 @@ flowchart LR
 - **Sysmon** — 프로세스 생성·네트워크·자격증명 접근 이벤트 (`sysmon_parser`)
 - **네트워크 관제** — 활성 연결·리스닝 포트·대역폭, 서비스 헬스체크 (`net_monitor`)
 - **Syslog 수신** — 원격 서버(자동매매 KR/USA)의 접속 시도를 UDP/TCP로 실시간 수집·분류 (`syslog_receiver`)
-- **허니팟** — SSH/Telnet/MySQL/Redis 등 유인 서비스 리스너, 접촉=고신뢰 침해지표 (`honeypot`)
 
 ### ② 탐지 · Detection Engineering
 - **위협 탐지** — DDoS · 포트스캔 · 악성코드 C2, 신뢰도 스코어링 (`threat_detector`)
@@ -228,7 +226,6 @@ PORT=5055 ./venv/bin/python app.py
 - [ ] **`SECRET_KEY`** 를 랜덤 고정값으로 — 비워두면 재시작마다 세션이 끊깁니다
 - [ ] HTTPS 로 서비스한다면 **`SESSION_COOKIE_SECURE=True`**
       (Tailscale HTTP 접속이면 `False` 여야 로그인이 유지됩니다)
-- [ ] `HONEYPOT_BIND=0.0.0.0` 으로 유인 포트를 실제 노출할지 결정
 - [ ] `SOAR_BLOCK_MODE` 가 의도한 값인지 (`simulate` / `ufw` / `iptables`)
 
 ---
@@ -251,7 +248,7 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 115개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (37개, Jinja include)
+│   └── panels/               # 패널별 UI 조각 (36개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~22, 순서대로 로드)
 ├── tests/                    # pytest 821개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)

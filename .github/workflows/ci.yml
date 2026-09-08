@@ -70,7 +70,6 @@ jobs:
           SOAR_BLOCK_MODE: simulate
           SOAR_AUTO_BLOCK: "False"
           PATCH_APPLY_ENABLED: "False"
-          HONEYPOT_ENABLED: "False"
           SYSLOG_ENABLED: "False"
           NTFY_ENABLED: "False"
         run: |

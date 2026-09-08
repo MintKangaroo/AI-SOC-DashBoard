@@ -44,7 +44,6 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `data/sigma/*.yml` | Sigma 탐지 룰. **각 룰은 `tests:` 블록에 positive/negative 샘플을 함께 담는다** — CI 가 강제 |
 | `modules/geoip.py` | 공격 IP GeoIP 조회, 공격 지도 스트림 |
 | `modules/syslog_receiver.py` | Syslog(UDP+TCP 5514) 수신 — KR/USA 원격 침해시도 수집 |
-| `modules/honeypot.py` | 유인 서비스 리스너(SSH/Telnet/Redis 등) — 접촉=고신뢰 침해지표 |
 | `modules/suricata_monitor.py` | Suricata EVE JSON tail — **alert 만** 알림(`SURICATA_ALERT`), 나머지 이벤트는 카운트. Snort 와 같은 원칙: IDS 는 근거만, 차단은 SOAR. MITRE 매핑 없음(거짓 히트 방지) |
 | `modules/alert_store.py` | 알림 영속화(alerts.db) — 검색/집계/보존/아카이브. 조회는 `scope`(all/live/archive)로 활성+아카이브 통합 |
 | `modules/alert_dedup.py` | 중복제거·억제 레이어 — 핑거프린트 병합·규칙 억제·스톰 요약 |
@@ -64,7 +63,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 37개) |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 36개) |
 | `static/js/dash/01~22-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
@@ -230,16 +229,12 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
    (로컬 정상요청 제외, 예외는 모두 삼켜 매매 대시보드 무영향). 각 프로젝트
    재기동해야 활성. 끄기: 해당 프로젝트 env SOC_SYSLOG_ENABLED=0.
 
-## 허니팟 흐름 (유인 서비스)
+## 허니팟 — 제거됨 (2026-09-08)
 
-```
-공격자 ─TCP접속─▶ honeypot 유인 포트(SSH2222/Telnet2323/MySQL3306/Redis6379/…)
-  → 가짜 배너 전송 → 입력(자격증명/명령) 수집 → emit("honeypot_hit")
-  → 연결만=HIGH / 입력=CRITICAL, 외부 IP면 report_alert("HONEYPOT")
-    → 신뢰도 → AI 트리아지 → SOAR 차단 (+ 공격지도 + MITRE). 내부 IP 억제.
-```
-※ 기본 127.0.0.1 바인드(안전). 실제 인터넷 공격 포착은 HONEYPOT_BIND=0.0.0.0 +
-   외부 노출 필요. 포트 점유 시 해당 포트만 안전 skip.
+유인 서비스 리스너(`modules/honeypot.py`·패널·`/api/integrations/honeypot`)는 사용자
+요청으로 걷어냈다(나중에 다시 만들 예정). git 이력 `d75da7c` 이전에 전체 구현이 있다.
+알림 유형 `HONEYPOT` 라벨·SOAR `PB-HONEYPOT-BLOCK`·상관 규칙의 HONEYPOT 항목은
+과거 알림 11만 건이 그 유형을 쓰므로 남겨 둔다(생산자만 없다).
 
 ## SOC 운영 기능 흐름 (감사·워치리스트·상관관계)
 
@@ -300,10 +295,6 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 | `SYSLOG_ENABLED` | True | Syslog 수신기 활성 여부 |
 | `SYSLOG_BIND` | 127.0.0.1 | Syslog 수신 바인드 주소(로컬만 권장) |
 | `SYSLOG_PORT` | 5514 | Syslog 수신 포트(514는 sudo 필요) |
-| `HONEYPOT_ENABLED` | True | 허니팟 유인 서비스 활성 여부 |
-| `HONEYPOT_BIND` | 127.0.0.1 | 허니팟 바인드(실포착은 0.0.0.0+외부노출) |
-| `HONEYPOT_PORTS` | (기본셋) | 유인 포트 "2222,2323,3306,6379,8081,9200" |
-| `HONEYPOT_COOLDOWN` | 30 | 동일 IP 재알림 최소 간격(초) |
 | `DEDUP_ENABLED` | True | 알림 중복제거·억제 레이어 활성 |
 | `DEDUP_WINDOW_SECONDS` | 300 | 중복 병합 윈도우(초). 실측 5분에서 30.4% 병합 |
 | `DEDUP_STORM_THRESHOLD` | 20 | 60초 내 동일 핑거프린트 이 횟수 초과 시 스톰 |

@@ -550,7 +550,6 @@
     if (name === 'threat-intel') loadThreatIntel();
     if (name === 'siem') loadSiem();
     if (name === 'syslog') loadSyslog();
-    if (name === 'honeypot') loadHoneypot();
     if (name === 'snort') loadSnort(true);
     if (name === 'suricata') loadSuricata(true);
     if (name === 'authlog') loadAuthlog();

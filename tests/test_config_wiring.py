@@ -213,7 +213,7 @@ def test_env_example_documents_tuning_knobs():
         "DDOS_PACKET_THRESHOLD", "PORT_SCAN_THRESHOLD",
         "SIEM_CORR_WINDOW", "SIEM_CORR_BRUTE",
         "INCIDENT_AUTO_RESOLVE_DAYS", "DEDUP_WINDOW_SECONDS",
-        "AI_TIMEOUT_SECONDS", "HONEYPOT_MAX_CONNS", "CSRF_PROTECTION",
+        "AI_TIMEOUT_SECONDS", "SYSLOG_MAX_CONNS", "CSRF_PROTECTION",
     }
     missing = sorted(must_document - documented)
     assert missing == [], f".env.example 에 없는 튜닝 노브: {missing}"

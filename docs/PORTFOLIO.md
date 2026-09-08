@@ -5,7 +5,7 @@
 > 탐지 → 자동대응(SOAR) → 취약점 관리까지 SOC 업무 흐름 전체를 하나의 대시보드로 구현했습니다.
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 15,000 LOC**로 구현한
+Vulnerability Management · Purple Team · SOC Metrics)을 **50개 모듈 / 약 15,000 LOC**로 구현한
 개인 학습·포트폴리오 프로젝트입니다.
 
 - **기간**: 2026.07 ~ (지속 개발)
@@ -39,7 +39,6 @@ SOC 실무의 진짜 난제는 알림 홍수 속에서 **진짜 위협만 골라
 | **중복제거·억제** | 같은 핑거프린트 병합 + 운영자 규칙 억제 (억제분도 원문 보관) | 실측 11만 건 리플레이 **31.2% 감축** |
 | **detection-as-code** | 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 |
 | **킬체인 상관관계** | 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
-| **허니팟** | 유인 서비스 접촉은 오탐이 거의 없는 고신뢰 침해 지표 | 진짜 공격자를 확실하게 식별 |
 | **퍼플팀 회귀검증** | 모의공격을 실제 탐지엔진에 주입해 커버리지 측정 | 룰 변경 후 탐지 성능 검증 |
 | **커버리지 자가 진단** | 룰·퍼플팀검증·히트 3축을 조인 | 히트 0 이 '공격이 없었다'인지 '못 본다'인지 구분 |
 | **라벨링 큐 + 출처 판별** | 알림 11만 건을 그룹 67개로 묶어 한 번에 판정. 그룹마다 합성/실측 구성을 먼저 보여줌 | 합성 데이터로 정답지를 만드는 실수를 막음 — 실측상 합성 표지 없는 알림은 **0.17%** |
@@ -69,14 +68,6 @@ SOC 파이프라인을 한눈에 봅니다 — **① 수집(SIEM) → ② AI 트
 관제 성숙도를 수치로 관리합니다 — **MTTR/MTTA·종결율·오탐율**,
 **일별 심각도 추세**, **요일×시간 공격 집중 히트맵**, **TOP 위협 유형/공격자 IP**.
 오래된 알림은 무손실 아카이브로 이관해 활성 DB를 가볍게 유지합니다.
-
-### 4. 허니팟 (유인 서비스)
-![허니팟](portfolio_img/04-honeypot.png)
-
-공격자가 노리는 서비스(SSH·Telnet·MySQL·Redis·HTTP 등)를 흉내 낸 **가짜 리스너**입니다.
-정상 사용자는 접근할 이유가 없으므로 여기에 붙는 연결은 사실상 전부 침해 시도 —
-**연결만 해도 HIGH, 자격증명·명령 입력이 있으면 CRITICAL**로 파이프라인에 투입됩니다.
-포착한 자격증명 시도(`root:admin123` 등)와 공격자 IP를 그대로 남깁니다.
 
 ### 5-1. SIEM 이벤트 검색 (Splunk 스타일)
 ![SIEM 검색](portfolio_img/13-siem-search.png)
@@ -244,8 +235,8 @@ YARA 는 **파일 내용의 패턴**으로 잡아 변종을 덮습니다. 웹셸
  패킷캡처               위협탐지엔진           IP평판(AbuseIPDB)      AI 트리아지
  SSH auth.log     ─▶   Sigma 룰엔진    ─▶     위협인텔·워치리스트  ─▶  자동차단(TTL·allowlist)
  Syslog 수신           EDR(IOA)               킬체인 상관관계         인시던트 케이스
- 허니팟                해시검사               자체 ML·Claude AI      ntfy 폰 알림
- 네트워크 관제         MITRE ATT&CK 매핑                             │
+ 네트워크 관제         해시검사               자체 ML·Claude AI      ntfy 폰 알림
+ Suricata/Snort IDS    MITRE ATT&CK 매핑                             │
                                                                     ▼
                               [⑤ 취약점·검증]          [⑥ SOC 운영]
                                취약점 스캔(교차검증)     운영 지표(MTTR/오탐율)
@@ -268,7 +259,7 @@ YARA 는 **파일 내용의 패턴**으로 잡아 변종을 덮습니다. 웹셸
 | 분류 | 사용 기술 |
 |------|-----------|
 | **백엔드** | Python · Flask · Flask-SocketIO(실시간) · Blueprint REST API |
-| **수집·탐지** | PyShark · Scapy · Sysmon · Syslog(UDP/TCP) · 허니팟(TCP 유인 리스너) · Snort · psutil |
+| **수집·탐지** | PyShark · Scapy · Sysmon · Syslog(UDP/TCP) · Snort · Suricata · psutil |
 | **탐지 룰** | **Sigma**(프로세스·로그) · **YARA**(파일 내용 — 해시가 못 잡는 변종) · MITRE ATT&CK 매핑 |
 | **위협 인텔** | AbuseIPDB(IP 평판) · IOC 워치리스트 · 킬체인 상관관계 · GeoIP |
 | **AI/ML** | Anthropic Claude API(비동기 트리아지·리포트, 타임아웃·서킷브레이커) · Isolation Forest **참고용 이상탐지** |
@@ -290,7 +281,7 @@ YARA 는 **파일 내용의 패턴**으로 잡아 변종을 덮습니다. 웹셸
 - 일괄 명령은 **파괴적 명령 차단**(`rm -rf`·`reboot`·`mkfs` 등 blocklist)
 - 웹 퍼징은 **사설/Tailscale 대상만** 허용, 기본 GET 전용, rate-limit
 - SOAR 자동 차단은 **사설·CGNAT·Tailscale·자기 자신 절대 차단 금지**, 차단 TTL 자동 만료
-- **허니팟은 신뢰 네트워크(Tailscale)에만 노출**, EDR 프로세스 종료는 시스템 프로세스 보호·시뮬레이션 기본
+- EDR 프로세스 종료는 시스템 프로세스 보호·시뮬레이션 기본
 - 매매 대시보드로의 로그 전송(Syslog 포워딩)은 **모든 예외를 삼켜** 트레이딩에 영향을 주지 않음
 
 ---

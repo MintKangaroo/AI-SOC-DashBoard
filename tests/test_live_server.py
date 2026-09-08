@@ -38,8 +38,7 @@ STARTUP_TIMEOUT = 90
 ENV = {
     "AUTH_ENABLED": "False", "DEMO_MODE": "True", "DEBUG": "False",
     "SOAR_BLOCK_MODE": "simulate", "SOAR_AUTO_BLOCK": "False",
-    "PATCH_APPLY_ENABLED": "False", "SYSLOG_ENABLED": "False",
-    "HONEYPOT_ENABLED": "False", "SNORT_ENABLED": "False", "NTFY_ENABLED": "False",
+    "PATCH_APPLY_ENABLED": "False", "SYSLOG_ENABLED": "False", "SNORT_ENABLED": "False", "NTFY_ENABLED": "False",
     "SIEM_ACCESS_LOGS": "none=/nonexistent/a.log",
     "AUTH_LOG_PATH": "/nonexistent/a.log",
     "ANSIBLE_TARGETS": "", "NET_MONITOR_TARGETS": "", "FUZZ_TARGETS": "",
