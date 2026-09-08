@@ -575,6 +575,29 @@ html, body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--disabled); }
 
+/* ── 리포트 이력: 선택된 항목 ── */
+.report-item { cursor: pointer; }
+.report-item:hover { background: var(--bg-hover); }
+.report-item.active { background: color-mix(in srgb, var(--cyan) 10%, transparent); box-shadow: inset 2px 0 0 var(--cyan); }
+
+/* ── SOAR 대응 정책 스트립: 지금 무엇을 자동으로 하고 무엇 앞에서 멈추는가 ── */
+.policy-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.policy-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg-secondary);
+  font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.3;
+}
+.policy-chip b { color: var(--text-primary); font-weight: 600; }
+.policy-chip i { font-size: var(--fs-label); }
+.policy-chip.on  { border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+.policy-chip.on  b { color: var(--green); }
+.policy-chip.off b { color: var(--text-muted); }
+.policy-chip.warn { border-color: color-mix(in srgb, var(--yellow) 45%, var(--border)); }
+.policy-chip.warn b { color: var(--yellow); }
+.policy-chip.danger { border-color: color-mix(in srgb, var(--red) 50%, var(--border)); }
+.policy-chip.danger b { color: var(--red); }
+
 /* ── MITRE ATT&CK 매트릭스 ── */
 .mitre-matrix-wrapper {
   overflow-x: auto;
@@ -1396,6 +1419,11 @@ body::before {
 
   /* 버튼 터치 영역 */
   .btn-xs { padding: 4px 8px; font-size: var(--fs-label); }
+
+  /* KPI 는 모바일에서 2열·아이콘 생략 — 카드 넷이 세로로 서면 두 화면을 먹는다 */
+  .kpi-row .stat-card { padding: 10px 8px; }
+  .kpi-row .stat-icon { display: none; }
+  .kpi-row .stat-value { font-size: var(--fs-kpi-sm); }
 
   /* 상세 컨트롤(인시던트 등) 세로 스택 */
   #inc-detail-controls { flex-direction: column; }

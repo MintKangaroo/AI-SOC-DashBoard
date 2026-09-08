@@ -185,10 +185,8 @@
     set('sidebar-soar-count', stats.total_actions);
     const modeEl = document.getElementById('soar-mode-label');
     if (modeEl) modeEl.textContent = d.block_mode || 'simulate';
-    // 안전장치 정보
     const safety = d.safety || {};
-    const prevEl = document.getElementById('soar-prevented');
-    if (prevEl) prevEl.textContent = (safety.prevented || 0).toLocaleString();
+    renderSoarPolicy(d, safety);
     const extraEl = document.getElementById('soar-safety-extra');
     if (extraEl) {
       const allow = safety.allowlist || [];
@@ -243,6 +241,37 @@
       const rows = (d.actions || []).map(soarActionRow).join('');
       tbody.innerHTML = rows || '<tr><td colspan="6" class="text-muted text-center p-3">아직 대응 이력 없음</td></tr>';
     }
+  }
+
+  /* 대응 정책 스트립 — 상태값이 곧 운영자의 첫 질문이다:
+     "지금 자동으로 막나? 승인은 필요한가? 얼마나 오래 막나? 무엇 앞에서 멈추나?" */
+  function renderSoarPolicy(d, safety) {
+    const strip = document.getElementById('soar-policy');
+    const badge = document.getElementById('soar-mode-badge');
+    const real = d.block_mode && d.block_mode !== 'simulate';
+    if (badge) {
+      badge.textContent = real ? `실차단 · ${d.block_mode}` : '시뮬레이션';
+      badge.className = `badge ms-2 ${real ? 'bg-danger' : 'badge-neutral'}`;
+    }
+    if (!strip) return;
+    const chip = (cls, icon, label, value, title) =>
+      `<span class="policy-chip ${cls}" title="${escapeHtml(title || '')}"><i class="fa ${icon}"></i>${escapeHtml(label)} <b>${escapeHtml(value)}</b></span>`;
+    const prevented = Number(safety.prevented || 0);
+    strip.innerHTML = [
+      chip(real ? 'danger' : '', 'fa-fire-flame-curved', '차단 모드', real ? d.block_mode : 'simulate(기록만)',
+           real ? '방화벽 규칙을 실제로 적용한다' : '차단을 기록만 하고 방화벽은 건드리지 않는다'),
+      chip(d.auto_block ? 'on' : 'off', 'fa-robot', '자동 차단', d.auto_block ? '활성' : '중지',
+           '정탐 CRITICAL 이 게이트를 전부 통과하면 사람 개입 없이 차단'),
+      chip(d.approval_required ? 'warn' : 'off', 'fa-user-check', '승인 게이트',
+           d.approval_required ? `활성 · ${Number(d.approval_timeout_minutes || 0)}분 내 결정` : '비활성',
+           d.approval_required ? '차단 전 분석가 승인을 기다린다. 시간 내 미결정이면 만료' : '승인 없이 진행'),
+      chip('', 'fa-hourglass-half', '차단 유지', `${Number(d.block_ttl_hours || 0)}h`, '이 시간이 지나면 자동 해제'),
+      chip('', 'fa-gauge-high', '최소 신뢰도', `${Number(d.min_block_confidence || 0)}%`, '이 미만이면 차단 판정을 내리지 않는다'),
+      chip(d.require_corroboration ? 'on' : 'off', 'fa-link', '독립 근거', d.require_corroboration ? '2개 이상 요구' : '요구 안 함',
+           'IDS 시그니처·평판·IoC 등 서로 다른 출처가 겹쳐야 차단'),
+      chip(prevented ? 'on' : '', 'fa-shield-halved', '안전장치가 막은 차단', String(prevented),
+           '사설·Tailscale·서버 자신을 향한 차단 시도를 거부한 횟수'),
+    ].join('');
   }
 
   const SOAR_RUN_STATE = {pending:'대기', running:'진행 중', completed:'완료',
@@ -319,6 +348,11 @@
     if (state) state.innerHTML = `자동화 <b class="${d.auto_block ? 'text-success' : 'text-danger'}">${d.auto_block ? '활성' : '중지'}</b> · 승인 게이트 <b class="${d.approval_required ? 'text-warning' : 'text-muted'}">${d.approval_required ? `활성(${d.approval_timeout_minutes}분)` : '비활성'}</b> · 실행 중 <b class="text-info">${running}</b> · 실패 <b class="text-danger">${failed}</b>`;
     const count = document.getElementById('overview-approval-count');
     if (count) { count.textContent = pending.length; count.className = `badge ms-2 ${pending.length ? 'bg-warning text-dark' : 'bg-secondary'}`; }
+    // SOAR 패널: 대기 배지 + 일괄 승인 버튼은 대기 건이 있을 때만
+    const pb = document.getElementById('soar-pending-badge');
+    if (pb) { pb.textContent = `대기 ${pending.length}`; pb.className = `badge ms-2 ${pending.length ? 'bg-warning text-dark' : 'bg-secondary'}`; }
+    document.getElementById('soar-approve-all')?.classList.toggle('d-none', !pending.length);
+    const n = document.getElementById('soar-approve-all-n'); if (n) n.textContent = pending.length;
     document.getElementById('overview-approve-all')?.classList.toggle('d-none', !pending.length);
     const box = document.getElementById('overview-approvals');
     if (box) box.innerHTML = pending.length ? pending.map(run => `

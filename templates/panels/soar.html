@@ -1,51 +1,51 @@
     <!-- ════ SOAR 자동 대응 패널 ════ -->
     <div id="panel-soar" class="panel-section d-none">
       <h2 class="panel-title">
-        <i class="fa fa-robot me-2 text-cyan"></i>SOAR — AI 기반 자동 대응 (Playbooks)
+        <i class="fa fa-robot me-2 text-cyan"></i>SOAR 자동 대응
+        <span class="badge ms-2 badge-neutral" id="soar-mode-badge" title="차단 모드">simulate</span>
         <button class="btn btn-xs btn-outline-cyan ms-auto" data-action="loadSoar">
           <i class="fa fa-sync me-1"></i>새로고침
         </button>
       </h2>
 
-      <!-- 가이드 -->
+      <!-- 대응 정책 — 지금 이 시스템이 무엇을 자동으로 하고, 무엇 앞에서 멈추는가.
+           운영자가 이 패널에서 가장 먼저 확인해야 할 상태라 맨 위에 둔다. -->
+      <div class="policy-strip mb-3" id="soar-policy" aria-label="자동 대응 정책 상태">
+        <span class="policy-chip"><span class="text-muted">불러오는 중…</span></span>
+      </div>
+
+      <!-- 안내 -->
       <div class="panel-note mb-3 panel-note--cyan">
-        <h3 class="card-panel-header">
-          <i class="fa fa-lightbulb text-cyan me-2"></i>이 패널은 어떻게 봐야 할까?
-        </h3>
         <div class="panel-note-body">
-          탐지(SIEM/IDS) → <strong>AI 트리아지(Claude가 정탐/오탐 판정)</strong> → 자동 대응(차단/종결/에스컬레이션)의
-          SOC 워크플로를 자동화합니다. 오탐은 자동 종결되어 ML 모델에 피드백되고, 정탐 CRITICAL은 외부 IP를 자동 차단합니다.
-          차단 모드 <code id="soar-mode-label">simulate</code> — 시뮬레이션은 기록만 하며,
-          홈서버 실차단은 <code>.env</code>에 <code>SOAR_BLOCK_MODE=ufw</code> 설정 (sudo 필요).
-        </div>
-        <div class="small mt-2 pt-2 text-fg" style="border-top:1px solid var(--border)">
-          <i class="fa fa-shield-halved text-success me-1"></i><strong>안전장치</strong>:
-          사설·<span class="text-cyan">Tailscale(100.64.0.0/10)</span>·서버 자신은 <u>절대 차단 안 함</u>(자가 락아웃 방지).
-          <span id="soar-safety-extra"></span>
-          안전장치로 차단 차단된 횟수 <span class="badge bg-success" id="soar-prevented">0</span>
+          탐지 → <strong>AI 트리아지</strong>(Claude 가 정탐/오탐 판정) → 대응(차단·종결·에스컬레이션)을 플레이북이 자동으로 잇습니다.
+          오탐은 자동 종결되어 ML 에 피드백되고, 정탐 CRITICAL 은 외부 IP 를 차단합니다.
+          차단 모드 <code id="soar-mode-label">simulate</code> 는 기록만 하며, 실차단은 <code>.env</code> 의 <code>SOAR_BLOCK_MODE=ufw</code> 입니다.
+          <span class="d-block mt-1"><i class="fa fa-shield-halved text-success me-1"></i><strong>안전장치</strong> —
+          사설·Tailscale(100.64.0.0/10)·서버 자신은 어떤 판정에서도 차단하지 않습니다(자가 락아웃 방지).
+          <span id="soar-safety-extra"></span></span>
         </div>
       </div>
 
       <!-- KPI -->
-      <div class="row g-3 mb-3">
-        <div class="col-md-3"><div class="stat-card border-cyan">
+      <div class="row g-2 g-md-3 mb-3 kpi-row">
+        <div class="col-6 col-md-3"><div class="stat-card border-cyan">
           <div class="stat-icon text-cyan"><i class="fa fa-bolt"></i></div>
           <div class="stat-value" id="soar-total-actions">0</div>
           <div class="stat-label">자동 대응 수행</div>
         </div></div>
-        <div class="col-md-3"><div class="stat-card border-danger">
+        <div class="col-6 col-md-3"><div class="stat-card border-danger">
           <div class="stat-icon text-danger"><i class="fa fa-ban"></i></div>
           <div class="stat-value text-danger" id="soar-blocked">0</div>
           <div class="stat-label">차단된 IP</div>
         </div></div>
-        <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-success clickable"
-             data-action="showVerdictDetail" data-args='["fp"]' title="클릭하면 오탐 종결 상세 내역">
+        <div class="col-6 col-md-3"><div role="button" tabindex="0" class="stat-card border-success clickable"
+             data-action="showVerdictDetail" data-args='["fp"]' title="오탐 종결 상세 내역 보기">
           <div class="stat-icon text-success"><i class="fa fa-circle-check"></i></div>
           <div class="stat-value text-success" id="soar-closed-fp">0</div>
           <div class="stat-label">오탐 자동 종결</div>
         </div></div>
-        <div class="col-md-3"><div role="button" tabindex="0" class="stat-card border-warning clickable"
-             data-action="showVerdictDetail" data-args='["tp"]' title="클릭하면 정탐 에스컬레이션 상세 내역">
+        <div class="col-6 col-md-3"><div role="button" tabindex="0" class="stat-card border-warning clickable"
+             data-action="showVerdictDetail" data-args='["tp"]' title="정탐 에스컬레이션 상세 내역 보기">
           <div class="stat-icon text-warning"><i class="fa fa-arrow-up-right-dots"></i></div>
           <div class="stat-value text-warning" id="soar-escalated">0</div>
           <div class="stat-label">정탐 에스컬레이션</div>
@@ -53,7 +53,9 @@
       </div>
 
       <div class="row g-3">
-        <div class="col-lg-5">
+        <!-- 모바일에서는 실행 현황·승인(오른쪽 열)이 플레이북 정의보다 먼저 온다 —
+             지금 처리할 것이 정의보다 급하다. -->
+        <div class="col-lg-5 order-2 order-lg-1">
           <!-- 플레이북 -->
           <div class="card-panel mb-3">
             <h3 class="card-panel-header"><i class="fa fa-book text-cyan me-2"></i>플레이북</h3>
@@ -74,17 +76,18 @@
             </div>
           </div>
         </div>
-        <!-- 대응 타임라인 -->
-        <div class="col-lg-7">
+        <!-- 실행 현황 · 결정 기록 · 타임라인 -->
+        <div class="col-lg-7 order-1 order-lg-2">
           <div class="card-panel mb-3">
             <h3 class="card-panel-header">
               <i class="fa fa-route text-cyan me-2"></i>플레이북 실행 현황
+              <span class="badge bg-secondary ms-2" id="soar-pending-badge" title="승인 대기">대기 0</span>
               <span class="ms-auto small" id="soar-vt-status"></span>
-              <button class="btn btn-xs btn-outline-cyan ms-2" data-action="testVirusTotal">
-                <i class="fa fa-vial me-1"></i>EICAR 연결 테스트
+              <button class="btn btn-xs btn-outline-cyan ms-2" data-action="testVirusTotal" title="VirusTotal 연결을 EICAR 테스트 해시로 확인">
+                <i class="fa fa-vial me-1"></i>연결 테스트
               </button>
-              <button class="btn btn-xs btn-outline-success ms-1" data-action="approveAllSoar">
-                <i class="fa fa-check-double me-1"></i>대기 일괄 승인
+              <button class="btn btn-xs btn-success ms-1 d-none" id="soar-approve-all" data-action="approveAllSoar">
+                <i class="fa fa-check-double me-1"></i>대기 <span id="soar-approve-all-n">0</span>건 일괄 승인
               </button>
             </h3>
             <div id="soar-vt-test-result" class="small px-2 pb-2 d-none"></div>
@@ -93,10 +96,10 @@
             </div>
           </div>
           <!-- 차단 결정 재현 (docs/AUDIT.md 3단계 제안 C) -->
-          <div class="panel-note mb-3 panel-note--purple">
+          <div class="card-panel mb-3">
             <h3 class="card-panel-header">
               <i class="fa fa-scale-balanced text-purple me-2"></i>차단 결정 기록
-              <span class="small text-muted ms-2">— 차단하지 <b>않은</b> 결정도 남긴다</span>
+              <span class="small text-muted ms-2 d-none d-sm-inline">— 차단하지 <b>않은</b> 결정도 남긴다</span>
               <select id="bd-filter" aria-label="차단 결정 거르기" class="form-select form-select-sm bg-dark text-white border-secondary ms-auto"
                       style="width:auto" data-action-change="loadBlockDecisions">
                 <option value="all">전체</option>
