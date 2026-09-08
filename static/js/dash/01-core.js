@@ -439,20 +439,39 @@
   }
 
   /* ─────────────────── 사이드바 접이식 그룹 ─────────────────── */
-  function toggleGroup(name) {
+  /* 사이드바 그룹은 아코디언이다 — 하나를 열면 나머지는 닫힌다.
+     모바일에서 그룹 다섯 개가 동시에 펼쳐지면 링크 36개가 한 화면에 쏟아져
+     원하는 패널을 찾으려고 스크롤해야 했다(사용자 제보). */
+  function _setGroupOpen(name, open) {
     const body = document.getElementById('sgroup-' + name);
     const head = document.getElementById('sgroup-head-' + name);
     if (!body || !head) return;
-    const opened = !body.classList.toggle('collapsed');
-    head.classList.toggle('open', opened);
+    body.classList.toggle('collapsed', !open);
+    head.classList.toggle('open', open);
+    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function _collapseOtherGroups(keep) {
+    document.querySelectorAll('.sidebar-group-body').forEach(b => {
+      const name = b.id.replace('sgroup-', '');
+      if (name !== keep) _setGroupOpen(name, false);
+    });
+  }
+
+  function toggleGroup(name) {
+    const body = document.getElementById('sgroup-' + name);
+    if (!body) return;
+    const opening = body.classList.contains('collapsed');
+    if (opening) _collapseOtherGroups(name);
+    _setGroupOpen(name, opening);
   }
 
   function expandGroupFor(link) {
     const body = link.closest('.sidebar-group-body');
     if (!body) return;
-    body.classList.remove('collapsed');
-    const head = document.getElementById('sgroup-head-' + body.id.replace('sgroup-', ''));
-    if (head) head.classList.add('open');
+    const name = body.id.replace('sgroup-', '');
+    _collapseOtherGroups(name);
+    _setGroupOpen(name, true);
   }
 
   /* 그룹 헤더 배지: 하위 카운트 합산 (접혀 있어도 현황 파악 가능) */
