@@ -552,6 +552,7 @@
     if (name === 'syslog') loadSyslog();
     if (name === 'snort') loadSnort(true);
     if (name === 'suricata') loadSuricata(true);
+    if (name === 'zeek') loadZeek(true);
     if (name === 'authlog') loadAuthlog();
     if (name === 'reputation') loadReputation();
     if (name === 'edr') loadEdr();

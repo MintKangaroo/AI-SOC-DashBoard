@@ -96,6 +96,10 @@
         <i class="fa fa-eye"></i><span>Suricata IDS</span>
         <span class="badge bg-secondary ms-auto" id="sidebar-suricata-count">0</span>
       </a>
+      <a href="#zeek" class="sidebar-link" data-panel="zeek">
+        <i class="fa fa-diagram-project"></i><span>Zeek 노티스</span>
+        <span class="badge bg-secondary ms-auto" id="sidebar-zeek-count">0</span>
+      </a>
       <a href="#traffic" class="sidebar-link" data-panel="traffic">
         <i class="fa fa-chart-line"></i><span>네트워크 트래픽</span>
       </a>
@@ -278,6 +282,7 @@
     <template data-panel="syslog">{% include "panels/syslog.html" %}</template>
     <template data-panel="snort">{% include "panels/snort.html" %}</template>
     <template data-panel="suricata">{% include "panels/suricata.html" %}</template>
+    <template data-panel="zeek">{% include "panels/zeek.html" %}</template>
     <template data-panel="authlog">{% include "panels/authlog.html" %}</template>
     <template data-panel="reputation">{% include "panels/reputation.html" %}</template>
     <template data-panel="watchlist">{% include "panels/watchlist.html" %}</template>
@@ -320,5 +325,6 @@
 <script defer src="/static/js/dash/20-hunt.js"></script>
 <script defer src="/static/js/dash/21-labeling.js"></script>
 <script defer src="/static/js/dash/22-suricata.js"></script>
+<script defer src="/static/js/dash/23-zeek.js"></script>
 </body>
 </html>

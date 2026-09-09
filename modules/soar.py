@@ -632,6 +632,8 @@ class SOAREngine:
             evidence.add("snort_signature")
         elif details.get("source") == "suricata":
             evidence.add("suricata_signature")
+        elif details.get("source") == "zeek":
+            evidence.add("zeek_notice")
         rep = details.get("ip_reputation") or {}
         if rep.get("score", 0) >= 90 and rep.get("source") != "demo":
             evidence.add("abuseipdb_90")

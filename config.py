@@ -44,6 +44,11 @@ class Config:
     SURICATA_INTERFACE = os.getenv("SURICATA_INTERFACE", "eth0")
     SURICATA_BLOCK_EXCLUDED_SIDS = os.getenv("SURICATA_BLOCK_EXCLUDED_SIDS", "")
 
+    # Zeek notice.log 연동 — notice 만 알림(conn/dns/http 는 기록이지 판단이 아니다)
+    ZEEK_ENABLED = os.getenv("ZEEK_ENABLED", "True")
+    ZEEK_NOTICE_PATH = os.getenv("ZEEK_NOTICE_PATH", "/opt/zeek/logs/current/notice.log")
+    ZEEK_POLL_INTERVAL = float(os.getenv("ZEEK_POLL_INTERVAL", 1.0))
+
     # Sysmon log path (Windows)
     SYSMON_LOG_CHANNEL = os.getenv("SYSMON_LOG_CHANNEL", "Microsoft-Windows-Sysmon/Operational")
 

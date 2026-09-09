@@ -98,8 +98,12 @@ def survey():
     out["labels_archive"] = _label_counts(ARCHIVE_DB, "alerts_archive")
     out["labels_grouped"] = _group_label_counts()
 
+    # 사람 라벨 = alerts 의 verdict(알림 화면 '정탐/오탐 확정') + labels.db 의 개별(single)
+    # 판정(라벨링 큐에서 alert_id 를 지목해 한 건씩 판정). 둘 다 사람이 한 건씩 본 것이다.
+    # 그룹(group) 판정은 여기 들어오지 않는다.
     human = (out["labels_live"].get("human_total", 0)
-             + out["labels_archive"].get("human_total", 0))
+             + out["labels_archive"].get("human_total", 0)
+             + out["labels_grouped"].get("single_decisions", 0))
     real_feats = out["features"].get("real", 0)
 
     # **그룹 라벨을 개별 라벨과 합쳐 세지 않는다.**

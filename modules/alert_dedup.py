@@ -59,7 +59,7 @@ DEFAULT_STORM_SUMMARY_EVERY = 300.0   # 스톰 지속 시 요약 알림 재발�
 SUPPRESSION_EXEMPT_SEVERITIES = ("CRITICAL",)
 
 # 소스별로 details 에 흩어져 있는 룰 식별자. 앞에서부터 처음 발견되는 것을 쓴다.
-_RULE_ID_KEYS = ("rule_id", "sid", "signature_id", "rule", "signature", "technique_id",
+_RULE_ID_KEYS = ("rule_id", "sid", "signature_id", "note", "rule", "signature", "technique_id",
                  "category", "service")
 
 # 설명 정규화: 숫자·헥스·IP·따옴표 내용을 자리표시자로 바꿔 형태만 남긴다

@@ -268,3 +268,19 @@ def test_provenance_marks_honeypot_and_old_authlog_as_synthetic():
     assert classify_provenance("SSH 무차별 대입", d, timestamp="2026-07-22 11:04:59")[0] == PROVENANCE_SYNTHETIC
     assert classify_provenance("SSH 무차별 대입", d, timestamp="2026-09-07 01:00:00")[0] == PROVENANCE_REAL
     assert classify_provenance("SSH 무차별 대입", d)[0] == PROVENANCE_REAL   # 시각 모르면 보수적으로 실측
+
+
+def test_eval_counts_single_labels_as_human(tmp_path, monkeypatch):
+    """라벨링 큐에서 alert_id 를 지목한 개별(single) 판정은 사람 라벨이다 — 그룹 판정은 아니다."""
+    import importlib, sys
+    from modules.labeling import LabelStore
+    ev = sys.modules.get("scripts.eval_ml") or importlib.import_module("scripts.eval_ml")
+    monkeypatch.setattr(ev, "ALERTS_DB", str(tmp_path / "alerts.db"))
+    monkeypatch.setattr(ev, "ARCHIVE_DB", str(tmp_path / "alerts_archive.db"))
+    monkeypatch.setattr(ev, "FEATURES_DB", str(tmp_path / "ml_features.db"))
+    ls = LabelStore(str(tmp_path / "labels.db"))
+    ls.put("EDR||x", "FALSE_POSITIVE", "me", "그룹 판정", scope="group", covers=50)
+    ls.put("EDR||x", "FALSE_POSITIVE", "me", "건별 검토함", scope="single", alert_id=7, covers=1)
+    ls.put("EDR||y", "TRUE_POSITIVE", "me", "건별 검토함", scope="single", alert_id=8, covers=1)
+    v = ev.survey()["verdict"]
+    assert v["human_labels"] == 2 and v["grouped_decisions"] == 1 and v["grouped_covers"] == 50

@@ -12,7 +12,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **50개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
+Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
 센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
 
 ![AI 관제 센터](docs/portfolio_img/01-overview.png)
@@ -254,8 +254,8 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 115개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (36개, Jinja include)
-├── static/js/dash/           # 패널별 JS (01~22, 순서대로 로드)
+│   └── panels/               # 패널별 UI 조각 (37개, Jinja include)
+├── static/js/dash/           # 패널별 JS (01~23, 순서대로 로드)
 ├── tests/                    # pytest 849개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB

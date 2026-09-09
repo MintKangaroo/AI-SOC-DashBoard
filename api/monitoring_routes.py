@@ -153,6 +153,14 @@ def suricata_status():
     return jsonify(sensor.get_status())
 
 
+@api_bp.route("/integrations/zeek", methods=["GET"])
+def zeek_status():
+    sensor = getattr(current_app._get_current_object(), "zeek", None)
+    if sensor is None:
+        return jsonify({"enabled": False, "status": "unavailable", "recent": []})
+    return jsonify(sensor.get_status())
+
+
 # ------------------------------------------------------------------ #
 #  SIEM 상관관계 분석
 # ------------------------------------------------------------------ #

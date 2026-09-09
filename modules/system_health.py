@@ -24,6 +24,7 @@ SPECS = [
     ("authlog",         "SSH 인증 로그",    "수집·탐지"),
     ("snort",           "Snort IDS",        "수집·탐지"),
     ("suricata",        "Suricata IDS",     "수집·탐지"),
+    ("zeek",            "Zeek 노티스",      "수집·탐지"),
     # 위협 분석
     ("ml_analyst",      "ML 분석 엔진",     "위협 분석"),
     ("ai_analyst",      "Claude AI 분석",   "위협 분석"),
@@ -83,7 +84,7 @@ def _extract_mode(key, svc, eff, status, demo_default):
         return "real" if (status or {}).get("available") else "demo"
     if key == "notifier":
         return "real" if (status or {}).get("active") else "off"
-    if key in ("snort", "suricata"):
+    if key in ("snort", "suricata", "zeek"):
         # IDS 는 합성 이벤트를 만들지 않는다 — 로그가 실제로 붙었을 때만 real
         st = (status or {}).get("status")
         return "real" if st == "active" else "off"

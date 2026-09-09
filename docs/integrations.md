@@ -215,8 +215,23 @@ sudo -n /usr/local/sbin/soc-ufw status
 계정 비활성화, 세션 종료, 엔드포인트 격리는 분석가가 증거를 확인한 뒤 별도로
 승인해야 한다.
 
-### 지원 예정 시스템
-- Zeek (Bro)
+### Zeek notice.log — 연동됨 (2026-09-09)
+
+`modules/zeek_monitor.py`. Zeek 는 시그니처 IDS 가 아니라 프로토콜 분석기라 판단이
+담긴 로그는 `notice.log` 뿐이다 — **notice 만** 알림(`ZEEK_NOTICE`)으로 올린다.
+conn/dns/http/ssl 을 올리면 알림 파이프라인이 트래픽 로그가 된다.
+
+| 항목 | 값 |
+|---|---|
+| 설정 | `ZEEK_ENABLED` · `ZEEK_NOTICE_PATH`(기본 `/opt/zeek/logs/current/notice.log`) · `ZEEK_POLL_INTERVAL` |
+| 형식 | JSON(`LogAscii::use_json=T`)·TSV(`#fields` 헤더) 모두. Zeek 의 시간별 회전(새 inode)을 따라가며 헤더를 다시 읽는다 |
+| 심각도 | note 별 표(`_NOTE_RULES`): Scan::*·SSH::Password_Guessing·FTP::Bruteforcing HIGH, HTTP::SQL_Injection_Attacker CRITICAL, SSL/Weird LOW, 그 외 MEDIUM |
+| MITRE | note 를 IDS 분류 어휘(network-scan·unsuccessful-user·web-application-attack…)로 옮겨 `IDS_CATEGORY_MAPPING` 을 그대로 쓴다. Intel::Notice·Signatures::* 는 비움 |
+| 차단 근거 | `zeek_notice` — 단독 차단 불가, 다른 독립 근거와 합쳐야 함 |
+| 중복 제거 | 룰ID 로 `note` 를 읽어 같은 note 반복은 ×N 병합 |
+
+설치(Ubuntu): `apt install zeek` 후 `zeekctl deploy`. 로그 경로가 `/usr/local/zeek/logs/current` 면
+`ZEEK_NOTICE_PATH` 를 맞출 것. 없으면 수집기는 `waiting` 으로 있다가 파일이 생기면 붙는다.
 
 ### Suricata EVE JSON — 연동됨 (2026-09-07)
 

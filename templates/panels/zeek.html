@@ -1,0 +1,52 @@
+    <div id="panel-zeek" class="panel-section d-none">
+      <h2 class="panel-title d-flex align-items-center">
+        <i class="fa fa-diagram-project me-2 text-cyan"></i>Zeek 노티스 · notice.log
+        <span id="zeek-live-badge" class="badge bg-secondary ms-3">확인 중</span>
+        <button class="btn btn-xs btn-outline-info ms-auto" data-action="loadZeek" data-args='[true]'>
+          <i class="fa fa-rotate me-1"></i>새로고침
+        </button>
+      </h2>
+
+      <div class="panel-note mb-3 panel-note--cyan">
+        <div class="panel-note-body">
+          Zeek 는 시그니처 IDS 가 아니라 프로토콜 분석기입니다. conn·dns·http·ssl 로그는 "무슨 일이 있었나"의 기록이고,
+          판단이 담긴 것은 <code>notice.log</code> 뿐입니다(Scan::Port_Scan · SSH::Password_Guessing · HTTP::SQL_Injection_* · Intel::Notice …).
+          그래서 <strong>notice 만</strong> 알림으로 올립니다. JSON·TSV 형식을 모두 읽고, Zeek 의 시간별 로그 회전을 따라갑니다.
+          Snort·Suricata 와 같은 원칙으로 <strong>단독 차단은 하지 않습니다</strong>.
+        </div>
+      </div>
+
+      <div class="row g-2 g-md-3 mb-3 kpi-row">
+        <div class="col-6 col-md-3"><div class="stat-card border-cyan h-100">
+          <div id="zeek-service" class="stat-value text-cyan">—</div><div class="stat-label">Zeek 서비스</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="stat-card border-warning h-100">
+          <div id="zeek-alert-count" class="stat-value text-warning">0</div><div class="stat-label">수집된 notice</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="stat-card border-success h-100">
+          <div id="zeek-note-kinds" class="stat-value text-success">0</div><div class="stat-label">notice 종류</div>
+        </div></div>
+        <div class="col-6 col-md-3"><div class="stat-card border-purple h-100">
+          <div id="zeek-invalid-count" class="stat-value text-purple">0</div><div class="stat-label">파싱 제외</div>
+        </div></div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-lg-6"><div class="card-panel h-100">
+          <h3 class="card-panel-header"><i class="fa fa-microchip text-cyan me-2"></i>센서 구성</h3>
+          <div id="zeek-config" class="p-3 small text-muted">불러오는 중…</div>
+        </div></div>
+        <div class="col-lg-6"><div class="card-panel h-100">
+          <h3 class="card-panel-header"><i class="fa fa-layer-group text-success me-2"></i>notice 종류별 건수</h3>
+          <div id="zeek-by-note" class="p-3 small text-muted">아직 수신 없음</div>
+        </div></div>
+      </div>
+
+      <div class="card-panel p-0">
+        <h3 class="card-panel-header px-3"><i class="fa fa-list text-warning me-2"></i>최근 notice</h3>
+        <div class="table-responsive"><table class="table table-dark table-hover table-sm mb-0">
+          <thead><tr><th>시각</th><th>심각도</th><th>note</th><th>메시지</th><th>출발지</th><th>목적지</th><th>프로토콜</th></tr></thead>
+          <tbody id="zeek-events"><tr><td colspan="7" class="text-center text-muted py-3">새 notice 대기 중</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>

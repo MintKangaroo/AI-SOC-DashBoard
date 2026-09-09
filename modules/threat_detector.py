@@ -45,6 +45,7 @@ THREAT_TYPES = {
     "CORRELATED": "SIEM 상관관계 탐지",
     "SNORT_ALERT": "Snort IDS 탐지",
     "SURICATA_ALERT": "Suricata IDS 탐지",
+    "ZEEK_NOTICE": "Zeek 노티스",
 }
 
 
@@ -491,6 +492,9 @@ class ThreatDetector:
         elif alert.details.get("source") == "suricata":
             evidence.add("suricata_signature")
             score += 0.10 if alert.details.get("severity_raw") == 1 else 0.05
+        elif alert.details.get("source") == "zeek":
+            evidence.add("zeek_notice")
+            score += 0.05
 
         # 위협 인텔 IoC 일치 → 사실상 정탐
         if self.threat_intel and alert.src_ip:
@@ -694,7 +698,7 @@ class ThreatDetector:
         if self.mitre:
             try:
                 src = alert.details.get("source") if isinstance(alert.details, dict) else None
-                if src in ("snort", "suricata") and alert.details.get("category"):
+                if src in ("snort", "suricata", "zeek") and alert.details.get("category"):
                     self.mitre.map_ids_category(src, alert.details["category"], alert.src_ip,
                                                 alert.dst_ip, alert.description, alert.severity)
                 else:

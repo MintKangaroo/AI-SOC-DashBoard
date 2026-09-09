@@ -40,6 +40,7 @@ from modules.watchlist import Watchlist
 from modules.virustotal import VirusTotalClient
 from modules.snort_monitor import SnortMonitor
 from modules.suricata_monitor import SuricataMonitor
+from modules.zeek_monitor import ZeekMonitor
 from modules.alert_dedup import AlertDeduplicator
 
 from modules.logging_setup import get_logger
@@ -128,6 +129,7 @@ def build_services(app, socketio):
     threat_intel.soar    = soar
     snort = SnortMonitor(socketio, app.config, threat_detector=threat_detector)
     suricata = SuricataMonitor(socketio, app.config, threat_detector=threat_detector)
+    zeek = ZeekMonitor(socketio, app.config, threat_detector=threat_detector)
 
     decision = DecisionSupport(socketio)
     threat_detector.decision = decision   # 클러스터 prior → 알림 신뢰도 반영
@@ -251,6 +253,7 @@ def build_services(app, socketio):
     app.purple           = purple
     app.snort            = snort
     app.suricata         = suricata
+    app.zeek             = zeek
 
 
 def start_services(app, socketio):
@@ -262,6 +265,7 @@ def start_services(app, socketio):
     app.threat_detector.start(demo=demo)
     app.snort.start(demo=False)       # Snort는 합성 이벤트를 만들지 않음
     app.suricata.start(demo=False)    # Suricata 도 마찬가지 — 없으면 waiting
+    app.zeek.start(demo=False)        # Zeek notice.log — 없으면 waiting
     app.sysmon_parser.start(demo=demo)
     app.ai_analyst.start()
     app.ml_analyst.start(demo=demo)   # 피처 origin(real/demo) 구분 저장
