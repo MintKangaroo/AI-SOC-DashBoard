@@ -8,7 +8,7 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 from werkzeug.exceptions import HTTPException
-from flask import (Flask, render_template, request, session,
+from flask import (Flask, render_template, request, session, g,
                    redirect, jsonify)
 from flask_socketio import SocketIO
 from flask_cors import CORS
@@ -20,6 +20,8 @@ flask.cli.show_server_banner = lambda *args, **kwargs: None
 import config
 from api.routes import api_bp
 from modules.auth import AuthManager
+from modules.identity import IdentityStore, ROLES
+from modules.authorization import SocketAccess, allowed, permission_for
 from modules.logging_setup import configure_logging, get_logger
 from wiring import build_services, start_services
 
@@ -57,20 +59,16 @@ def create_app():
         password=app.config.get("DASH_PASSWORD") or None,
         password_hash=app.config.get("DASH_PASSWORD_HASH") or None,
     )
-    app.auth = auth
     auth_on = app.config.get("AUTH_ENABLED", True)
+    directory = app.config.get("AUTH_USERS_DB")
+    if auth_on and directory:
+        auth.user_store = IdentityStore(directory)
+        auth.user_store.bootstrap(auth.username, auth.password_hash)
+    app.auth = auth
     if auth_on and not auth.configured:
-        # 비밀번호 미설정 → 랜덤 발급(콘솔 1회 표시). .env에 DASH_PASSWORD 설정 권장.
-        gen = secrets.token_urlsafe(9)
-        auth.password_hash = AuthManager(auth.username, password=gen).password_hash
-        _log.warning("=" * 56)
-        _log.warning("[SOC] 대시보드 로그인 비밀번호 미설정 — 임시 발급")
-        _log.warning(f"[SOC]   사용자명: {auth.username}")
-        _log.warning(f"[SOC]   비밀번호: {gen}")
-        _log.warning("[SOC]   (.env의 DASH_PASSWORD 로 고정 설정 권장)")
-        _log.warning("=" * 56)
+        _log.warning("[SOC] No login credentials configured. Set DASH_PASSWORD_HASH or provision a managed administrator. Login remains unavailable.")
     elif not auth_on:
-        _log.warning("[SOC] 경고: AUTH_ENABLED=False — 인증 없이 노출됩니다.")
+        _log.warning("[SOC] AUTH_ENABLED=False — unrestricted local mode; role controls are not enforced.")
 
     # ── CORS: 기본은 완전히 닫는다 ──
     # 이 대시보드는 동일 출처 앱이라 CORS 가 필요 없다. 예전 설정
@@ -87,11 +85,14 @@ def create_app():
         app,
         # "*" 는 임의 출처가 세션 쿠키로 실시간 이벤트를 구독하게 한다.
         # 명시된 출처가 없으면 동일 출처만 허용한다.
-        cors_allowed_origins=cors_origins or [],
+        # Engine.IO uses None for same-origin; [] disables its origin check.
+        cors_allowed_origins=cors_origins or None,
         async_mode="threading",
         logger=False,
         engineio_logger=False,
     )
+
+    app.socket_access = SocketAccess(socketio, auth) if auth_on else None
 
     # 서비스 계층 생성·상호 배선·app 등록 (배선 상세는 wiring.py)
     build_services(app, socketio)
@@ -174,13 +175,35 @@ def create_app():
 
     @app.before_request
     def _require_login():
+        g.principal = (auth.principal(session.get('auth_sid')) if auth_on else
+                       {'username':'local-unrestricted', 'role':'admin', 'version':0})
         if not auth_on or _is_public(request.path):
             return
-        if not session.get("user"):
-            # 미인증: API는 401 JSON, 그 외는 로그인 페이지로
-            if request.path.startswith("/api/"):
-                return jsonify({"error": "인증이 필요합니다", "auth_required": True}), 401
-            return redirect("/login")
+        if not g.principal:
+            session.clear()
+            if request.path.startswith('/api/'):
+                return jsonify({'error':'Sign in required or session revoked.', 'auth_required':True}), 401
+            return redirect('/login')
+        # Never use a role or username supplied in a cookie as authorization evidence.
+        session['user'] = g.principal['username']
+
+    @app.before_request
+    def _require_access():
+        if not auth_on or not request.path.startswith('/api/') or not request.endpoint:
+            return
+        permission = permission_for(request.endpoint, request.method)
+        if not allowed(g.principal, permission):
+            from api._common import audit_record
+            audit_record('ACCESS_DENIED', request.endpoint, 'Required permission: ' + str(permission))
+            return jsonify({'error':'Your role does not permit this action.',
+                            'permission_required':permission, 'forbidden':True}), 403
+
+    @app.context_processor
+    def identity_context():
+        principal = getattr(g, 'principal', None)
+        return {'access_role':principal['role'] if principal else 'unavailable',
+                'access_permissions':sorted(ROLES.get(principal['role'], ())) if principal else [],
+                'access_auth_enabled':auth_on}
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -190,26 +213,42 @@ def create_app():
         if request.method == "POST":
             # 로그인 CSRF(외부 사이트가 폼을 대신 제출)는 _require_same_origin 이 막는다
             ip = request.remote_addr or "?"
-            ok, reason = auth.verify(request.form.get("username", ""),
-                                     request.form.get("password", ""), ip)
-            if ok:
+            token, reason = auth.login(request.form.get("username", ""),
+                                       request.form.get("password", ""), ip,
+                                       app.permanent_session_lifetime.total_seconds())
+            principal = auth.principal(token) if token else None
+            if principal:
+                auth.revoke(session.get('auth_sid'))
+                session.clear()
                 session.permanent = True
-                session["user"] = auth.username
-                _log.info(f"[SOC] 로그인 성공: {auth.username} ({ip})")
+                session['auth_sid'] = token
+                session['user'] = principal['username']
+                if app.socket_access:
+                    app.socket_access.sweep()
+                from api._common import audit_record
+                audit_record('AUTH_LOGIN', session['user'])
+                _log.info("[SOC] Login successful")
                 return redirect("/")
             if reason == "locked":
                 error = f"로그인 시도 과다 — {auth.lock_remaining(ip)}초 후 다시 시도하세요"
             else:
                 error = "사용자명 또는 비밀번호가 올바르지 않습니다"
             _log.warning(f"[SOC] 로그인 실패({reason}): {ip}")
-        elif session.get("user"):
+        elif auth.principal(session.get('auth_sid')):
             return redirect("/")
         return render_template("login.html", error=error)
 
-    @app.route("/logout")
+    @app.route("/logout", methods=['GET', 'POST'])
     def logout():
+        if request.method == 'GET':
+            return render_template('logout.html')
+        from api._common import audit_record
+        audit_record('AUTH_LOGOUT', session.get('user') or '')
+        auth.revoke(session.get('auth_sid'))
         session.clear()
-        return redirect("/login")
+        if app.socket_access:
+            app.socket_access.sweep()
+        return redirect('/login')
 
     # ------------------------------------------------------------------ #
     #  보안 헤더
@@ -333,8 +372,13 @@ def create_app():
 
     @app.route("/api/whoami")
     def whoami():
-        return jsonify({"user": session.get("user"), "auth_enabled": auth_on,
-                        "demo": app.config.get("DEMO_MODE", True)})
+        principal = getattr(g, 'principal', None)
+        return jsonify({'user':principal['username'] if principal else None, 'auth_enabled':auth_on,
+                        'role':principal['role'] if principal else None,
+                        'permissions':sorted(ROLES.get(principal['role'], ())) if principal else [],
+                        'managed_users':bool(auth.user_store),
+                        'expires_at':principal.get('expires') if principal else None,
+                        'demo':app.config.get('DEMO_MODE', True)})
 
     # ------------------------------------------------------------------ #
     #  SocketIO 이벤트
@@ -343,16 +387,24 @@ def create_app():
     @socketio.on("connect")
     def on_connect():
         # 미인증 소켓 연결 거부 (세션 쿠키로 검증)
-        if auth_on and not session.get("user"):
+        if auth_on and not app.socket_access.connect(request.sid, session.get('auth_sid')):
             return False
         _log.debug("[SOC] 클라이언트 연결됨")
 
     @socketio.on("disconnect")
     def on_disconnect():
+        if app.socket_access:
+            app.socket_access.remove(request.sid)
         _log.debug("[SOC] 클라이언트 연결 해제")
 
     @socketio.on("chat_message")
     def on_chat(data):
+        if auth_on and not allowed(auth.principal(session.get('auth_sid')), 'investigate'):
+            if not auth.principal(session.get('auth_sid')):
+                socketio.server.disconnect(request.sid, namespace='/')
+            return {'accepted':False, 'error':'Investigation permission required.'}
+        if not isinstance(data, dict) or not isinstance(data.get('message'), str) or not 1 <= len(data['message']) <= 4000 or not isinstance(data.get('context', {}), dict):
+            return {'accepted':False, 'error':'Invalid chat request.'}
         message = data.get("message", "")
         context = data.get("context", {})
         response = app.ai_analyst.chat(message, context)
@@ -364,6 +416,8 @@ def create_app():
 
     @socketio.on("request_ai_analysis")
     def on_ai_analysis(data):
+        if auth_on and not auth.principal(session.get('auth_sid')):
+            return {'accepted':False, 'error':'Session revoked.'}
         # 이전 프런트엔드 호환용 no-op. 자동 AI 트리아지는 서버 SOAR가 1회 수행한다.
         # 브라우저별 재분석은 접속자 수만큼 중복 작업을 만들므로 실행하지 않는다.
         return {"accepted": False, "reason": "server_managed_triage"}

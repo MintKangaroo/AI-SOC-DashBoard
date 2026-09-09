@@ -1,0 +1,1184 @@
+{
+  "scope": "Isolated HTTP read workload; collectors and response workers disabled.",
+  "data": "COPY OF STORED EVIDENCE",
+  "workers": 8,
+  "profile": "console",
+  "authenticated": true,
+  "target_ingest_per_second": 20.0,
+  "p95_budget_ms": 2000,
+  "python": "3.10.12",
+  "cpu_count": 12,
+  "rounds": [
+    {
+      "round": 1,
+      "cache": "initial",
+      "requests": 44,
+      "elapsed_seconds": 0.779,
+      "requests_per_second": 56.51,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 106.55,
+          "p95_ms": 299.18,
+          "max_ms": 299.18
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 32.74,
+          "p95_ms": 53.57,
+          "max_ms": 53.57
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 118.91,
+          "p95_ms": 253.41,
+          "max_ms": 253.41
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 279.93,
+          "p95_ms": 291.64,
+          "max_ms": 291.64
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 352.64,
+          "p95_ms": 380.95,
+          "max_ms": 380.95
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 101.53,
+          "p95_ms": 108.38,
+          "max_ms": 108.38
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 9.52,
+          "p95_ms": 11.12,
+          "max_ms": 11.12
+        }
+      }
+    },
+    {
+      "round": 2,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.657,
+      "requests_per_second": 67.01,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 191.72,
+          "p95_ms": 326.1,
+          "max_ms": 326.1
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 38.28,
+          "p95_ms": 53.47,
+          "max_ms": 53.47
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 138.09,
+          "p95_ms": 153.83,
+          "max_ms": 153.83
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 98.21,
+          "p95_ms": 142.03,
+          "max_ms": 142.03
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 7.54,
+          "p95_ms": 12.68,
+          "max_ms": 12.68
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 113.27,
+          "p95_ms": 120.53,
+          "max_ms": 120.53
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 17.33,
+          "p95_ms": 54.86,
+          "max_ms": 54.86
+        }
+      }
+    },
+    {
+      "round": 3,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 1.628,
+      "requests_per_second": 27.02,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 248.86,
+          "p95_ms": 1413.5,
+          "max_ms": 1413.5
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 35.57,
+          "p95_ms": 51.24,
+          "max_ms": 51.24
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 109.0,
+          "p95_ms": 127.15,
+          "max_ms": 127.15
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 79.1,
+          "p95_ms": 96.1,
+          "max_ms": 96.1
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 5.85,
+          "p95_ms": 6.7,
+          "max_ms": 6.7
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 68.99,
+          "p95_ms": 93.24,
+          "max_ms": 93.24
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 7.6,
+          "p95_ms": 10.01,
+          "max_ms": 10.01
+        }
+      }
+    },
+    {
+      "round": 4,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.684,
+      "requests_per_second": 64.32,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 122.44,
+          "p95_ms": 385.71,
+          "max_ms": 385.71
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 26.24,
+          "p95_ms": 32.46,
+          "max_ms": 32.46
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 128.31,
+          "p95_ms": 237.03,
+          "max_ms": 237.03
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 170.08,
+          "p95_ms": 204.12,
+          "max_ms": 204.12
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 8.02,
+          "p95_ms": 9.84,
+          "max_ms": 9.84
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 178.64,
+          "p95_ms": 196.38,
+          "max_ms": 196.38
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 21.29,
+          "p95_ms": 23.09,
+          "max_ms": 23.09
+        }
+      }
+    },
+    {
+      "round": 5,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.632,
+      "requests_per_second": 69.59,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 111.89,
+          "p95_ms": 196.19,
+          "max_ms": 196.19
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 69.94,
+          "p95_ms": 148.64,
+          "max_ms": 148.64
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 209.9,
+          "p95_ms": 275.49,
+          "max_ms": 275.49
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 128.88,
+          "p95_ms": 204.68,
+          "max_ms": 204.68
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 12.57,
+          "p95_ms": 19.99,
+          "max_ms": 19.99
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 108.87,
+          "p95_ms": 112.95,
+          "max_ms": 112.95
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 8.29,
+          "p95_ms": 10.64,
+          "max_ms": 10.64
+        }
+      }
+    },
+    {
+      "round": 6,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.606,
+      "requests_per_second": 72.62,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 188.15,
+          "p95_ms": 275.38,
+          "max_ms": 275.38
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 42.58,
+          "p95_ms": 48.35,
+          "max_ms": 48.35
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 140.14,
+          "p95_ms": 188.9,
+          "max_ms": 188.9
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 134.3,
+          "p95_ms": 164.69,
+          "max_ms": 164.69
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 16.0,
+          "p95_ms": 22.82,
+          "max_ms": 22.82
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 111.65,
+          "p95_ms": 117.28,
+          "max_ms": 117.28
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 9.33,
+          "p95_ms": 12.81,
+          "max_ms": 12.81
+        }
+      }
+    },
+    {
+      "round": 7,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.586,
+      "requests_per_second": 75.12,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 165.27,
+          "p95_ms": 261.27,
+          "max_ms": 261.27
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 45.14,
+          "p95_ms": 64.51,
+          "max_ms": 64.51
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 131.99,
+          "p95_ms": 204.6,
+          "max_ms": 204.6
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 93.72,
+          "p95_ms": 144.79,
+          "max_ms": 144.79
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 7.36,
+          "p95_ms": 16.22,
+          "max_ms": 16.22
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 110.43,
+          "p95_ms": 125.39,
+          "max_ms": 125.39
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 13.47,
+          "p95_ms": 14.82,
+          "max_ms": 14.82
+        }
+      }
+    },
+    {
+      "round": 8,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.706,
+      "requests_per_second": 62.29,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 240.4,
+          "p95_ms": 365.01,
+          "max_ms": 365.01
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 34.11,
+          "p95_ms": 51.33,
+          "max_ms": 51.33
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 124.54,
+          "p95_ms": 181.3,
+          "max_ms": 181.3
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 136.36,
+          "p95_ms": 172.1,
+          "max_ms": 172.1
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 9.53,
+          "p95_ms": 12.69,
+          "max_ms": 12.69
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 120.68,
+          "p95_ms": 139.9,
+          "max_ms": 139.9
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 11.7,
+          "p95_ms": 15.79,
+          "max_ms": 15.79
+        }
+      }
+    },
+    {
+      "round": 9,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.724,
+      "requests_per_second": 60.78,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 273.43,
+          "p95_ms": 426.97,
+          "max_ms": 426.97
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 50.07,
+          "p95_ms": 60.11,
+          "max_ms": 60.11
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 137.99,
+          "p95_ms": 187.65,
+          "max_ms": 187.65
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 117.72,
+          "p95_ms": 145.15,
+          "max_ms": 145.15
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 7.3,
+          "p95_ms": 12.93,
+          "max_ms": 12.93
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 111.86,
+          "p95_ms": 115.71,
+          "max_ms": 115.71
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 10.39,
+          "p95_ms": 12.32,
+          "max_ms": 12.32
+        }
+      }
+    },
+    {
+      "round": 10,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.553,
+      "requests_per_second": 79.56,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 142.4,
+          "p95_ms": 295.69,
+          "max_ms": 295.69
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 47.62,
+          "p95_ms": 71.17,
+          "max_ms": 71.17
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 138.92,
+          "p95_ms": 171.31,
+          "max_ms": 171.31
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 107.5,
+          "p95_ms": 135.61,
+          "max_ms": 135.61
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 6.52,
+          "p95_ms": 9.77,
+          "max_ms": 9.77
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 104.65,
+          "p95_ms": 113.16,
+          "max_ms": 113.16
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 8.86,
+          "p95_ms": 9.28,
+          "max_ms": 9.28
+        }
+      }
+    },
+    {
+      "round": 11,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.704,
+      "requests_per_second": 62.54,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 217.9,
+          "p95_ms": 352.8,
+          "max_ms": 352.8
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 47.29,
+          "p95_ms": 63.84,
+          "max_ms": 63.84
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 146.16,
+          "p95_ms": 183.94,
+          "max_ms": 183.94
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 118.97,
+          "p95_ms": 155.4,
+          "max_ms": 155.4
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 8.16,
+          "p95_ms": 11.95,
+          "max_ms": 11.95
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 114.42,
+          "p95_ms": 118.26,
+          "max_ms": 118.26
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 9.74,
+          "p95_ms": 18.22,
+          "max_ms": 18.22
+        }
+      }
+    },
+    {
+      "round": 12,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.753,
+      "requests_per_second": 58.46,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 257.04,
+          "p95_ms": 332.12,
+          "max_ms": 332.12
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 58.81,
+          "p95_ms": 77.62,
+          "max_ms": 77.62
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 151.01,
+          "p95_ms": 206.7,
+          "max_ms": 206.7
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 131.52,
+          "p95_ms": 188.09,
+          "max_ms": 188.09
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 11.1,
+          "p95_ms": 16.23,
+          "max_ms": 16.23
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 137.76,
+          "p95_ms": 151.18,
+          "max_ms": 151.18
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 12.68,
+          "p95_ms": 14.53,
+          "max_ms": 14.53
+        }
+      }
+    },
+    {
+      "round": 13,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.823,
+      "requests_per_second": 53.48,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 207.82,
+          "p95_ms": 335.74,
+          "max_ms": 335.74
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 48.8,
+          "p95_ms": 71.58,
+          "max_ms": 71.58
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 187.39,
+          "p95_ms": 242.71,
+          "max_ms": 242.71
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 176.92,
+          "p95_ms": 241.63,
+          "max_ms": 241.63
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 13.25,
+          "p95_ms": 31.05,
+          "max_ms": 31.05
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 206.66,
+          "p95_ms": 216.61,
+          "max_ms": 216.61
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 17.92,
+          "p95_ms": 19.05,
+          "max_ms": 19.05
+        }
+      }
+    },
+    {
+      "round": 14,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.755,
+      "requests_per_second": 58.26,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 246.4,
+          "p95_ms": 398.1,
+          "max_ms": 398.1
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 50.32,
+          "p95_ms": 107.82,
+          "max_ms": 107.82
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 142.29,
+          "p95_ms": 165.71,
+          "max_ms": 165.71
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 101.14,
+          "p95_ms": 146.89,
+          "max_ms": 146.89
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 6.19,
+          "p95_ms": 11.82,
+          "max_ms": 11.82
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 134.14,
+          "p95_ms": 141.63,
+          "max_ms": 141.63
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 12.03,
+          "p95_ms": 14.78,
+          "max_ms": 14.78
+        }
+      }
+    },
+    {
+      "round": 15,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 1.047,
+      "requests_per_second": 42.03,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 247.64,
+          "p95_ms": 402.35,
+          "max_ms": 402.35
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 52.44,
+          "p95_ms": 77.46,
+          "max_ms": 77.46
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 172.72,
+          "p95_ms": 221.63,
+          "max_ms": 221.63
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 117.96,
+          "p95_ms": 147.45,
+          "max_ms": 147.45
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 375.28,
+          "p95_ms": 385.3,
+          "max_ms": 385.3
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 166.43,
+          "p95_ms": 169.95,
+          "max_ms": 169.95
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 17.06,
+          "p95_ms": 18.3,
+          "max_ms": 18.3
+        }
+      }
+    },
+    {
+      "round": 16,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.62,
+      "requests_per_second": 70.95,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 183.43,
+          "p95_ms": 293.26,
+          "max_ms": 293.26
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 43.48,
+          "p95_ms": 49.54,
+          "max_ms": 49.54
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 139.47,
+          "p95_ms": 167.01,
+          "max_ms": 167.01
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 106.13,
+          "p95_ms": 177.5,
+          "max_ms": 177.5
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 11.64,
+          "p95_ms": 16.07,
+          "max_ms": 16.07
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 120.01,
+          "p95_ms": 127.88,
+          "max_ms": 127.88
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 8.73,
+          "p95_ms": 14.13,
+          "max_ms": 14.13
+        }
+      }
+    },
+    {
+      "round": 17,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.742,
+      "requests_per_second": 59.29,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 137.68,
+          "p95_ms": 241.09,
+          "max_ms": 241.09
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 67.37,
+          "p95_ms": 86.94,
+          "max_ms": 86.94
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 174.04,
+          "p95_ms": 346.39,
+          "max_ms": 346.39
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 124.72,
+          "p95_ms": 175.82,
+          "max_ms": 175.82
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 26.78,
+          "p95_ms": 36.54,
+          "max_ms": 36.54
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 148.02,
+          "p95_ms": 154.6,
+          "max_ms": 154.6
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 25.36,
+          "p95_ms": 28.15,
+          "max_ms": 28.15
+        }
+      }
+    },
+    {
+      "round": 18,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.85,
+      "requests_per_second": 51.78,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 125.65,
+          "p95_ms": 224.77,
+          "max_ms": 224.77
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 66.78,
+          "p95_ms": 76.95,
+          "max_ms": 76.95
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 169.52,
+          "p95_ms": 273.24,
+          "max_ms": 273.24
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 239.94,
+          "p95_ms": 300.49,
+          "max_ms": 300.49
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 57.85,
+          "p95_ms": 112.23,
+          "max_ms": 112.23
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 252.23,
+          "p95_ms": 279.73,
+          "max_ms": 279.73
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 20.03,
+          "p95_ms": 21.62,
+          "max_ms": 21.62
+        }
+      }
+    },
+    {
+      "round": 19,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 1.185,
+      "requests_per_second": 37.12,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 135.09,
+          "p95_ms": 229.93,
+          "max_ms": 229.93
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 90.62,
+          "p95_ms": 129.99,
+          "max_ms": 129.99
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 233.02,
+          "p95_ms": 381.48,
+          "max_ms": 381.48
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 264.68,
+          "p95_ms": 304.51,
+          "max_ms": 304.51
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 43.44,
+          "p95_ms": 69.15,
+          "max_ms": 69.15
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 496.8,
+          "p95_ms": 499.94,
+          "max_ms": 499.94
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 21.2,
+          "p95_ms": 35.15,
+          "max_ms": 35.15
+        }
+      }
+    },
+    {
+      "round": 20,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.823,
+      "requests_per_second": 53.46,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 106.04,
+          "p95_ms": 247.39,
+          "max_ms": 247.39
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 73.99,
+          "p95_ms": 108.1,
+          "max_ms": 108.1
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 187.46,
+          "p95_ms": 254.19,
+          "max_ms": 254.19
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 245.4,
+          "p95_ms": 267.69,
+          "max_ms": 267.69
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 19.91,
+          "p95_ms": 34.75,
+          "max_ms": 34.75
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 258.16,
+          "p95_ms": 272.04,
+          "max_ms": 272.04
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 23.03,
+          "p95_ms": 28.12,
+          "max_ms": 28.12
+        }
+      }
+    }
+  ],
+  "copied": {
+    "alerts.db": 590,
+    "alerts_archive.db": 110748
+  },
+  "stored_alerts_at_start": 111338,
+  "aggregate_paths": {
+    "/api/console/alerts?limit=50&hours=168": {
+      "samples": 240,
+      "p50_ms": 188.15,
+      "p95_ms": 352.8,
+      "max_ms": 1413.5
+    },
+    "/api/console/alerts?q=CVE&hours=168": {
+      "samples": 160,
+      "p50_ms": 50.07,
+      "p95_ms": 97.62,
+      "max_ms": 148.64
+    },
+    "/api/console/entities?q=185.220&hours=168": {
+      "samples": 160,
+      "p50_ms": 148.91,
+      "p95_ms": 270.21,
+      "max_ms": 381.48
+    },
+    "/api/console/quality?hours=168": {
+      "samples": 80,
+      "p50_ms": 142.03,
+      "p95_ms": 283.3,
+      "max_ms": 304.51
+    },
+    "/api/console/summary?hours=168": {
+      "samples": 80,
+      "p50_ms": 12.57,
+      "p95_ms": 363.36,
+      "max_ms": 385.3
+    },
+    "/api/console/mitre?hours=168": {
+      "samples": 80,
+      "p50_ms": 120.68,
+      "p95_ms": 279.73,
+      "max_ms": 499.94
+    },
+    "/api/whoami": {
+      "samples": 80,
+      "p50_ms": 13.16,
+      "p95_ms": 28.12,
+      "max_ms": 54.86
+    }
+  },
+  "ingestion": {
+    "attempted": 265,
+    "persisted": 265,
+    "errors": 0,
+    "elapsed_seconds": 15.847308586002328,
+    "provenance": "SYNTHETIC",
+    "scope": "Low-severity private-address detector inputs; no response workers.",
+    "latency": {
+      "samples": 265,
+      "p50_ms": 6.39,
+      "p95_ms": 30.96,
+      "max_ms": 1431.44
+    },
+    "observed_per_second": 16.72
+  },
+  "telemetry": {
+    "summary": {
+      "failing": 0,
+      "points": 4,
+      "probe_warnings": 0,
+      "slow": 0
+    },
+    "points": [
+      {
+        "name": "alert_store.search",
+        "calls": 1,
+        "p50": 96.4,
+        "p95": 96.4,
+        "max": 96.4,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "alert_store.write",
+        "calls": 265,
+        "p50": 3.5,
+        "p95": 21.5,
+        "max": 40.3,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "console.search",
+        "calls": 605,
+        "p50": 102.6,
+        "p95": 255.6,
+        "max": 495.9,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "detector.add_alert",
+        "calls": 265,
+        "p50": 6.3,
+        "p95": 30.2,
+        "max": 45.5,
+        "errors": 0,
+        "slow": false
+      }
+    ]
+  },
+  "passed": true
+}

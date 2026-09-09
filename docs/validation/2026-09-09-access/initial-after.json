@@ -1,0 +1,186 @@
+{
+  "scope": "Isolated HTTP read workload; collectors and response workers disabled.",
+  "data": "COPY OF STORED EVIDENCE",
+  "workers": 8,
+  "profile": "console",
+  "authenticated": true,
+  "target_ingest_per_second": 20.0,
+  "p95_budget_ms": 2000,
+  "python": "3.10.12",
+  "cpu_count": 12,
+  "rounds": [
+    {
+      "round": 1,
+      "cache": "initial",
+      "requests": 44,
+      "elapsed_seconds": 0.968,
+      "requests_per_second": 45.46,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 261.42,
+          "p95_ms": 403.67,
+          "max_ms": 403.67
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 26.73,
+          "p95_ms": 45.05,
+          "max_ms": 45.05
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 140.65,
+          "p95_ms": 169.21,
+          "max_ms": 169.21
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 193.83,
+          "p95_ms": 284.01,
+          "max_ms": 284.01
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 418.67,
+          "p95_ms": 424.31,
+          "max_ms": 424.31
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 136.12,
+          "p95_ms": 137.04,
+          "max_ms": 137.04
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 11.79,
+          "p95_ms": 14.0,
+          "max_ms": 14.0
+        }
+      }
+    },
+    {
+      "round": 2,
+      "cache": "subsequent",
+      "requests": 44,
+      "elapsed_seconds": 0.795,
+      "requests_per_second": 55.33,
+      "http_failures": 0,
+      "budget_exceeded": [],
+      "paths": {
+        "/api/console/alerts?limit=50&hours=168": {
+          "samples": 12,
+          "p50_ms": 278.02,
+          "p95_ms": 365.96,
+          "max_ms": 365.96
+        },
+        "/api/console/alerts?q=CVE&hours=168": {
+          "samples": 8,
+          "p50_ms": 43.35,
+          "p95_ms": 67.3,
+          "max_ms": 67.3
+        },
+        "/api/console/entities?q=185.220&hours=168": {
+          "samples": 8,
+          "p50_ms": 194.0,
+          "p95_ms": 247.01,
+          "max_ms": 247.01
+        },
+        "/api/console/quality?hours=168": {
+          "samples": 4,
+          "p50_ms": 107.1,
+          "p95_ms": 203.14,
+          "max_ms": 203.14
+        },
+        "/api/console/summary?hours=168": {
+          "samples": 4,
+          "p50_ms": 11.0,
+          "p95_ms": 13.73,
+          "max_ms": 13.73
+        },
+        "/api/console/mitre?hours=168": {
+          "samples": 4,
+          "p50_ms": 107.06,
+          "p95_ms": 110.46,
+          "max_ms": 110.46
+        },
+        "/api/whoami": {
+          "samples": 4,
+          "p50_ms": 8.83,
+          "p95_ms": 12.61,
+          "max_ms": 12.61
+        }
+      }
+    }
+  ],
+  "copied": {
+    "alerts.db": 588,
+    "alerts_archive.db": 110748
+  },
+  "stored_alerts_at_start": 111336,
+  "ingestion": {
+    "attempted": 32,
+    "persisted": 32,
+    "errors": 0,
+    "elapsed_seconds": 2.2223226280038944,
+    "provenance": "SYNTHETIC",
+    "scope": "Low-severity private-address detector inputs; no response workers.",
+    "latency": {
+      "samples": 32,
+      "p50_ms": 5.23,
+      "p95_ms": 14.25,
+      "max_ms": 30.12
+    },
+    "observed_per_second": 14.4
+  },
+  "telemetry": {
+    "summary": {
+      "failing": 0,
+      "points": 4,
+      "probe_warnings": 0,
+      "slow": 0
+    },
+    "points": [
+      {
+        "name": "alert_store.search",
+        "calls": 1,
+        "p50": 75.8,
+        "p95": 75.8,
+        "max": 75.8,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "alert_store.write",
+        "calls": 32,
+        "p50": 2.8,
+        "p95": 13.2,
+        "max": 18.6,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "console.search",
+        "calls": 63,
+        "p50": 112.2,
+        "p95": 339.7,
+        "max": 489.0,
+        "errors": 0,
+        "slow": false
+      },
+      {
+        "name": "detector.add_alert",
+        "calls": 32,
+        "p50": 5.1,
+        "p95": 14.2,
+        "max": 30.1,
+        "errors": 0,
+        "slow": false
+      }
+    ]
+  },
+  "passed": true
+}

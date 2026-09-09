@@ -6,6 +6,8 @@
 # 핵심
 flask==3.1.3
 flask-socketio==5.6.1
+# Werkzeug WebSocket close fix (upstream #457); exercised by session-revocation browser tests.
+python-engineio==4.13.5
 flask-cors==6.0.5
 python-dotenv==1.2.2
 requests==2.34.2

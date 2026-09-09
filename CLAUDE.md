@@ -17,7 +17,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 
 ## 코드 작성 규칙
 
-- 모든 모듈은 **데모 fallback** 필수 — 실제 환경(Npcap, Sysmon 등) 없이도 실행 가능해야 함
+- 인증·권한은 데모 권한을 생성하지 않고 실패 시 거부한다. 수집/시각화 모듈은 **데모 fallback** 필수 — 실제 환경(Npcap, Sysmon 등) 없이도 실행 가능해야 함
 - SocketIO emit은 항상 **threading-safe** (deque, Lock 사용)
 - 각 모듈은 독립적: `start()` / `stop()` / `get_*()` 인터페이스 유지
 - 외부 시스템 연동 패널은 `/api/integrations/{system}` 엔드포인트 규칙 따름
@@ -28,6 +28,8 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | 파일 | 역할 |
 |------|------|
 | `app.py` | Flask 앱 팩토리, 서비스 초기화, SocketIO 이벤트 |
+| `modules/identity.py` | 선택적 SQLite 사용자·해시 세션·원자적 계정 감사 |
+| `modules/authorization.py` | 쓰기 엔드포인트 권한 인벤토리·Socket.IO 세션 검증 |
 | `config.py` | 환경변수 기반 설정 (python-dotenv) |
 | `modules/packet_analyzer.py` | PyShark/Scapy 패킷 캡처, 통계, SocketIO emit |
 | `modules/threat_detector.py` | DDoS/포트스캔/악성코드 탐지, Alert 객체 관리 |
@@ -64,18 +66,18 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 38개) |
-| `static/js/dash/01~23-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 39개) |
+| `static/js/dash/00~28-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
 ## 검증 계층
 
 ```
-pytest (758건)          — 대부분 test_client. 빠르고 결정적.
+pytest (최신 결과는 README)          — 대부분 test_client. 빠르고 결정적.
   └ -m "not live"       로 실서버 테스트만 제외 가능
 tests/test_live_server.py — **실제 프로세스를 빈 임시 디렉터리에서 띄워** HTTP 로 검증.
                             CI 에서 전체 테스트보다 **먼저** 돌려 원인을 분리한다.
-tests/test_browser_sweep.py — **실제 브라우저(Playwright)** 로 36패널 순회: 콘솔 오류·HTTP 실패·
+tests/test_browser_sweep.py — **실제 브라우저(Playwright)** 로 39패널 순회: 콘솔 오류·HTTP 실패·
                             모바일 넘침·지연 실체화. 크롬 없으면 skip. `-m "not browser"` 로 제외.
 scripts/loadtest.py     — 부하 시험(사람이 실행). 실데이터 사본으로 지연·텔레메트리 측정.
 ```
@@ -316,3 +318,9 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 - 아카이브는 읽기 전용이다. 상태/판정 쓰기는 SQLite 성공 후 메모리에 반영한다.
 - 디자이너 토큰과 공통 컴포넌트를 사용하고 lazy panel 및 자체 호스팅 CSP를 유지한다.
 - 브라우저 회귀는 `tests/test_browser_sweep.py`와 `tests/test_console_browser.py`를 함께 실행한다.
+
+## 역할/부하 검증 인계
+
+현재 역할 정책과 이행/복구는 [ACCESS_CONTROL](docs/ACCESS_CONTROL.md), 부하 측정은
+[LOAD_VALIDATION](docs/LOAD_VALIDATION.md)을 따른다. 새 쓰기 API는 permission inventory에
+명시하지 않으면 거부된다. 인증된 브라우저 회귀도 CI에 포함한다.

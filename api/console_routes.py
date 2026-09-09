@@ -8,10 +8,16 @@ from werkzeug.exceptions import BadRequest, ServiceUnavailable
 
 from api._common import api_bp, audit_record
 from modules import console
+from modules.console_store import CoalescedReads
 
 
 def _app():
     return current_app._get_current_object()
+
+
+def _coalesced(key, produce):
+    reads = _app().extensions.setdefault('console_reads', CoalescedReads())
+    return reads.run(key, produce)
 
 
 def _store():
@@ -84,11 +90,15 @@ def console_alert_detail(alert_id):
 @api_bp.get('/console/summary')
 def console_summary():
     hours = _number('hours', 24, .25, 168)
+    return jsonify(_coalesced(('summary', hours), lambda: _summary(hours)))
+
+
+def _summary(hours):
     app = _app()
     cache = app.extensions.setdefault('console_summary', {})
     cached = cache.get(hours)
     if cached and time.monotonic() - cached[0] < 10:
-        return jsonify(cached[1])
+        return cached[1]
     data = _store().console_search(hours=hours, limit=12, status='OPEN', include_stats=True)
     activity = _store().console_search(hours=hours, limit=5000, order='newest', include_stats=True)
     incidents = sorted(app.incidents.snapshot().values(), key=lambda item: item.get('updated', ''), reverse=True)
@@ -115,7 +125,7 @@ def console_summary():
               'demo_environment': bool(app.config.get('DEMO_MODE'))}
     cache.clear() if len(cache) > 8 else None
     cache[hours] = (time.monotonic(), result)
-    return jsonify(result)
+    return result
 
 
 @api_bp.get('/console/entities')
@@ -144,21 +154,25 @@ def console_entities():
 def console_quality():
     filters = _filters()
     filters.update(limit=5000, order='newest')
-    data = _store().console_search(**filters)
-    dedup = getattr(_app(), 'alert_dedup', None)
-    result = console.detection_quality(data['alerts'], data['total'], dedup.get_stats() if dedup else None)
-    result.update(hours=filters['hours'], generated_at=console.now_text())
-    return jsonify(result)
+    def produce():
+        data = _store().console_search(**filters)
+        dedup = getattr(_app(), 'alert_dedup', None)
+        result = console.detection_quality(data['alerts'], data['total'], dedup.get_stats() if dedup else None)
+        result.update(hours=filters['hours'], generated_at=console.now_text())
+        return result
+    return jsonify(_coalesced(('quality', tuple(sorted(filters.items()))), produce))
 
 
 @api_bp.get('/console/mitre')
 def console_mitre():
     hours = _number('hours', 24, .25, 168)
-    data = _store().console_search(hours=hours, limit=5000, order='newest')
-    return jsonify({'techniques': console.technique_observations(data['alerts']), 'hours': hours,
-                    'sample_size': len(data['alerts']), 'total': data['total'],
-                    'truncated': data['total'] > len(data['alerts']),
-                    'basis': 'Recorded technique fields and threat-type mappings. Not proof of technique execution.'})
+    def produce():
+        data = _store().console_search(hours=hours, limit=5000, order='newest')
+        return {'techniques': console.technique_observations(data['alerts']), 'hours': hours,
+                'sample_size': len(data['alerts']), 'total': data['total'],
+                'truncated': data['total'] > len(data['alerts']),
+                'basis': 'Recorded technique fields and threat-type mappings. Not proof of technique execution.'}
+    return jsonify(_coalesced(('mitre', hours), produce))
 
 
 @api_bp.post('/console/suppression-preview')

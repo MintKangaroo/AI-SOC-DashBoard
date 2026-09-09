@@ -233,6 +233,7 @@ class Config:
     DASH_USERNAME = os.getenv("DASH_USERNAME", "admin")
     DASH_PASSWORD = os.getenv("DASH_PASSWORD", "")            # 평문(편의) — 시작 시 해시로 변환
     DASH_PASSWORD_HASH = os.getenv("DASH_PASSWORD_HASH", "")  # pbkdf2 해시(권장)
+    AUTH_USERS_DB = os.getenv("AUTH_USERS_DB", "")  # opt-in managed users; empty = legacy administrator
     SESSION_HOURS = float(os.getenv("SESSION_HOURS", 12))     # 로그인 세션 유지 시간
     # 세션 쿠키 보안 (Tailscale는 HTTP라 Secure 플래그는 기본 off)
     SESSION_COOKIE_HTTPONLY = True

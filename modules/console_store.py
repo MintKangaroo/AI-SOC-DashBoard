@@ -3,9 +3,11 @@
 No writes or new database. The archive union remains the source of truth.
 """
 from datetime import datetime, timedelta
+from concurrent.futures import Future
+from threading import Lock
 
 from modules.alert_dedup import extract_rule_id
-from modules.provenance import annotate, sql_provenance
+from modules.provenance import sql_provenance
 from modules.telemetry import telemetry
 
 PROVENANCE_SQL = 'soc_provenance(description, details, origin, timestamp, src_ip, dst_ip)'
@@ -13,6 +15,39 @@ ORDER_SQL = {
     'priority': "CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'LOW' THEN 3 ELSE 4 END, id DESC",
     'newest': 'id DESC', 'oldest': 'id ASC', 'confidence': "CAST(json_extract(CASE WHEN json_valid(details) THEN details ELSE '{}' END, '$.confidence') AS REAL) DESC, id DESC",
 }
+
+
+class CoalescedReads:
+    """Share overlapping identical reads, without retaining stale results.
+
+    Per application, bounded to 16 in-flight keys. Exceptions reach every waiter;
+    completed entries are removed, so the next request reads current evidence.
+    """
+
+    def __init__(self):
+        self._lock = Lock()
+        self._pending = {}
+
+    def run(self, key, produce):
+        with self._lock:
+            future = self._pending.get(key)
+            owner = future is None
+            if owner and len(self._pending) < 16:
+                future = self._pending[key] = Future()
+        if future is None:
+            return produce()
+        if not owner:
+            return future.result()
+        try:
+            result = produce()
+            future.set_result(result)
+            return result
+        except BaseException as exc:
+            future.set_exception(exc)
+            raise
+        finally:
+            with self._lock:
+                del self._pending[key]
 
 
 def search(reader, source, columns, row_to_dict, *, query='', severity='', status='',
@@ -65,7 +100,8 @@ def search(reader, source, columns, row_to_dict, *, query='', severity='', statu
         rows = reader.execute(f'SELECT {columns}, {archived} FROM {source}{clause} '
                               f'ORDER BY {ORDER_SQL.get(order, ORDER_SQL["priority"])} LIMIT ? OFFSET ?',
                               params + [limit, offset]).fetchall()
-        result = {'alerts': [annotate(row_to_dict(row)) for row in rows], 'total': total,
+        # AlertStore's decoder already applies server-derived provenance.
+        result = {'alerts': [row_to_dict(row) for row in rows], 'total': total,
                   'limit': limit, 'offset': offset, 'hours': hours, 'scope': scope}
         if include_stats:
             counts = reader.execute(

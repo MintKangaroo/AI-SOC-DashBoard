@@ -158,3 +158,5 @@
 .console-table th { position:relative; }.column-resize-handle { position:absolute; right:-2px; top:0; bottom:0; width:7px; cursor:col-resize; touch-action:none; }.column-resize-handle:hover,.column-resize-handle:focus-visible { background:var(--accent-operational); outline:2px solid var(--focus-ring); }
 .trace-console .mitre-top-item { grid-template-columns:24px 65px minmax(0,1fr) minmax(35px,70px) 30px; }.trace-console .mitre-top-item .tech-name { min-width:0; overflow-wrap:anywhere; }
 @media(max-width:768px) { .trace-console .mitre-top-item { grid-template-columns:20px 65px minmax(0,1fr) 30px; }.trace-console .mitre-top-item .bar-wrap { display:none; }#panel-mitre>.row>.col-md-3 { width:50%; } }
+
+.access-context { color:var(--text-tertiary); font-size:var(--fs-label); margin-bottom:var(--space-3); }.access-restricted { opacity:.6; cursor:not-allowed; } #access-role-badge { color:var(--accent-operational); } #panel-access .console-card-body { overflow-wrap:anywhere; } #access-dialog { max-height:92dvh; overflow:auto; }

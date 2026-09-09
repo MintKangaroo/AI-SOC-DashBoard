@@ -1,5 +1,8 @@
 # SOC Dashboard 인수인계
 
+> 아래는 2026-07-20 스냅샷입니다. 현재 인계는 [docs/HANDOVER.md](docs/HANDOVER.md),
+> 최신 역할/세션 통제는 [docs/ACCESS_CONTROL.md](docs/ACCESS_CONTROL.md)를 참고하세요.
+
 최종 확인일: 2026-07-20 (Asia/Seoul)  
 브랜치: `main`  
 기준 커밋: `42eb987` (`docs: 포트폴리오에 Splunk SIEM 검색·상관관계·플레이북 시각화 반영`)

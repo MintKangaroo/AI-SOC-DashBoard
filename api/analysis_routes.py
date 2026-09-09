@@ -304,21 +304,19 @@ def hunts_delete(hunt_id):
     return jsonify({"deleted": hunt_id})
 
 
-@api_bp.route("/hunts/<int:hunt_id>/run", methods=["GET"])
+@api_bp.route("/hunts/<int:hunt_id>/run", methods=["GET", "POST"])
 def hunts_run(hunt_id):
-    """헌팅 실행 — 조회 전용이라 GET 이다.
-
-    `mark=0` 이면 '지난 실행 이후' 기준선을 갱신하지 않는다. 미리보기로 돌려볼
-    때 델타가 소진되면 안 되기 때문이다.
-    """
+    """GET previews evidence. POST advances the saved hunt baseline with CSRF/RBAC."""
     store = _hunts()
     if store is None:
         return jsonify({"error": "헌팅 저장소가 비활성입니다"}), 503
     limit = min(500, max(1, request.args.get("limit", 100, type=int)))
-    mark = (request.args.get("mark", "1") or "1").lower() not in ("0", "false", "no")
+    mark = request.method == "POST" and (request.args.get("mark", "1") or "1").lower() not in ("0", "false", "no")
     result = store.run(hunt_id, limit=limit, mark=mark)
     if result is None:
         return jsonify({"error": "헌팅을 찾을 수 없습니다"}), 404
+    if mark:
+        audit_record('HUNT_RUN', str(hunt_id), 'Saved baseline advanced')
     return jsonify(result)
 
 

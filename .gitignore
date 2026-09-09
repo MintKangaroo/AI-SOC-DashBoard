@@ -45,3 +45,6 @@ data/siem_offsets.json.tmp
 data/labels.db
 data/labels.db-wal
 data/labels.db-shm
+
+# Managed identities and server-side session tokens
+data/users.db

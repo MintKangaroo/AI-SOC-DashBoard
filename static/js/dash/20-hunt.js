@@ -46,7 +46,7 @@
   function runHunt(id) {
     const tbody = document.getElementById('hunt-result-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">사냥 중…</td></tr>';
-    fetch(`/api/hunts/${Number(id)}/run?limit=200`)
+    fetch(`/api/hunts/${Number(id)}/run?limit=200`, {method: window.SOCAccess?.can('investigate') === false ? 'GET' : 'POST'})
       .then(r => r.json()).then(d => { renderHuntResult(d); loadHunts(); })
       .catch(() => { if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">실행 실패</td></tr>'; });
   }

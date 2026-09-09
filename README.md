@@ -3,7 +3,7 @@
 > **AI assists. Evidence decides.**
 > 알림에서 증거·판정·자동대응 이력까지 연결하는 AI 보조 보안관제 콘솔입니다.
 > 기존 AI-SOC-DashBoard의 Flask/Jinja·Socket.IO·SQLite WAL 구조와 탐지·대응 기능을 유지하며,
-> 조사와 의사결정 중심의 **38개 워크스페이스**로 개선했습니다.
+> 조사와 의사결정 중심의 **39개 워크스페이스**로 개선했습니다.
 
 [![CI](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
@@ -13,6 +13,13 @@
 ![TRACE Command Center — isolated demo environment](docs/portfolio_img/trace-command-center.png)
 
 *임시 DEMO 환경에서 촬영한 실제 애플리케이션 화면입니다. 표시된 수치는 운영 환경의 보안 실적이 아닙니다.*
+
+### 2026-09-09 · 역할 경계와 부하 검증
+
+- **Access & roles** — Viewer / Analyst / Responder / Administrator. API가 서버의 현재 역할을 검증하며, 미분류 쓰기는 기본 거부합니다. 기존 단일 관리자 모드는 유지하고 `AUTH_USERS_DB`로 다중 사용자를 명시적으로 활성화합니다.
+- **세션 회수** — 계정 비활성화·역할/비밀번호 변경·로그아웃 후 기존 쿠키와 실시간 소켓의 접근을 차단합니다. 계정 변경에는 비밀번호 재확인과 원자적 감사 기록이 필요합니다.
+- **동시 조사** — 겹치는 동일 집계 요청을 합쳐 초기 요약·탐지 품질 지연을 줄였습니다. 저장 데이터는 읽기 전용 사본으로, 입력은 명시적인 SYNTHETIC 이벤트로 검증합니다.
+- **검증·적용 안내** — [권한 설정과 복구](docs/ACCESS_CONTROL.md), [측정 조건·결과·제약](docs/LOAD_VALIDATION.md). **SSO/MFA는 UNAVAILABLE**이며 이번 커밋이 운영 서버에 권한 설정을 자동 적용하지 않습니다.
 
 ### 2026-09-09 · 조사 중심 콘솔
 
@@ -45,7 +52,7 @@
 로그인 성공이나 LIVE 소켓 연결도 전체 센서 가시성을 뜻하지 않습니다.
 
 이 저장소는 개인 운영 환경에서 발전한 오픈소스 프로젝트입니다. 엔터프라이즈 조사 경험을
-목표로 개선했지만 **다중 사용자 RBAC/SSO, 독립 보안 인증, 멀티테넌시를 구현한 제품으로 주장하지 않습니다.**
+목표로 개선하며 로컬 다중 사용자 역할 통제를 구현했습니다. **SSO/MFA, 독립 보안 인증, 멀티테넌시는 미구현입니다.**
 배포 전 환경별 인증·네트워크 경계·운영 복구 절차를 검증해야 합니다.
 
 [구현·설계·데이터 범위](docs/CONSOLE_REDESIGN.md) · [운영/개발 가이드](docs/TRACE_CONSOLE.md) ·
@@ -191,7 +198,7 @@ flowchart LR
 - **위협 헌팅 콘솔** — 분석가가 반복해서 찾는 패턴을 **쿼리로 저장**하고 재실행합니다. *지난 실행 이후 새로 걸린 것*만 따로 세고(매번 같은 결과를 다시 보면 사람은 곧 안 봅니다), 찾은 지표는 워치리스트로 승격합니다. 검색 범위는 아카이브 포함 전체 이력(11만 건)입니다
 
 ### 플랫폼
-- **인증** — 로그인(pbkdf2 해시), IP별 브루트포스 락아웃, 세션 가드 (`auth`)
+- **인증·권한** — Werkzeug 비밀번호 해시, IP별 락아웃, 서버 세션 회수, 선택적 다중 사용자 역할 통제와 계정 감사 (`auth` · `identity` · `authorization`)
 - **공격 지도** — GeoIP 기반 공격 출발지 시각화 (`geoip`)
 - **알림 저장소** — 알림 영속화(alerts.db)·전체 이력 검색·집계 (`alert_store`)
 
@@ -216,7 +223,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · globe.gl · Socket.IO(전부 자체 호스팅)
-- **테스트** — pytest 전체 회귀 검사 + 실제 브라우저 순회(Playwright, 38패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest 전체 회귀 검사 + 실제 브라우저 순회(Playwright, 39패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -239,7 +246,7 @@ PORT=5055 ./venv/bin/python app.py
 ./venv/bin/pytest tests/
 ```
 
-브라우저에서 `http://localhost:5055` 접속 (로그인: `.env`의 `DASH_USERNAME` / `DASH_PASSWORD`).
+브라우저에서 `http://localhost:5055` 접속. 기본 단일 관리자 로그인은 설정한 `DASH_USERNAME` / 비밀번호를 사용합니다. 다중 사용자 활성화는 [Access control](docs/ACCESS_CONTROL.md)을 따르세요. 인증을 켜고 비밀번호를 비워두면 로그인이 거부됩니다.
 
 Docker 로 띄우려면(데모 모드, 센서 없이 전체 화면): `docker compose up --build` → `http://localhost:5055`.
 아이폰 Safari 에서 "홈 화면에 추가" 하면 웹앱 아이콘으로 열린다.
@@ -280,7 +287,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 54개 모듈 (SOC 도메인 + 조사/출처 조회)
+├── modules/                  # 56개 모듈 (SOC 도메인 + 조사/출처 조회)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -291,7 +298,7 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 115개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (38개, Jinja include)
+│   └── panels/               # 패널별 UI 조각 (39개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~23, 순서대로 로드)
 ├── tests/                    # 단위·통합·실서버·브라우저 회귀 검사
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
@@ -315,19 +322,21 @@ SOC_DashBoard/
 
 ## 검증
 
-변경 전 기준선: **860 passed, 2 warnings**. 이번 변경은 기존 assertion을 삭제하거나 완화하지 않고
-콘솔 API·출처·아카이브·AI facts·억제 미리보기·재현·브라우저 워크플로 검사를 추가했습니다.
-최종 전체 검사: **902 passed, 2 warnings**, 커버리지 **78%** (기존 70% 기준 통과).
-추가 브라우저 워크플로를 CI에 연결했습니다. [상세 검증 기록](docs/CONSOLE_REDESIGN.md)을 참고하세요.
+첫 콘솔 개선의 기준선은 **860 passed**, 이번 역할·부하 단계의 기준선은 **902 passed**였습니다.
+기존 assertion을 유지하고 조사·출처·권한·세션 회수·동시 집계·인증 브라우저 검사를 추가했습니다.
+전체 검사: **931 passed, 2 warnings**, 커버리지 **78%** (기존 70% 기준 통과).
+마지막 Origin 회귀 검사 추가 후 관련 권한·보안·인증 브라우저 **95건**도 통과했습니다.
+추가 브라우저 워크플로를 CI에 연결했습니다. [콘솔 검증](docs/CONSOLE_REDESIGN.md) ·
+[권한 검증과 설정](docs/ACCESS_CONTROL.md) · [부하 실측](docs/LOAD_VALIDATION.md)을 참고하세요.
 
 
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
 | 단위·통합 | 전체 기존 검사 + TRACE 계약 검사 | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
-| **브라우저** | Playwright 로 38패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py` (`-m "not browser"` 로 제외) |
+| **브라우저** | Playwright 로 39패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py tests/test_console_browser.py tests/test_identity_browser.py` (`-m "not browser"` 로 제외) |
 | **TRACE 조사 워크플로** | 증거 drawer·copilot fallback·감사 ACK·일시정지·선택 유지·명령 팔레트·SIEM 실제 시간 필터 | `pytest tests/test_console.py tests/test_console_browser.py` |
-| **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
+| **부하** | 사본·인증·동시 조회·합성 입력, p50/p95/max·HTTP 실패·저장 누락 | `python scripts/loadtest.py --profile console --with-real-data --authenticated --ingest-rate 20` |
 
 `test_client` 는 프로세스도 소켓도 없고 작업 디렉터리가 항상 저장소입니다. 실제로
 그래서 *"YARA 룰 디렉터리가 없으면 탐지가 통째로 죽는"* 문제를 테스트 700여 개가

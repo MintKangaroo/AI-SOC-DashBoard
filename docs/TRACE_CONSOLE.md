@@ -1,8 +1,11 @@
 # TRACE console: analyst and maintainer guide
 
 TRACE modernizes the existing Flask/Jinja application. All 37 original specialist
-panels remain available; Detection Quality brings the total to 38. There is no
+panels remain available; Detection Quality and Access & roles bring the total to 39. There is no
 React application, separate demo backend, new frontend build system or CDN.
+
+See [Access control](ACCESS_CONTROL.md) for opt-in managed users and permission boundaries,
+and [Load validation](LOAD_VALIDATION.md) for measured query performance.
 
 ## Investigate an alert
 
@@ -116,13 +119,13 @@ TTL, patch dry-run/command allowlist and EDR system-process protection remain in
 place. CSP continues to exclude inline handlers, unsafe-eval and remote script CDNs.
 No secrets, operational databases or generated credentials belong in frontend files.
 
-Not added: SSO/RBAC, multi-tenancy, a dedicated asset inventory, guaranteed incident
+Not added: SSO/MFA, multi-tenancy, a dedicated asset inventory, guaranteed incident
 attribution, full SPL, shared saved SIEM queries, a new notification inbox, MTTD,
 historical coverage-change tracking, ML/AI accuracy claims, autonomous copilot
 execution, generated operational artwork, or a frontend framework migration.
 Existing saved hunts, case metrics and response history remain available.
 
-For an enterprise rollout, the next iteration should establish identity/roles,
+For an enterprise rollout, the next iteration should integrate an identity provider/MFA,
 source-authenticated provenance at every collector, durable event identifiers and
 transition timestamps, ingestion retention/scale tests and an operational deployment
 review. Current audit stores are append-only in application usage, not cryptographically

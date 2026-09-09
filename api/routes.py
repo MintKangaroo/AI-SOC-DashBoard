@@ -9,3 +9,5 @@ from api import (  # noqa: F401 (임포트 부수효과로 라우트 등록)
     response_routes,
     console_routes,
 )
+
+from api import identity_routes  # noqa: F401

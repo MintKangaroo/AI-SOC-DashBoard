@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="/static/css/style.css"/>
   <link rel="stylesheet" href="/static/css/console.css"/>
 </head>
-<body class="trace-console">
+<body class="trace-console" data-access-role="{{ access_role }}" data-access-permissions="{{ access_permissions|join(',') }}" data-auth-enabled="{{ 'true' if access_auth_enabled else 'false' }}">
 
 <!-- 키보드 사용자가 사이드바 36개 링크를 매번 통과하지 않도록. 평소엔 숨어 있고
      탭으로 포커스를 받으면 나타난다. -->
@@ -48,7 +48,7 @@
     <span class="provenance provenance-unavailable" id="console-environment">ENV —</span><span id="demo-badge" class="d-none">DEMO</span>
     <button class="console-icon-btn" data-action="showPanel" data-args='["health"]' aria-label="Sensor health"><i class="fa fa-heart-pulse"></i><span id="console-sensor-count">—</span></button>
     <button class="console-icon-btn" data-action="consoleNotifications" aria-label="Open analyst notifications"><i class="fa fa-bell"></i></button>
-    <details class="console-user"><summary aria-label="Analyst menu"><span class="user-avatar" id="console-avatar">A</span></summary><div class="console-user-menu"><strong id="console-user-name">Analyst</strong><span id="ai-status-badge">AI status unavailable</span><span id="current-time"></span><button class="btn btn-sm btn-outline-secondary" data-action="showPanel" data-args='["myinfo"]'>System information</button><a href="/logout">Sign out</a></div></details>
+    <details class="console-user"><summary aria-label="Analyst menu"><span class="user-avatar" id="console-avatar">A</span></summary><div class="console-user-menu"><strong id="console-user-name">Analyst</strong><span id="ai-status-badge">AI status unavailable</span><span id="current-time"></span><button class="btn btn-sm btn-outline-secondary" data-action="showPanel" data-args='["myinfo"]'>System information</button><span id="access-role-badge"></span><button class="btn btn-sm btn-outline-secondary" data-action="showPanel" data-args='["access"]'>Access &amp; roles</button><form method="POST" action="/logout"><button type="submit" class="btn btn-sm btn-outline-secondary">Sign out</button></form></div></details>
   </div>
 </header>
 <div class="sidebar-backdrop" id="sidebar-backdrop" data-action="closeSidebar"></div>
@@ -211,6 +211,7 @@
 </div>
 <button class="sidebar-group " id="sgroup-head-settings" data-action="toggleGroup" data-args='["settings"]' aria-expanded="false" aria-controls="sgroup-settings"><i class="fa fa-gear"></i><span>Settings</span><i class="fa fa-chevron-down sgroup-chevron ms-auto"></i></button>
 <div class="sidebar-group-body collapsed" id="sgroup-settings">
+<a href="#access" class="sidebar-link" data-panel="access"><i class="fa fa-user-shield"></i><span>Access &amp; roles</span></a>
 <a href="#myinfo" class="sidebar-link" data-panel="myinfo">
         <i class="fa fa-id-card"></i><span>System information</span>
       </a>
@@ -223,6 +224,7 @@
   <!-- ── MAIN CONTENT ── -->
   <main id="main-content" class="main-content flex-fill overflow-auto p-3" tabindex="-1">
 
+    <div id="access-context" class="access-context"></div>
     <div id="console-notice" class="console-notice" role="status" hidden></div>
     <div id="console-workspace-context" class="workspace-context" hidden></div>
     {% include "panels/overview.html" %}
@@ -257,6 +259,7 @@
     <template data-panel="fuzz">{% include "panels/fuzz.html" %}</template>
     <template data-panel="patch">{% include "panels/patch.html" %}</template>
     <template data-panel="notify">{% include "panels/notify.html" %}</template>
+    <template data-panel="access">{% include "panels/access.html" %}</template>
     <template data-panel="myinfo">{% include "panels/myinfo.html" %}</template>
     <template data-panel="siem">{% include "panels/siem.html" %}</template>
     <template data-panel="syslog">{% include "panels/syslog.html" %}</template>
@@ -273,6 +276,7 @@
 </div><!-- /layout -->
 
 {% include "components/console-dialogs.html" %}
+{% include "components/access-dialog.html" %}
 
 <!-- ── 스크립트 ── -->
 <script defer src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
@@ -286,6 +290,7 @@
      목록만 보려는 분석가까지 기다리게 된다. initMap() 이 필요할 때 불러온다
      (03-detection.js 의 ensureGlobeLib). -->
 <!-- dashboard.js 분할 — 원본 순서대로 로드(동작 동일) -->
+<script defer src="/static/js/dash/00-access.js"></script>
 <script defer src="/static/js/dash/00-console-runtime.js"></script>
 <script defer src="/static/js/dash/01-core.js"></script>
 <script defer src="/static/js/dash/02-overview.js"></script>
@@ -313,5 +318,6 @@
 <script defer src="/static/js/dash/25-investigation.js"></script>
 <script defer src="/static/js/dash/26-quality.js"></script>
 <script defer src="/static/js/dash/27-alert-queue.js"></script>
+<script defer src="/static/js/dash/28-access.js"></script>
 </body>
 </html>
