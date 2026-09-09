@@ -1,4 +1,4 @@
-# TRACE · AI SOC 보안관제 — 포트폴리오
+# AI SOC 보안관제 — 포트폴리오
 
 > **운영 중인 자동매매 홈서버(KR·USA)를 실시간으로 지키는 SOC 플랫폼**
 > 침해 시도를 실시간 관제하고, AI로 **정탐(True Positive)과 오탐(False Positive)을 구분**하며,
@@ -15,7 +15,15 @@ Vulnerability Management · Purple Team · SOC Metrics)을 **56개 모듈 / 39�
 
 ---
 
-## 2026-09-09 · TRACE 조사 콘솔
+## 현재 화면 · 기존 관제 디자인 복원
+
+한국어 메뉴와 기존 검정·청록색 관제 화면을 복원했습니다. 조사 drawer·copilot·권한·감사 기능은 유지하며, 추가 집계는 하단의 **저장 증거 요약**에서 확인합니다.
+
+![현재 관제 화면 · 격리 DEMO](portfolio_img/classic-command-center.png)
+
+아래 TRACE 이미지는 이전 디자인 작업 기록입니다. 현재 기본 화면은 위 이미지입니다.
+
+## 2026-09-09 · TRACE 조사 콘솔 (이전 디자인 기록)
 
 Flask/Jinja·Socket.IO·SQLite WAL을 유지하면서 운영 상태 → 우선순위 알림 → 원문 증거 →
 분석가 판정 → 자동 대응 근거로 이어지는 조사 흐름을 추가했습니다. 기존 기능은 업무별

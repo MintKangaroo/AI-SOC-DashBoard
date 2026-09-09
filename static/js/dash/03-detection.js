@@ -605,8 +605,15 @@
     globe.pointOfView({ lat: DEFENDER.lat, lng: DEFENDER.lng, altitude: 2.2 }, 0);
 
     renderMapEvidence();
-    SOCRealtime.subscribe(state => { if (!globe) return; if (state.paused) globe.pauseAnimation(); else if (document.querySelector('.console-legacy')?.open) globe.resumeAnimation(); });
-    document.querySelector('.console-legacy')?.addEventListener('toggle', event => { if (event.target.open && !SOCRealtime.paused) { resize(); globe.resumeAnimation(); renderMapEvidence(); } else globe.pauseAnimation(); });
+    const syncMapVisibility = () => {
+      if (document.getElementById('overview-map')?.open && isPanelVisible('overview')) {
+        resize(); globe.resumeAnimation(); renderMapEvidence();
+      } else globe.pauseAnimation();
+    };
+    SOCRealtime.subscribe(syncMapVisibility);
+    document.getElementById('overview-map')?.addEventListener('toggle', syncMapVisibility);
+    document.addEventListener('soc:panel', syncMapVisibility);
+    document.addEventListener('visibilitychange', syncMapVisibility);
   }
 
   function animateAttack(entry) {
@@ -618,7 +625,7 @@
     }
   }
   function renderMapEvidence() {
-    if (!globeInited || !globe || !document.querySelector('.console-legacy')?.open) return;
+    if (!globeInited || !globe || !document.getElementById('overview-map')?.open || !isPanelVisible('overview')) return;
     const minutes = Number(document.getElementById('map-timeframe')?.value || 15);
     const severity = document.getElementById('map-severity')?.value || '';
     const cutoff = Date.now() - minutes * 60000;

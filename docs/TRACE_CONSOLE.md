@@ -1,15 +1,18 @@
-# TRACE console: analyst and maintainer guide
+# SOC console: analyst and maintainer guide
 
-TRACE modernizes the existing Flask/Jinja application. All 37 original specialist
+The classic Korean SOC shell is restored as the default presentation.
+The evidence workflows added during TRACE remain in the existing Flask/Jinja application. All 37 original specialist
 panels remain available; Detection Quality and Access & roles bring the total to 39. There is no
 React application, separate demo backend, new frontend build system or CDN.
+
+See [Classic restoration and deployment](CLASSIC_RESTORE.md) for the current layout.
 
 See [Access control](ACCESS_CONTROL.md) for opt-in managed users and permission boundaries,
 and [Load validation](LOAD_VALIDATION.md) for measured query performance.
 
 ## Investigate an alert
 
-1. Open a priority row in Command Center, choose Alerts, or press Cmd/Ctrl + K.
+1. Choose SOAR · 대응 → 위협 알림, press Cmd/Ctrl + K, or expand 저장 증거 요약 at the bottom of AI 관제 센터 and open a priority row.
 2. Review severity, source provenance, the detection score and recorded evidence.
 3. Use Evidence, Timeline, Analyst copilot, and Response & audit without losing the queue.
 4. Record ACK, closure or an independent TP/FP analyst verdict with a reason.
@@ -98,9 +101,14 @@ session actor rather than a client-supplied cookie.
 
 - `static/css/style.css`: shared semantic surface, border, text, spacing, radius,
   severity, status, confidence, provenance and focus tokens; existing typography roles.
-- `static/css/console.css`: shell, KPI strip, tables, filters, drawers, native action
-  dialogs, evidence timeline, empty/loading states, palette and responsive behavior.
-- `static/css/login.css`: authentication presentation using the same tokens.
+- `static/css/console.css`: evidence tables, filters, drawers, native action dialogs,
+  timelines, empty/loading states and palette. The former `.trace-console` shell overrides
+  are inactive; the page uses `.classic-console`.
+- `static/css/classic.css`: compact header integration and evidence-component adaptations
+  for the original SOC layout; specialist panels retain their original styles.
+- `static/css/login.css`: the original standalone login styling, extracted from its template.
+- `templates/components/classic-navbar.html` and `evidence-summary.html`: reusable
+  Korean header and the expandable stored-evidence summary.
 - `templates/components/console-dialogs.html`: reusable investigation and action surfaces.
 - `00-console-runtime.js`: centralized display state, formatting, provenance and entity pivots.
 - `24-console.js` through `27-alert-queue.js`: shell/search, investigation/copilot,
@@ -108,8 +116,8 @@ session actor rather than a client-supplied cookie.
 - `modules/console*.py`, `modules/provenance.py`: parameterized WAL reader queries and
   read composition. No new response engine, database or migration of historical evidence.
 
-The globe libraries remain lazy and optional. The only generated bitmap is the
-56KB login background, hosted locally; it contains no operational data. See
+The globe libraries remain lazy and optional. The previously generated login bitmap
+is retained as an asset but is no longer displayed by the application. See its historical
 [asset provenance](IDENTITY_ASSET.md).
 
 ## Preserved safety and intentional limits

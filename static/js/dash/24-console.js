@@ -232,10 +232,11 @@
     });
     socket.on('connect', () => { SOCRealtime.changed(); consoleLoadSummary(true); });
     socket.on('disconnect', () => { consoleSetText('badge-status','DISCONNECTED'); consoleSetText('console-updated','Connection lost · displayed snapshot may be stale'); });
-    const stream = document.getElementById('live-stream')?.closest('.card-panel');
-    if (stream) document.getElementById('console-stream-slot').appendChild(stream);
-    const disclosure = document.querySelector('.console-legacy');
+    const disclosure = document.getElementById('overview-map');
     disclosure?.addEventListener('toggle', () => { if (disclosure.open) initMap(); });
+    document.getElementById('evidence-summary')?.addEventListener('toggle', event => {
+      if (event.target.open) consoleActivityChart?.resize();
+    });
     SOCUI.request('/api/whoami').then(data => {
       consoleSetText('console-environment',data.demo ? 'DEMO ENV' : 'REAL ENV');
       consoleSetText('console-user-name',data.user || (data.auth_enabled ? 'Analyst' : 'Local workspace · authentication off'));

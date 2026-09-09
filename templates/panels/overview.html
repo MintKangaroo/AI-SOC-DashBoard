@@ -1,30 +1,9 @@
 <section id="panel-overview" class="panel-section">
-  <div class="command-heading"><div><div class="eyebrow">SECURITY OPERATIONS / OVERVIEW</div><h1>Command Center</h1><p>Investigate the signal. Understand the decision.</p></div><div class="command-heading-actions"><span class="snapshot-time" id="console-updated">Waiting for a measured snapshot</span><button class="btn btn-sm btn-outline-secondary" data-action="consoleLoadSummary"><i class="fa fa-arrows-rotate me-1"></i>Refresh</button><button class="btn btn-sm btn-cyan" data-action="showPanel" data-args='["alerts"]'>Open analyst queue <i class="fa fa-arrow-right ms-2"></i></button></div></div>
-  <div class="situation-strip"><span class="status-dot"></span><strong id="console-situation">Establishing operational state…</strong><span id="console-situation-detail">Checking the alert store, response policy and sensors.</span><span class="provenance provenance-unavailable" id="console-data-label">SOURCE MIX —</span></div>
-  <div class="command-kpis">
-    <button class="command-kpi" data-action="showPanel" data-args='["incidents"]'><span>Active critical cases</span><strong id="cc-critical">—</strong><small id="cc-case-scope">Current cases · all ages</small></button>
-    <button class="command-kpi" data-action="consoleQueueView" data-args='["high"]'><span>Unacknowledged high</span><strong id="cc-high">—</strong><small>HIGH severity · selected range</small></button>
-    <button class="command-kpi" data-action="showPanel" data-args='["campaigns"]'><span>Correlated campaigns</span><strong id="cc-campaigns">—</strong><small id="cc-campaign-scope">Observed groups · not attribution</small></button>
-    <button class="command-kpi" data-action="showPanel" data-args='["soar"]'><span>Active blocks</span><strong id="cc-blocks">—</strong><small id="cc-block-mode">Response mode unavailable</small></button>
-    <button class="command-kpi" data-action="showPanel" data-args='["alerts"]'><span>Awaiting investigation</span><strong id="cc-open">—</strong><small>Open alerts · selected range</small></button>
-    <button class="command-kpi" data-action="showPanel" data-args='["health"]'><span>Sensor visibility</span><strong id="cc-sensors">—</strong><small>REAL sources / registered sensors</small></button>
-  </div>
-  <div class="command-grid">
-    <div class="command-primary">
-      <section class="console-card"><div class="console-card-heading"><h2><span class="section-index">01</span> Requires attention</h2><span class="text-muted">Open alerts · priority order</span><button class="text-link ms-auto" data-action="showPanel" data-args='["alerts"]'>View queue <i class="fa fa-arrow-right"></i></button></div><div class="console-table-wrap"><table class="console-table priority-table"><thead><tr><th scope="col">Severity</th><th scope="col">Detection / affected entity</th><th scope="col">Confidence</th><th scope="col">Provenance</th><th scope="col">Detected</th><th scope="col"><span class="sr-only">Investigate</span></th></tr></thead><tbody id="console-priority"><tr><td colspan="6"><div class="console-empty">Loading stored alert evidence…</div></td></tr></tbody></table></div><div class="console-card-footer"><span>Confidence is a detection score, not AI accuracy.</span><button class="text-link" data-action="consoleToggleLive" id="console-pending">Pause display updates</button></div></section>
-      <section class="console-card"><div class="console-card-heading"><h2><span class="section-index">02</span> Detection activity</h2><span class="ms-auto text-muted">Stored alerts / server time</span></div><div class="activity-chart-wrap"><canvas id="console-activity-chart" role="img" aria-label="Hourly recorded alert counts by severity"></canvas></div><div id="console-activity-description" class="console-card-footer">No snapshot available.</div></section>
-      <section class="console-card"><div class="console-card-heading"><h2><span class="section-index">03</span> Live event stream</h2><span class="text-muted ms-auto">Current session · mixed sources</span></div><div id="console-stream-slot"></div></section>
-    </div>
-    <aside class="command-secondary">
-      <section class="console-card"><div class="console-card-heading"><h2><i class="fa fa-wave-square"></i> Operational visibility</h2><button class="text-link ms-auto" data-action="showPanel" data-args='["health"]' aria-label="Open full system health"><i class="fa fa-arrow-up-right-from-square"></i></button></div><div id="console-sensors" class="sensor-list"><div class="console-empty">Checking sources…</div></div><div class="console-card-footer">An online service is not proof of sensor coverage.</div></section>
-      <section class="console-card"><div class="console-card-heading"><h2>Pipeline health</h2></div><div id="console-pipeline" class="console-card-body">Measured telemetry unavailable.</div><button class="console-full-link" data-action="showPanel" data-args='["health"]'>Open measured latency & queues →</button></section>
-      <section class="console-card"><div class="console-card-heading"><h2><i class="fa fa-code-branch"></i> Response oversight</h2></div><div class="console-response-summary" id="console-response">Response policy unavailable.</div><button class="console-full-link" data-action="showPanel" data-args='["soar"]'>Review playbooks & decisions <i class="fa fa-arrow-right"></i></button></section>
-      <section class="console-card"><div class="console-card-heading"><h2><i class="fa fa-folder-open"></i> Active investigations</h2></div><div id="console-cases"><div class="console-empty">Loading cases…</div></div></section>
-      <section class="console-card copilot-entry"><div class="eyebrow"><i class="fa fa-sparkles fa-wand-magic-sparkles"></i> ANALYST COPILOT</div><h2>Evidence first.<br/>A clearer next step.</h2><p>Open an alert to review facts, explain a response, and prepare an evidence-linked handoff.</p><button class="text-link" data-action="consoleOpenPalette">Find an investigation <i class="fa fa-arrow-right"></i></button><span class="text-muted">Advisory only · no conversational execution</span></section>
-    </aside>
-  </div>
-  <details class="console-legacy"><summary>Collection telemetry, map & response detail <span class="provenance provenance-mixed">MIXED SOURCES</span><span>Current session counters · inspect source provenance</span></summary>
-    <span id="threat-level-badge" class="d-none"></span><span id="overview-last-update" class="d-none"></span>
+  <h1 class="panel-title d-flex align-items-center flex-wrap gap-2">
+    <i class="fa fa-satellite-dish text-cyan"></i>AI 관제 센터
+    <span id="threat-level-badge" class="badge bg-secondary">위협 수준: 확인 중</span>
+    <span id="overview-last-update" class="ms-auto small text-muted">최종 갱신 —</span>
+  </h1>
       <!-- SOC 파이프라인 상태: 탐지 → AI 판정 → 자동 대응 → 케이스 -->
       <div class="soc-pipeline mb-3">
         <div role="button" tabindex="0" class="pipe-stage clickable" data-action="showPanel" data-args='["siem"]'>
@@ -148,21 +127,22 @@
                 <button class="btn btn-xs live-filter" data-lf="soar" data-action="setLiveFilter" data-args='["soar","@el"]'>대응</button>
               </span>
             </h3>
+            <div class="px-2 py-1"><button class="btn btn-xs btn-outline-secondary" data-action="consoleToggleLive" id="console-pending">Pause display updates</button></div>
             <div id="live-stream" class="live-stream flex-fill">
               <div class="text-muted p-3 small text-center">이벤트 수신 대기 중…</div>
             </div>
           </div>
         </div>
         <div class="col-lg-7 col-xxl-5">
-          <div class="card-panel p-0 overflow-hidden h-100">
-            <div class="card-panel-header px-3 py-2">
-              <i class="fa fa-earth-asia text-cyan me-2"></i>GeoIP observation map
-              <span class="ms-auto small text-muted">드래그 회전 · 휠 확대</span>
-            </div>
+          <details class="card-panel p-0 overflow-hidden h-100" id="overview-map" open>
+            <summary class="card-panel-header px-3 py-2">
+              <i class="fa fa-earth-asia text-cyan me-2"></i>글로벌 관측 지도
+              <span class="ms-auto small text-muted">드래그 회전 · 휠 확대 · 접기</span>
+            </summary>
             <div class="console-toolbar px-3"><select id="map-timeframe" aria-label="Map event timeframe" data-action-change="renderMapEvidence"><option value="1">LIVE · last minute</option><option value="15" selected>Last 15m</option><option value="60">Last hour</option><option value="1440">Last 24h</option></select><select id="map-severity" aria-label="Map severity" data-action-change="renderMapEvidence"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
             <div id="map-scope" class="text-muted small px-3 pb-2">Source geolocation only. Country is not attacker attribution; destination is unverified.</div>
             <div id="attack-globe" style="height:300px; background:var(--bg-primary); position:relative;"></div>
-          </div>
+          </details>
         </div>
         <!-- KPI 레일: 울트라와이드에선 우측 세로, 좁은 화면에선 하단 가로 -->
         <div class="col-12 col-xxl-3">
@@ -360,5 +340,6 @@
       <span id="kpi-ml-anomaly" class="d-none">0</span>
       <span id="kpi-blocked" class="d-none">0</span>
 
-</details>
+
+  {% include "components/evidence-summary.html" %}
 </section>

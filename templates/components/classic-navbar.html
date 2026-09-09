@@ -1,0 +1,20 @@
+<nav class="navbar navbar-dark navbar-soc px-3 py-2" aria-label="관제 도구">
+  <div class="d-flex align-items-center gap-2">
+    <button class="nav-toggle" id="nav-toggle" aria-label="메뉴" aria-controls="sidebar" data-action="toggleSidebar"><i class="fa fa-bars"></i></button>
+    <i class="fa-solid fa-shield-halved fa-lg text-cyan"></i>
+    <span class="fw-bold fs-5 text-white brand-full">SOC 보안관제 대시보드</span>
+    <span class="fw-bold fs-6 text-white brand-short">SOC</span>
+    <button class="console-live ms-2" id="console-live" data-action="consoleToggleLive" aria-pressed="false" title="화면 갱신 일시정지 · 수집과 대응은 계속됩니다"><span class="badge bg-secondary" id="badge-status">CONNECTING</span></button>
+    <span class="provenance provenance-unavailable" id="console-environment">ENV —</span>
+    <span id="demo-badge" class="d-none">DEMO</span>
+  </div>
+  <div class="d-flex align-items-center gap-2 ms-auto text-muted small classic-nav-tools">
+    <button class="console-global-search" data-action="consoleOpenPalette" aria-label="통합 검색" aria-keyshortcuts="Control+k Meta+k"><i class="fa fa-search"></i><span>통합 검색</span><kbd>Ctrl K</kbd></button>
+    <label class="console-range nav-hide-mobile"><select id="console-range" aria-label="저장 증거 조회 기간" data-action-change="consoleChangeRange" data-args='["@el"]'><option value="0.25">최근 15분</option><option value="1">최근 1시간</option><option value="24" selected>최근 24시간</option><option value="168">최근 7일</option></select></label>
+    <span id="current-time" class="nav-hide-mobile"></span>
+    <button class="console-icon-btn nav-hide-mobile" data-action="showPanel" data-args='["health"]' aria-label="센서 상태"><i class="fa fa-heart-pulse"></i><span id="console-sensor-count">—</span></button>
+    <span id="ai-status-badge" class="badge bg-secondary nav-hide-mobile">AI 대기중</span>
+    <details class="console-user"><summary aria-label="사용자 메뉴"><i class="fa fa-user-shield"></i></summary><div class="console-user-menu"><strong id="console-user-name">사용자 확인 중</strong><span id="access-role-badge"></span><button class="btn btn-sm btn-outline-secondary" data-action="showPanel" data-args='["access"]'>계정 · 접근 권한</button><button class="btn btn-sm btn-outline-secondary" data-action="consoleNotifications">알림 확인</button></div></details>
+    <form method="POST" action="/logout"><button type="submit" class="logout-btn" title="로그아웃" aria-label="로그아웃"><i class="fa fa-right-from-bracket"></i></button></form>
+  </div>
+</nav>

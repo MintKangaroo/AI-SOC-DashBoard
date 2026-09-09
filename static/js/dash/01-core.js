@@ -538,7 +538,7 @@
     closeSidebar();   // 모바일: 패널 선택 시 드로어 닫기
 
     if (name === 'overview') setTimeout(() => {
-      if (document.querySelector('.console-legacy')?.open) initMap();
+      if (document.getElementById('overview-map')?.open) initMap();
       if (typeof renderLiveStream === 'function') renderLiveStream();
       if (typeof renderTopAttackers === 'function') renderTopAttackers();
       if (typeof renderThreatTypeChart === 'function') renderThreatTypeChart();

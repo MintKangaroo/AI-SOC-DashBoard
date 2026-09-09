@@ -1,5 +1,8 @@
 # TRACE · AI SOC command center
 
+> Presentation update: the classic Korean shell was restored after this design iteration.
+> Evidence and security improvements remain. See [restoration notes](CLASSIC_RESTORE.md).
+
 ## Repository and UX audit — 2026-09-09
 
 Starting revision: `21e93b3`. The workspace was an existing clean clone of

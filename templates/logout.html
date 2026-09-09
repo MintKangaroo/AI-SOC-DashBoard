@@ -1,2 +1,22 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign out · TRACE</title><link rel="stylesheet" href="/static/css/style.css"><link rel="stylesheet" href="/static/css/login.css"></head><body class="trace-login"><form class="login-card" method="POST" action="/logout"><div class="brand"><div class="login-eyebrow">TRACE / SESSION</div><h1>Sign out of this session</h1><p>현재 세션을 취소하고 실시간 연결을 종료합니다.</p></div><button type="submit">Sign out</button><p><a href="/">Return to investigations</a></p></form></body></html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>로그아웃 · SOC 보안관제</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+  <form class="login-card" method="POST" action="/logout">
+    <div class="brand">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      <h1>SOC 보안관제 로그아웃</h1>
+      <p>현재 세션을 취소하고 실시간 연결을 종료합니다.</p>
+    </div>
+    <button type="submit">로그아웃</button>
+    <p class="foot"><a href="/">관제 화면으로 돌아가기</a></p>
+  </form>
+</body>
+</html>

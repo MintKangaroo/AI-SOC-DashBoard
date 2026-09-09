@@ -1,0 +1,41 @@
+/* Keep the original SOC shell. Only adapt the newer evidence components. */
+.classic-layout { height:calc(100dvh - 56px); }
+.classic-console .main-content { min-width:0; }
+.classic-console .navbar-soc { flex-wrap:nowrap; gap:var(--space-3); }
+.classic-nav-tools { flex-shrink:0; }
+.classic-nav-tools .console-global-search { flex:none; font-size:var(--fs-label); }
+.classic-nav-tools form { margin:0; }
+.classic-nav-tools .logout-btn { background:transparent; }
+.classic-nav-tools .console-user summary { padding:var(--space-2); }
+.classic-console #demo-badge { display:none !important; }
+.classic-console .command-heading h1 { font-size:var(--fs-h2); }
+.classic-console .command-heading .eyebrow { display:none; }
+.classic-console dialog { color:var(--text-primary); background:var(--bg-card); border:1px solid var(--border); padding:0; box-shadow:var(--shadow-overlay); }
+.classic-console dialog::backdrop { background:rgb(0 0 0 / 65%); }
+.classic-console :is(button,a,input,select,summary,textarea,[tabindex]):focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.classic-evidence>summary { cursor:pointer; }
+.classic-evidence .command-grid { margin-bottom:0; }
+.classic-console button.mitre-technique { display:block; width:100%; text-align:left; color:var(--text-primary); background:transparent; border:0; border-bottom:1px solid var(--border); }
+.classic-console .mitre-technique .tech-count { position:static; display:block; }
+.classic-console .spl-event-fields pre { flex-basis:100%; max-height:230px; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--text-muted); background:var(--bg-primary); padding:var(--space-3); }
+.classic-console .spl-fv { cursor:pointer; }
+.classic-console .spl-event-top .provenance { margin-left:auto; flex-shrink:0; }
+.classic-console .mitre-top-item { grid-template-columns:24px 65px minmax(0,1fr) minmax(35px,70px) 30px; }
+.classic-console .mitre-top-item .tech-name { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:1400px) {
+  .classic-nav-tools #current-time { display:none; }
+  .classic-nav-tools .console-global-search kbd { display:none; }
+}
+@media(max-width:1000px) { .classic-nav-tools #ai-status-badge { display:none; } }
+@media(max-width:768px) {
+  .classic-console .navbar-soc { gap:var(--space-2); }
+  .classic-nav-tools { gap:var(--space-1) !important; }
+  .classic-nav-tools .console-global-search { width:30px; height:32px; }
+  .classic-console .mitre-top-item { grid-template-columns:20px 65px minmax(0,1fr) 30px; }
+  .classic-console .mitre-top-item .bar-wrap { display:none; }
+  .classic-console #console-environment { font-size:var(--fs-micro); }
+}
+@media(max-width:360px) {
+  .classic-console .navbar-soc { padding-left:var(--space-2) !important; padding-right:var(--space-2) !important; }
+  .classic-console .brand-short,.classic-nav-tools .console-user { display:none; }
+}

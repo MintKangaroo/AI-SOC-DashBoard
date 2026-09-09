@@ -1,18 +1,25 @@
-# TRACE · AI SOC Security Operations
+# SOC 보안관제 대시보드
 
-> **AI assists. Evidence decides.**
+> **AI 기반 실시간 관제 · 증거 중심 조사**
 > 알림에서 증거·판정·자동대응 이력까지 연결하는 AI 보조 보안관제 콘솔입니다.
 > 기존 AI-SOC-DashBoard의 Flask/Jinja·Socket.IO·SQLite WAL 구조와 탐지·대응 기능을 유지하며,
-> 조사와 의사결정 중심의 **39개 워크스페이스**로 개선했습니다.
+> 기존 한국어 관제 화면에서 **39개 패널**과 증거 중심 조사 기능을 제공합니다.
 
 [![CI](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-SocketIO-000000?logo=flask&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-![TRACE Command Center — isolated demo environment](docs/portfolio_img/trace-command-center.png)
+![SOC 관제 센터 — 격리된 DEMO 환경](docs/portfolio_img/classic-command-center.png)
 
 *임시 DEMO 환경에서 촬영한 실제 애플리케이션 화면입니다. 표시된 수치는 운영 환경의 보안 실적이 아닙니다.*
+
+### 2026-09-09 · 기존 디자인 복원
+
+- **이전 화면으로 복원** — `21e93b3` 기준 한국어 사이드바, 검정·청록색 테마, 파이프라인·이벤트 스트림·지도 배치와 중앙 로그인 폼을 복원했습니다.
+- **조사 기능 유지** — 권한·세션 회수, 통합 검색, 알림 조사·copilot·감사 이력, 일시정지, 탐지 품질 기능을 유지합니다. 추가 집계는 관제 센터 하단의 **저장 증거 요약**을 펼쳐 확인합니다.
+- **데이터·안전 설정 유지** — 새 UI 토큰은 기존 팔레트를 공유합니다. 생성 이미지는 로그인에서 사용하지 않으며 자산 파일은 보관합니다. 탐지·차단·승인·TTL·패치 정책과 데이터베이스는 디자인 복원 대상에 포함하지 않습니다.
+- **서버 갱신** — `/api/console/summary`가 404라면 정적 화면과 실행 중인 Python 서버의 버전이 다른지 확인합니다. [적용 및 검증 안내](docs/CLASSIC_RESTORE.md)를 참고하세요.
 
 ### 2026-09-09 · 역할 경계와 부하 검증
 
@@ -23,8 +30,8 @@
 
 ### 2026-09-09 · 조사 중심 콘솔
 
-- **Command Center** — 저장된 우선순위 알림, 현재 인시던트, 상관 캠페인, 차단 모드, 센서 상태, 측정된 파이프라인 상태를 한 화면에서 확인합니다.
-- **업무 중심 탐색** — Investigate / Detection / Intelligence / Respond / Exposure / Validation / Operations / Settings. 기존 37개 패널의 기능을 유지하고 Detection Quality를 추가했습니다.
+- **관제 센터 / 저장 증거 요약** — 기존 관제 배치를 유지하고, 하단 요약에서 저장된 우선순위 알림·인시던트·상관 캠페인·차단 모드·센서·파이프라인 측정값을 확인합니다.
+- **한국어 탐색** — SIEM · 수집/탐지 / 위협 분석 / SOAR · 대응 / 취약점 진단 / 시스템. 기존 37개 패널과 탐지 품질·계정 권한 패널을 제공합니다.
 - **Cmd/Ctrl + K** — IP·호스트·프로세스·해시·CVE·MITRE·규칙·알림 ID를 저장 증거에서 검색하고, 인시던트·IOC 또는 작업 화면으로 이동합니다. 검색은 의미 기반 AI 검색이 아닌 명시적인 필드/텍스트 검색입니다.
 - **Analyst queue** — 서버 필터·정렬·페이지 이동, 브라우저에 저장하는 뷰, 열 표시/너비 조절, 행 키보드 이동, 다중 선택, 근거를 남기는 ACK/종결. 오래된 활성 저장 알림도 처리하며 아카이브는 읽기 전용입니다.
 - **Investigation drawer** — 정규화 필드·원본 증거·출처·관련 알림·연결된 인시던트·기록된 타임라인·AI 트리아지·SOAR 결정·정확한 알림 ID에 연결된 감사 기록을 조회하고 JSON으로 내보냅니다.
@@ -33,7 +40,7 @@
 - **Detection Quality** — 규칙별 분석가 TP/FP, 미검토 건수, 신뢰도 분포, 탐지 날짜별 현재 판정, 고빈도 소스와 억제/중복 처리량. 억제 미리보기는 쓰기 없이 계산하며 CRITICAL을 제외하고 원문을 보존합니다.
 - **SIEM / ATT&CK / 캠페인** — 실제 이벤트 시각 필터, AND 텍스트·`field=value` 검색, 검색 이력·감사 기록·증거 스냅샷 내보내기. MITRE는 시간 범위 내 저장 알림 관측과 룰·모의 검증을 분리합니다. 캠페인은 서로 다른 출처를 섞지 않고 구성 알림으로 연결합니다.
 - **SOAR / Replay / Exposure** — 결정 당시 입력과 게이트를 확인하고 임계값·근거 부재·TP/FP 가정을 비교합니다. 재현은 차단 실행이 아닌 게이트 적격성 계산입니다. CVE 상세에서 자산·서비스·패키지 검증·패치 상태를 확인합니다.
-- **공통 디자인 시스템** — graphite 표면, 의미 기반 토큰, 컴팩트한 표와 상태 표시, native dialog 포커스 관리, 데스크톱·태블릿·모바일 대응. Higgsfield 생성 이미지는 로그인 배경에만 쓰며 자체 호스팅합니다.
+- **공통 컴포넌트** — 기존 검정·청록색 팔레트를 공유하는 증거·출처·상태 토큰, native dialog 포커스 관리, 데스크톱·태블릿·모바일 대응.
 
 ### 데이터와 기능 상태
 
@@ -308,7 +315,7 @@ SOC_DashBoard/
 
 ## 문서
 
-- **[TRACE 콘솔 가이드](docs/TRACE_CONSOLE.md)** — 실제 데이터 범위·API·설계 시스템·남은 제한
+- **[조사 콘솔 가이드](docs/TRACE_CONSOLE.md)** — 실제 데이터 범위·API·설계 시스템·남은 제한
 - **[이번 변경의 감사/검증 기록](docs/CONSOLE_REDESIGN.md)**
 
 - 🔍 **[실제 탐지 케이스 스터디](docs/CASE_STUDIES.md)** — 원본 로그 근거, 오탐·미탐 사례 포함
@@ -332,10 +339,10 @@ SOC_DashBoard/
 
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
-| 단위·통합 | 전체 기존 검사 + TRACE 계약 검사 | `pytest` |
+| 단위·통합 | 전체 기존 검사 + 조사 API 계약 검사 | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
 | **브라우저** | Playwright 로 39패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py tests/test_console_browser.py tests/test_identity_browser.py` (`-m "not browser"` 로 제외) |
-| **TRACE 조사 워크플로** | 증거 drawer·copilot fallback·감사 ACK·일시정지·선택 유지·명령 팔레트·SIEM 실제 시간 필터 | `pytest tests/test_console.py tests/test_console_browser.py` |
+| **조사 워크플로** | 증거 drawer·copilot fallback·감사 ACK·일시정지·선택 유지·명령 팔레트·SIEM 실제 시간 필터 | `pytest tests/test_console.py tests/test_console_browser.py` |
 | **부하** | 사본·인증·동시 조회·합성 입력, p50/p95/max·HTTP 실패·저장 누락 | `python scripts/loadtest.py --profile console --with-real-data --authenticated --ingest-rate 20` |
 
 `test_client` 는 프로세스도 소켓도 없고 작업 디렉터리가 항상 저장소입니다. 실제로

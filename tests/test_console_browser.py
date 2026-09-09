@@ -1,4 +1,4 @@
-"""Real browser workflows for TRACE; data is seeded only in a temporary demo server."""
+"""Evidence workflows in the classic shell; data is seeded only in a temporary demo server."""
 import json
 import time
 
@@ -123,8 +123,12 @@ def test_command_palette_keyboard_entity_search_and_focus(console_page):
 
 def test_siem_timestamp_filter_and_field_query(console_page):
     page, _, _ = console_page
-    page.evaluate("showPanel('siem')")
-    page.wait_for_timeout(500)
+    # Await the real initial snapshot before injecting evidence: globe loading can
+    # delay the HTTP response beyond a fixed sleep and overwrite our test stream.
+    with page.expect_response('**/api/integrations/siem') as snapshot:
+        page.evaluate("showPanel('siem')")
+    snapshot.value.finished()
+    until(page, "document.querySelector('#siem-sources-ok').textContent !== ''")
     page.evaluate("""() => {
       SOCRealtime.setPaused(true);
       // Resume to inject through actual registered Socket.IO handlers, then freeze.
@@ -147,9 +151,10 @@ def test_siem_timestamp_filter_and_field_query(console_page):
     assert data['events'][0]['provenance']['state'] == 'DEMO'
 
 
-def test_mobile_critical_review_has_no_horizontal_overflow(console_page):
+@pytest.mark.parametrize('width', [320, 390])
+def test_mobile_critical_review_has_no_horizontal_overflow(console_page, width):
     page, _, _ = console_page
-    page.set_viewport_size({'width':390,'height':844})
+    page.set_viewport_size({'width':width,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
     open_seed_queue(page).click(position={'x':95,'y':16})
     page.wait_for_selector('#investigation-meta .provenance-demo')
@@ -203,6 +208,7 @@ def test_queue_columns_resize_with_keyboard_and_preserve_selection(console_page)
     assert float(handle.get_attribute('aria-valuenow')) > first
     assert row.locator('input[type=checkbox]').is_checked()
     page.evaluate("showPanel('overview')")
+    page.locator('#evidence-summary > summary').click()
     priority = page.locator('#console-priority tr[data-alert-id]').first
     alert_id = priority.get_attribute('data-alert-id')
     requests = []
@@ -212,3 +218,23 @@ def test_queue_columns_resize_with_keyboard_and_preserve_selection(console_page)
     priority.press('Enter')
     page.wait_for_selector('#investigation-meta .provenance')
     assert len(requests) == 1  # one keyboard activation, one evidence request
+
+
+def test_classic_shell_restores_live_wall_without_losing_evidence(console_page):
+    page, _, _ = console_page
+    assert page.title() == 'SOC 보안관제 대시보드'
+    assert page.locator('#panel-overview h1').inner_text().startswith('AI 관제 센터')
+    assert page.locator('#sgroup-head-siem').inner_text().startswith('SIEM · 수집/탐지')
+    assert page.locator('#live-stream').evaluate('(el) => !!el.closest(".command-wall")')
+    assert page.locator('#overview-map').evaluate('(el) => el.open')
+    page.wait_for_selector('#attack-globe canvas')
+    assert not page.locator('#evidence-summary').evaluate('(el) => el.open')
+    page.locator('#overview-map > summary').click()
+    assert not page.locator('#attack-globe').is_visible()
+    assert page.locator('#live-stream').is_visible()
+    page.locator('#evidence-summary > summary').click()
+    assert page.locator('#console-priority [data-alert-id]').count() > 0
+    assert page.locator('#console-priority .provenance-demo').count() > 0
+    assert page.locator('form[action="/logout"]').get_attribute('method') == 'POST'
+    assert page.locator('.sidebar-link[data-panel="access"]').count() == 1
+    assert page.locator('.sidebar-link[data-panel="quality"]').count() == 1
