@@ -106,7 +106,7 @@ flowchart LR
 - **Sysmon** — 프로세스 생성·네트워크·자격증명 접근 이벤트 (`sysmon_parser`)
 - **네트워크 관제** — 활성 연결·리스닝 포트·대역폭, 서비스 헬스체크 (`net_monitor`)
 - **Syslog 수신** — 원격 서버(자동매매 KR/USA)의 접속 시도를 UDP/TCP로 실시간 수집·분류 (`syslog_receiver`)
-- **IDS 연동** — Snort fast-alert · Suricata `eve.json`(alert 만 알림, 분류·앱프로토콜·HTTP/DNS 맥락 동반). IDS 는 근거만 주고 차단은 SOAR 게이트가 결정 (`snort_monitor` · `suricata_monitor`)
+- **IDS·NSM 연동** — Snort fast-alert · Suricata `eve.json`(alert 만 알림, 분류·앱프로토콜·HTTP/DNS 맥락 동반) · Zeek `notice.log`(notice 만 알림, JSON·TSV, 시간별 회전 추적). 셋 다 근거만 주고 차단은 SOAR 게이트가 결정. MITRE 는 시그니처가 아니라 분류(classtype) 단위 (`snort_monitor` · `suricata_monitor` · `zeek_monitor`)
 
 ### ② 탐지 · Detection Engineering
 - **위협 탐지** — DDoS · 포트스캔 · 악성코드 C2, 신뢰도 스코어링 (`threat_detector`)
@@ -177,11 +177,11 @@ flowchart LR
 ## 기술 스택
 
 - **백엔드** — Flask 3 · Flask-SocketIO(threading) · Blueprint REST API
-- **탐지·분석** — PyShark · Scapy · nmap + vulners(내장) · Snort · Suricata · Sigma · YARA · psutil · scikit-learn
+- **탐지·분석** — PyShark · Scapy · nmap + vulners(내장) · Snort · Suricata · Zeek · Sigma · YARA · psutil · scikit-learn
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · globe.gl · Socket.IO(전부 자체 호스팅)
-- **테스트** — pytest **849개** + 실제 브라우저 순회(Playwright, 36패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest **857개** + 실제 브라우저 순회(Playwright, 37패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -216,6 +216,7 @@ Docker 로 띄우려면(데모 모드, 센서 없이 전체 화면): `docker com
 | IP 평판 실조회 | `.env ABUSEIPDB_API_KEY` (무료 1000/일) |
 | 취약점 스캔 CVE | `apt install nmap` — vulners 스크립트는 `data/nse/` 에 내장(인터넷 필요, `VULNERS_API_KEY` 선택) |
 | Suricata IDS | `apt install suricata && suricata-update` — `eve.json` 이 생기면 자동 수집 |
+| Zeek | `apt install zeek && zeekctl deploy` — `ZEEK_NOTICE_PATH` 의 `notice.log` 가 생기면 자동 수집 |
 | 원격 서버 관제 | `.env ANSIBLE_TARGETS="이름=user@host;..."` + SSH 키 |
 | 폰 푸시 알림 | ntfy 앱 설치 + `.env NTFY_ENABLED=True NTFY_TOPIC=...` |
 | 외부 접속 | Tailscale(`HOST=0.0.0.0`) |
@@ -256,7 +257,7 @@ SOC_DashBoard/
 │   ├── dashboard.html        # 레이아웃·사이드바
 │   └── panels/               # 패널별 UI 조각 (37개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~23, 순서대로 로드)
-├── tests/                    # pytest 849개
+├── tests/                    # pytest 857개
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
@@ -265,6 +266,7 @@ SOC_DashBoard/
 ## 문서
 
 - 🔍 **[실제 탐지 케이스 스터디](docs/CASE_STUDIES.md)** — 원본 로그 근거, 오탐·미탐 사례 포함
+- 📋 **[인수인계](docs/HANDOVER.md)** — 지금 상태·운영 방법·미결 결정·다음 할 일. **이어받는 사람은 이것부터**
 - 🧪 **[코드 감사 보고서](docs/AUDIT.md)** — 구조·신뢰성·보안·테스트 진단 **27건 전부 종결**.
   각 항목에 *무엇을 왜 그렇게 고쳤는지*와 **의도적으로 하지 않은 것**(ES 모듈 전환·Postgres 이관·
   OCSF 전면 도입 등)이 근거와 함께 적혀 있습니다
@@ -276,7 +278,7 @@ SOC_DashBoard/
 
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
-| 단위·통합 | 849건 (대부분 Flask `test_client`) | `pytest` |
+| 단위·통합 | 857건 (대부분 Flask `test_client`) | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
 | **브라우저** | Playwright 로 36패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py` (`-m "not browser"` 로 제외) |
 | **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
