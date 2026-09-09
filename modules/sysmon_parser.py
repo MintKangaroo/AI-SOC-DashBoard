@@ -154,6 +154,7 @@ class SysmonParser:
         self.config = config
         self.mitre = mitre_tracker
         self.running = False
+        self.source_mode = 'off'
         # Sysmon 이벤트 채널 — config 에 선언돼 있었으나 읽히지 않아
         # 하드코딩된 채널만 열렸다(AUDIT F-1).
         self.log_channel = ((config or {}).get("SYSMON_LOG_CHANNEL")
@@ -177,8 +178,10 @@ class SysmonParser:
             return
         self.running = True
         if not demo and WIN32_AVAILABLE:
+            self.source_mode = 'real'
             threading.Thread(target=self._read_win32_loop, daemon=True).start()
         else:
+            self.source_mode = 'demo'
             threading.Thread(target=self._demo_loop, daemon=True).start()
         threading.Thread(target=self._emit_loop, daemon=True).start()
 
@@ -219,6 +222,7 @@ class SysmonParser:
                     self._process_win32_record(rec)
         except Exception as e:
             _log.warning(f"[SysmonParser] Windows 이벤트 읽기 오류: {e} — 데모 모드로 전환")
+            self.source_mode = 'demo'
             self._demo_loop()
 
     def _process_win32_record(self, rec):
@@ -382,6 +386,8 @@ class SysmonParser:
                 break
 
     def _record_event(self, entry):
+        entry['provenance'] = {'state': self.source_mode.upper() if self.source_mode in ('real', 'demo') else 'UNAVAILABLE',
+                               'reason': 'Sysmon collection mode at event receipt'}
         with self._lock:
             self.events.append(entry)
             self.stats["total_events"] += 1

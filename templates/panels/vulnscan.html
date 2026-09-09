@@ -22,13 +22,15 @@
         <div class="col-md col-4"><div class="stat-card stat-sm border-cyan">
           <div class="stat-value" id="vuln-open">0</div><div class="stat-label">열린 포트</div></div></div>
         <div class="col-md col-4"><div class="stat-card stat-sm border-orange">
-          <div class="stat-value text-orange" id="vuln-total">0</div><div class="stat-label">발견 취약점</div></div></div>
+          <div class="stat-value text-orange" id="vuln-total">0</div><div class="stat-label">CVE / 노출 매치</div></div></div>
         <div class="col-md col-4"><div class="stat-card stat-sm border-danger">
-          <div class="stat-value text-danger" id="vuln-high">0</div><div class="stat-label">High 이상</div></div></div>
+          <div class="stat-value text-danger" id="vuln-high">0</div><div class="stat-label">High 이상 매치</div></div></div>
         <div class="col-md col-4"><div class="stat-card stat-sm border-purple">
           <div class="stat-value text-purple" id="vuln-hosts">0</div><div class="stat-label">대상 서버</div></div></div>
       </div>
 
+      <div class="workspace-context">ASSET → SERVICE → CVE MATCH → VALIDATION → PATCH STATE → REMEDIATION. Select a CVE to review supporting evidence. Match counts are not confirmed vulnerabilities.</div>
+      <dialog id="exposure-detail-dialog" class="investigation-drawer" aria-labelledby="exposure-detail-title"><header class="investigation-header"><div><div class="eyebrow">EXPOSURE / VALIDATION</div><h2 id="exposure-detail-title">CVE evidence</h2></div><button class="console-icon-btn" aria-label="Close CVE evidence" data-action="vulnCloseEvidence">×</button></header><div id="exposure-detail-content" class="investigation-scroll"></div><footer class="investigation-footer"><button class="btn btn-sm btn-outline-secondary" data-action="vulnReviewPatch">Review patch workflow</button></footer></dialog>
       <!-- 대상 서버 선택 -->
       <div class="card-panel mb-3">
         <div class="card-panel-header d-flex align-items-center">

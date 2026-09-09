@@ -6,6 +6,7 @@ MITRE 전술(kill-chain) 순서로 엮으면 하나의 '공격 스토리'가 된
 """
 from datetime import datetime
 from modules.mitre_attack import TACTICS, THREAT_MAPPING
+from modules.provenance import provenance
 
 _FMT = "%Y-%m-%d %H:%M:%S"
 _SEV_ORDER = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
@@ -39,10 +40,10 @@ def build_campaigns(rows, window_minutes=30, min_alerts=2, labels=None):
     window = window_minutes * 60
     by_ip = {}
     for r in rows:
-        by_ip.setdefault(r["src_ip"], []).append(r)
+        by_ip.setdefault((r["src_ip"], provenance(r)["state"]), []).append(r)
 
     campaigns = []
-    for ip, arr in by_ip.items():
+    for (ip, _source), arr in by_ip.items():
         arr.sort(key=lambda r: r["timestamp"])
         # 시간 간격으로 세션 분할
         sessions, cur, last = [], [], None
@@ -107,6 +108,7 @@ def _summarize(ip, sess, labels):
 
     return {
         "src_ip": ip,
+        "provenance": provenance(sess[0]),
         "start": start, "end": end, "duration_min": dur_min,
         "alert_count": len(sess),
         "severity": sev_name, "sev_rank": sev_rank,
@@ -126,6 +128,7 @@ def compute(store, hours=24, window_minutes=30, min_alerts=2, labels=None):
     campaigns = build_campaigns(rows, window_minutes, min_alerts, labels)
     return {
         "hours": hours,
+        "sample_size": len(rows), "sample_limit": 5000,
         "window_minutes": window_minutes,
         "total": len(campaigns),
         "multistage": sum(1 for c in campaigns if c["stage_count"] >= 2),

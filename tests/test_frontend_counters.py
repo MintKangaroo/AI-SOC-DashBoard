@@ -164,7 +164,6 @@ _ESCAPE_EXEMPT = {
     ("10-health.js", "m.label"):             "클라이언트 모드 맵",
     ("13-watchlist.js", "m.label"):          "클라이언트 IOC 종류 맵",
     ("06-sources.js", "s.label"):            "클라이언트 파이프라인 단계 상수",
-    ("03-detection.js", "DEFENDER.label"):   "클라이언트 상수(방어 지점 라벨)",
     ("08-response-init.js", "k.ko"):         "클라이언트 플레이북 단계 종류 맵",
     ("03-detection.js", "alert.severity"):   "item.className 대입 — HTML 파싱 아님",
     ("02-overview.js", "r.info.type"):      "reconcileList 서명 문자열 — el.dataset.sig 대입(HTML 파싱 아님)",

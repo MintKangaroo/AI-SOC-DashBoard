@@ -76,6 +76,10 @@ def _eff_stats(stats, status):
 
 def _extract_mode(key, svc, eff, status, demo_default):
     """모듈별 동작 모드 판별."""
+    if key in ('packet_analyzer', 'sysmon_parser', 'siem_collector'):
+        actual = getattr(svc, 'source_mode', None)
+        if actual in ('real', 'demo', 'off'):
+            return actual
     # 1) 지표에 명시적 mode 가 있으면 그대로 사용 (edr/net_monitor/authlog 등)
     if eff.get("mode") in ("real", "demo", "off"):
         return eff["mode"]

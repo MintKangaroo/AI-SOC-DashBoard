@@ -1,30 +1,65 @@
-# AI 기반 SOC 보안관제 대시보드
+# TRACE · AI SOC Security Operations
 
-> Flask 기반 **실시간 보안관제(SOC) 플랫폼** — 운영 중인 자동매매 홈서버(KR·USA)를 대상으로
-> 침해 시도를 실시간 관제하고, AI로 **정탐(True Positive)과 오탐(False Positive)을 구분**하며,
-> 탐지부터 자동대응(SOAR)·취약점 관리까지 SOC 업무 흐름을 하나의 대시보드로 구현했습니다.
+> **AI assists. Evidence decides.**
+> 알림에서 증거·판정·자동대응 이력까지 연결하는 AI 보조 보안관제 콘솔입니다.
+> 기존 AI-SOC-DashBoard의 Flask/Jinja·Socket.IO·SQLite WAL 구조와 탐지·대응 기능을 유지하며,
+> 조사와 의사결정 중심의 **38개 워크스페이스**로 개선했습니다.
 
 [![CI](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/MintKangaroo/AI-SOC-DashBoard/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-SocketIO-000000?logo=flask&logoColor=white)
-![Claude AI](https://img.shields.io/badge/AI-Claude-D97757)
-![Tests](https://img.shields.io/badge/tests-153_passing-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 17,800 LOC**로 구현한 **개인 학습·포트폴리오 프로젝트**입니다.
-센서(Npcap·Sysmon·nmap·ansible 등)가 없는 환경에서는 모든 모듈이 **데모 fallback**으로 동작해 clone 직후에도 전체 화면을 볼 수 있습니다.
+![TRACE Command Center — isolated demo environment](docs/portfolio_img/trace-command-center.png)
 
-![AI 관제 센터](docs/portfolio_img/01-overview.png)
+*임시 DEMO 환경에서 촬영한 실제 애플리케이션 화면입니다. 표시된 수치는 운영 환경의 보안 실적이 아닙니다.*
 
-> 🔍 **실제 탐지 사례는 [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md)** — 원본 로그 근거로 정리한 잡은 사례 3건, 놓친 사례 2건, 그리고 시뮬레이터 산출물을 실침해로 오인한 사례 1건.
-> 📸 **화면 중심 소개는 [docs/PORTFOLIO.md](docs/PORTFOLIO.md)** 에서 12개 패널을 스크린샷으로 볼 수 있습니다.
+### 2026-09-09 · 조사 중심 콘솔
+
+- **Command Center** — 저장된 우선순위 알림, 현재 인시던트, 상관 캠페인, 차단 모드, 센서 상태, 측정된 파이프라인 상태를 한 화면에서 확인합니다.
+- **업무 중심 탐색** — Investigate / Detection / Intelligence / Respond / Exposure / Validation / Operations / Settings. 기존 37개 패널의 기능을 유지하고 Detection Quality를 추가했습니다.
+- **Cmd/Ctrl + K** — IP·호스트·프로세스·해시·CVE·MITRE·규칙·알림 ID를 저장 증거에서 검색하고, 인시던트·IOC 또는 작업 화면으로 이동합니다. 검색은 의미 기반 AI 검색이 아닌 명시적인 필드/텍스트 검색입니다.
+- **Analyst queue** — 서버 필터·정렬·페이지 이동, 브라우저에 저장하는 뷰, 열 표시/너비 조절, 행 키보드 이동, 다중 선택, 근거를 남기는 ACK/종결. 오래된 활성 저장 알림도 처리하며 아카이브는 읽기 전용입니다.
+- **Investigation drawer** — 정규화 필드·원본 증거·출처·관련 알림·연결된 인시던트·기록된 타임라인·AI 트리아지·SOAR 결정·정확한 알림 ID에 연결된 감사 기록을 조회하고 JSON으로 내보냅니다.
+- **Analyst copilot** — FACTS / INFERENCES / RECOMMENDATIONS / UNKNOWN을 분리합니다. FACTS는 저장된 기록에서 구성하며 모델이 교체할 수 없습니다. AI가 없으면 결정론적 증거 요약을 제공합니다. 대화에서 차단·패치·프로세스 종료를 실행하지 않습니다.
+- **LIVE / PAUSED** — 백엔드 수집·대응은 계속되고 브라우저 스트림만 일시정지합니다. 새 이벤트 개수를 표시하고 최대 500개 표시 항목을 보관하며 상태 스냅샷은 합칩니다. 초과분은 명시하고 저장 알림을 다시 조회할 수 있습니다. 알림 큐는 새 이벤트로 자동 재정렬하지 않습니다.
+- **Detection Quality** — 규칙별 분석가 TP/FP, 미검토 건수, 신뢰도 분포, 탐지 날짜별 현재 판정, 고빈도 소스와 억제/중복 처리량. 억제 미리보기는 쓰기 없이 계산하며 CRITICAL을 제외하고 원문을 보존합니다.
+- **SIEM / ATT&CK / 캠페인** — 실제 이벤트 시각 필터, AND 텍스트·`field=value` 검색, 검색 이력·감사 기록·증거 스냅샷 내보내기. MITRE는 시간 범위 내 저장 알림 관측과 룰·모의 검증을 분리합니다. 캠페인은 서로 다른 출처를 섞지 않고 구성 알림으로 연결합니다.
+- **SOAR / Replay / Exposure** — 결정 당시 입력과 게이트를 확인하고 임계값·근거 부재·TP/FP 가정을 비교합니다. 재현은 차단 실행이 아닌 게이트 적격성 계산입니다. CVE 상세에서 자산·서비스·패키지 검증·패치 상태를 확인합니다.
+- **공통 디자인 시스템** — graphite 표면, 의미 기반 토큰, 컴팩트한 표와 상태 표시, native dialog 포커스 관리, 데스크톱·태블릿·모바일 대응. Higgsfield 생성 이미지는 로그인 배경에만 쓰며 자체 호스팅합니다.
+
+### 데이터와 기능 상태
+
+| 표시 | 해석 |
+| --- | --- |
+| REAL | 실제 출처로 기록된 데이터. 침해가 확정됐다는 뜻은 아닙니다. |
+| DEMO | 데모 생성기/대체 응답. 운영 침해 증거가 아닙니다. |
+| SYNTHETIC | TEST-NET·알려진 시뮬레이터 등 기존 출처 분류기가 식별한 합성 기록. |
+| SIMULATED | 모의 검증, 방화벽 simulate 또는 읽기 전용 what-if 계산. |
+| EXPERIMENTAL | 검증되지 않은 실험 기능/보조 모델. |
+| UNAVAILABLE | 출처·측정·연동 정보 부족. 누락을 0 또는 정상으로 간주하지 않습니다. |
+| MIXED | 출처가 다른 기록의 집계. 개별 증거에서 다시 구분해야 합니다. |
+
+`DEMO_MODE`는 모든 센서를 격리하는 스위치가 아닙니다. 실제 로그가 연결되거나 일부 모듈이
+독립적인 모드로 동작할 수 있으므로 **센서별 상태와 레코드별 출처**를 확인하세요.
+로그인 성공이나 LIVE 소켓 연결도 전체 센서 가시성을 뜻하지 않습니다.
+
+이 저장소는 개인 운영 환경에서 발전한 오픈소스 프로젝트입니다. 엔터프라이즈 조사 경험을
+목표로 개선했지만 **다중 사용자 RBAC/SSO, 독립 보안 인증, 멀티테넌시를 구현한 제품으로 주장하지 않습니다.**
+배포 전 환경별 인증·네트워크 경계·운영 복구 절차를 검증해야 합니다.
+
+[구현·설계·데이터 범위](docs/CONSOLE_REDESIGN.md) · [운영/개발 가이드](docs/TRACE_CONSOLE.md) ·
+[실제 사례와 오인 사례](docs/CASE_STUDIES.md) · [화면 소개](docs/PORTFOLIO.md)
 
 ---
 
 ## 핵심 차별점 — "오탐과의 싸움"
 
 SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 것**입니다. 이 프로젝트는 오탐 저감을 여러 계층에서 다룹니다.
+
+아래 표의 31.2% 감축, 학습 분포, 라벨 건수는 기존 [사례 기록](docs/CASE_STUDIES.md)과
+[ML 실험 기록](docs/ml_models.md)의 특정 데이터셋 관측입니다. 현재 환경의 실시간 성능이나
+AI 정확도·운영 성공률로 일반화하지 않습니다.
 
 | 기법 | 구현 | 효과 |
 |------|------|------|
@@ -35,7 +70,7 @@ SOC의 실무 난제는 알림 홍수 속에서 **진짜 위협만 골라내는 
 | **ML 이상탐지** | `ml_analyst` Isolation Forest — 트래픽 이상 점수(참고용). 실피처 3,000건이 차면 **실트래픽으로 자동 재학습**(24h 갱신, 홀드아웃 이상률로 분포 이동 표시) | 합성 모델은 실트래픽 48%를 이상으로 봤고 실모델은 0% — 피처는 `ml_features.db` 에 영속화되어 재학습·평가 가능 |
 | **퍼플팀 회귀검증** | `purple_team` — 7종 모의공격을 실제 탐지엔진에 주입 | 룰 변경 후 탐지 커버리지 검증 |
 | **킬체인 상관관계** | `correlation` — 산발적 알림을 같은 출발지·MITRE 전술 순서로 캠페인화 | 다단계 공격을 단건 알림에 묻히지 않게 |
-| **SOC 운영 지표** | `soc_metrics` — MTTD/MTTR/MTTA·오탐율·처리량 계량 | 관제 성숙도를 수치로 관리 |
+| **SOC 운영 지표** | `soc_metrics` — 기록된 인시던트 전이의 MTTR/MTTA·자동 FP 종결 비율·처리량 (MTTD 미측정) | 관제 성숙도를 수치로 관리 |
 | **detection-as-code** | Sigma·YARA 룰이 정탐/오탐 샘플을 함께 갖고 CI 가 매 push 검증 | 오탐 나는 룰이 머지되지 않음 — 실제로 **정상 프로세스를 HIGH 로 올리던 룰**을 잡아냄 |
 | **IDS 분류→MITRE** | `mitre_attack.IDS_CATEGORY_MAPPING` — Snort/Suricata 시그니처를 개별이 아니라 **분류(classtype)** 단위로 기법에 매핑, 근거 약한 분류는 의도적으로 비움 | 거짓 히트 없이 커버리지 매트릭스가 IDS 를 반영 |
 | **커버리지 자가 진단** | `coverage` — 룰·퍼플팀검증·히트 3축을 MITRE 매트릭스에 겹침 | 히트 0 이 *공격이 없었다*인지 ***룰이 없어 못 본다*** 인지 구분 |
@@ -64,7 +99,7 @@ flowchart LR
   subgraph I["③ 인텔 · 분석"]
     E1[IP 평판<br/>AbuseIPDB]
     E2[위협 인텔·IOC 워치리스트]
-    E3[자체 ML<br/>IF·RF·LSTM·QL]
+    E3[Isolation Forest<br/>advisory only]
     E4[Claude AI 분석]
     E5[MITRE ATT&CK 매핑]
     E6[킬체인 상관관계<br/>공격 캠페인]
@@ -90,8 +125,8 @@ flowchart LR
 
 ```
 위협 탐지 → Alert 생성 → SocketIO 실시간 스트림
-  → 신뢰도 평가(정탐/오탐 억제) → AI 트리아지(Claude + 자체 ML)
-  → SOAR: 정탐=에스컬레이션·자동차단 / 오탐=자동종결
+  → 신뢰도 평가·중복/억제 → 강화 → AI 또는 명시된 fallback 판정
+  → SOAR: 활성 플레이북·신뢰도·독립 근거·안전장치·승인 정책 → 대응/보류
   → 인시던트 케이스화 → 정탐·CRITICAL만 폰(ntfy) 통보
 ```
 
@@ -127,7 +162,7 @@ flowchart LR
 - **자체 ML** — Isolation Forest 이상탐지 (`ml_analyst`). 판정은 참고용이며 탐지·차단 경로에 연결되어 있지 않습니다.
   Random Forest · LSTM Autoencoder · Q-Learning 은 실데이터로 검증된 적이 없어 [`experimental/`](experimental/README.md) 로 격리했습니다.
   성능 수치는 `scripts/eval_ml.py` 출력으로만 주장하며, 현재는 데이터 부족으로 **측정 불가**입니다 ([docs/ml_models.md](docs/ml_models.md)).
-- **Claude AI** — 비동기 큐 기반 알림 분석·대응 권고·챗봇 (`ai_analyst`)
+- **Claude AI** — 비동기 큐 기반 알림 분석·대응 권고 + 저장 증거 기반 Analyst copilot (`ai_analyst`)
 - **의사결정 지원** — 위협 그룹핑 + 정오탐 학습 prior (`decision_support`)
 
 ### ④ 대응 · SOAR
@@ -181,7 +216,7 @@ flowchart LR
 - **AI** — Anthropic Claude API(비동기 큐) · 자체 Isolation Forest 이상탐지
 - **자동화** — Ansible(ad-hoc·플레이북) · ntfy
 - **프론트** — Bootstrap 5 · Chart.js · 순수 SVG 시각화 · globe.gl · Socket.IO(전부 자체 호스팅)
-- **테스트** — pytest **857개** + 실제 브라우저 순회(Playwright, 37패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 76% · 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
+- **테스트** — pytest 전체 회귀 검사 + 실제 브라우저 순회(Playwright, 38패널 콘솔 오류·HTTP 실패·모바일 넘침) + 실서버 통합 + Docker 이미지 (CI 에서 매 push 자동 실행, `modules`/`api` 커버리지 게이트 70%) (탐지·SOAR·인증·스캐너·퍼저·동시성·로깅·안전장치)
 
 ---
 
@@ -192,7 +227,8 @@ flowchart LR
 python -m venv venv && ./venv/bin/pip install -r requirements.txt
 
 # 2. 환경 설정 (.env 편집 — API 키·대상 서버 등)
-#    DEMO_MODE=True 면 실제 센서 없이 가상 데이터로 동작
+#    신규 환경에서만 .env.example을 복사하고 인증 정보·수집 경로·응답 정책을 설정
+#    DEMO_MODE=True에서도 연결된 실제 로그가 사용될 수 있습니다.
 
 # 3. 실행 (config 기본값은 8080 이지만 code-server 등과 흔히 충돌한다.
 #    .env.example 도 5055 를 쓴다 — 충돌하면 조용히 안 뜨는 게 아니라
@@ -244,7 +280,7 @@ SOC_DashBoard/
 ├── app.py                    # Flask 앱 팩토리 · SocketIO 이벤트
 ├── wiring.py                 # 서비스 생성·교차배선·시작(build/start_services)
 ├── config.py                 # 환경변수 기반 설정
-├── modules/                  # 50개 관제 모듈 (SOC 도메인별)
+├── modules/                  # 54개 모듈 (SOC 도메인 + 조사/출처 조회)
 │   ├── 수집    access_log_parser · authlog_parser · packet_analyzer · sysmon_parser · net_monitor
 │   ├── 탐지    threat_detector · sigma_engine · edr · hash_checker · mitre_attack
 │   ├── 인텔    ip_reputation · threat_intel · watchlist · correlation · ml_analyst · ai_analyst · decision_support
@@ -255,15 +291,18 @@ SOC_DashBoard/
 ├── api/                      # REST API Blueprint (도메인별 분리 + _common, 라우트 115개)
 ├── templates/
 │   ├── dashboard.html        # 레이아웃·사이드바
-│   └── panels/               # 패널별 UI 조각 (37개, Jinja include)
+│   └── panels/               # 패널별 UI 조각 (38개, Jinja include)
 ├── static/js/dash/           # 패널별 JS (01~23, 순서대로 로드)
-├── tests/                    # pytest 857개
+├── tests/                    # 단위·통합·실서버·브라우저 회귀 검사
 ├── scripts/                  # 운영 스크립트 (ML 평가 · 부하 시험 · 컷오버 · UFW 설치)
 ├── data/                     # 모델·룰·리포트·해시 DB
 └── docs/                     # 상세 문서
 ```
 
 ## 문서
+
+- **[TRACE 콘솔 가이드](docs/TRACE_CONSOLE.md)** — 실제 데이터 범위·API·설계 시스템·남은 제한
+- **[이번 변경의 감사/검증 기록](docs/CONSOLE_REDESIGN.md)**
 
 - 🔍 **[실제 탐지 케이스 스터디](docs/CASE_STUDIES.md)** — 원본 로그 근거, 오탐·미탐 사례 포함
 - 📋 **[인수인계](docs/HANDOVER.md)** — 지금 상태·운영 방법·미결 결정·다음 할 일. **이어받는 사람은 이것부터**
@@ -276,11 +315,18 @@ SOC_DashBoard/
 
 ## 검증
 
+변경 전 기준선: **860 passed, 2 warnings**. 이번 변경은 기존 assertion을 삭제하거나 완화하지 않고
+콘솔 API·출처·아카이브·AI facts·억제 미리보기·재현·브라우저 워크플로 검사를 추가했습니다.
+최종 전체 검사: **902 passed, 2 warnings**, 커버리지 **78%** (기존 70% 기준 통과).
+추가 브라우저 워크플로를 CI에 연결했습니다. [상세 검증 기록](docs/CONSOLE_REDESIGN.md)을 참고하세요.
+
+
 | 계층 | 무엇을 | 실행 |
 |------|--------|------|
-| 단위·통합 | 857건 (대부분 Flask `test_client`) | `pytest` |
+| 단위·통합 | 전체 기존 검사 + TRACE 계약 검사 | `pytest` |
 | **실서버** | 실제 프로세스를 **빈 임시 디렉터리에서** 띄워 HTTP 검증 | `pytest tests/test_live_server.py` |
-| **브라우저** | Playwright 로 36패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py` (`-m "not browser"` 로 제외) |
+| **브라우저** | Playwright 로 38패널 순회 — 콘솔 오류·HTTP 실패·모바일 넘침·지연 실체화. pytest·API 스모크가 못 본 결함 3건을 잡았다 | `pytest tests/test_browser_sweep.py` (`-m "not browser"` 로 제외) |
+| **TRACE 조사 워크플로** | 증거 drawer·copilot fallback·감사 ACK·일시정지·선택 유지·명령 팔레트·SIEM 실제 시간 필터 | `pytest tests/test_console.py tests/test_console_browser.py` |
 | **부하** | 실데이터 사본으로 지연·자기관측성 측정 | `python scripts/loadtest.py --with-real-data` |
 
 `test_client` 는 프로세스도 소켓도 없고 작업 디렉터리가 항상 저장소입니다. 실제로

@@ -65,8 +65,10 @@ class AuditLog:
             pass
 
     def search(self, action=None, actor=None, text=None,
-               date_from=None, date_to=None, limit=100, offset=0):
+               date_from=None, date_to=None, limit=100, offset=0, target=None):
         where, params = [], []
+        if target is not None:
+            where.append("target = ?"); params.append(target)
         if action:
             where.append("action = ?"); params.append(action)
         if actor:

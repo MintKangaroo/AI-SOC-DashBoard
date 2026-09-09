@@ -191,7 +191,7 @@
     pushLive('alert', alert.severity,
       `<b style="color:${threatColor(alert.threat_type)}">${escapeHtml(alert.threat_label)}</b> ` +
       `<span class="lv-ip">${escapeHtml(alert.src_ip)}</span> → ${escapeHtml(alert.dst_ip)}${conf}` +
-      demoBadge(alert.details),
+      SOCUI.provenance(alert) + `<button class="entity-link ms-2" ${act('consoleOpenInvestigation',[alert.id])}>Investigate #${alert.id}</button>`,
       { lowConf: !!alert.details?.low_confidence });
 
     // 자동 AI 트리아지는 서버 SOAR에서 한 번만 수행한다.
@@ -240,7 +240,7 @@
 
   function renderLiveStream() {
     const box = document.getElementById('live-stream');
-    if (!box) return;
+    if (!box || SOCRealtime.paused) return;
     // 화면에 안 보이면 렌더 생략(오버뷰 패널이 숨겨져 있을 때 CPU 절약)
     const ov = document.getElementById('panel-overview');
     if (ov && ov.classList.contains('d-none')) return;
@@ -414,24 +414,20 @@
   });
 
   /* ─────────── Socket: AI 분석 (패널 제거 — 네비 배지만 갱신) ─────────── */
-  socket.on('ai_analysis', () => {
+  socket.on('ai_analysis', entry => {
     const el = document.getElementById('stat-ai-analyses');
     if (el) el.textContent = parseInt(el.textContent || 0) + 1;
     const badge = document.getElementById('ai-status-badge');
     if (badge) {
-      badge.textContent = 'AI 분석 완료';
-      badge.className = 'badge bg-success';
-      setTimeout(() => {
-        badge.textContent = 'AI 대기중';
-        badge.className = 'badge bg-secondary';
-      }, 4000);
+      badge.textContent = entry?.model === 'demo' ? 'DEMO · generated fallback' : 'AI ADVISORY · review evidence';
+      badge.className = 'provenance ' + (entry?.model === 'demo' ? 'provenance-demo' : 'provenance-experimental');
     }
   });
 
   /* ─────────── Socket: 지도 공격 ─────────── */
   socket.on('map_attack', entry => {
-    if (!isPanelVisible('overview') || document.hidden) return;
     animateAttack(entry);
+    if (!isPanelVisible('overview') || document.hidden) return;
     prependAttackLog(entry);
     updateCountryChart(entry.src_country);
   });

@@ -7,4 +7,5 @@ from api import (  # noqa: F401 (임포트 부수효과로 라우트 등록)
     monitoring_routes,
     scan_routes,
     response_routes,
+    console_routes,
 )

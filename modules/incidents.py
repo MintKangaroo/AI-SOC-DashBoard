@@ -68,6 +68,8 @@ class IncidentManager:
         threat_type = alert.get("threat_type", "UNKNOWN")
         net = _src_net(alert.get("src_ip"))
         severity = alert.get("severity", "MEDIUM")
+        from modules.provenance import provenance
+        source = provenance(alert)
 
         with self._lock:
             inc = self._find_active(threat_type, net)
@@ -80,6 +82,7 @@ class IncidentManager:
                     "threat_type": threat_type,
                     "src_net": net,
                     "severity": severity,
+                    "provenance": source,
                     "status": "OPEN",
                     "assignee": "",
                     "alert_ids": [],
@@ -91,6 +94,8 @@ class IncidentManager:
                 self.incidents[inc_id] = inc
                 self._meta_dirty = True      # _next_id 가 증가했다
 
+            if (inc.get('provenance') or {}).get('state') != source['state']:
+                inc['provenance'] = {'state': 'MIXED', 'reason': 'Case contains different or unrecorded source provenance. Inspect each alert.'}
             aid = alert.get("id")
             if aid is not None and aid not in inc["alert_ids"]:
                 inc["alert_ids"].append(aid)
@@ -215,6 +220,7 @@ class IncidentManager:
                                  "created", "updated")}
         d["alert_count"] = len(inc["alert_ids"])
         d["timeline_count"] = len(inc["timeline"])
+        d['provenance'] = inc.get('provenance') or {'state': 'UNAVAILABLE', 'reason': 'Historical case origin was not recorded.'}
         return d
 
     # ------------------------------------------------------------------ #

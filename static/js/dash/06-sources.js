@@ -27,10 +27,20 @@
   // 검색어 매칭 (ip/요청/분류/소스/severity/suspicious 키워드)
   function _siemMatch(e, q) {
     if (!q) return true;
-    q = q.toLowerCase();
-    if (q === 'suspicious') return e.suspicious;
-    return [e.ip, e.request, e.category, e.source, e.severity, String(e.status)]
-      .some(v => (v || '').toString().toLowerCase().includes(q));
+    const aliases = {src_ip:'ip',host:'source'};
+    // A small, explicit grammar: whitespace means AND, field=value is exact.
+    const tokens = q.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+    return tokens.every(token => {
+      const eq = token.indexOf('=');
+      const value = (eq < 0 ? token : token.slice(eq + 1)).replace(/^"|"$/g, '').toLowerCase();
+      if (eq >= 0) {
+        const key = token.slice(0, eq).toLowerCase();
+        return String(e[aliases[key] || key] ?? '').toLowerCase() === value;
+      }
+      if (value === 'suspicious') return !!e.suspicious;
+      return [e.ip, e.request, e.category, e.source, e.severity, String(e.status)]
+        .some(v => String(v || '').toLowerCase().includes(value));
+    });
   }
 
   // 타임스탬프 → HH:MM 버킷 키
@@ -46,8 +56,7 @@
     let evs = siemEventsBuffer.filter(e => _siemMatch(e, q) && (!onlySusp || e.suspicious));
     if (mins > 0) {
       const cutoff = Date.now() - mins * 60000;
-      // 타임스탬프에 날짜가 제각각이라 상대 최근성은 버퍼 순서로 근사(최신이 앞)
-      evs = evs.slice(0, Math.max(20, Math.round(evs.length * Math.min(1, mins / 60))));
+      evs = evs.filter(e => typeof e.timestamp_epoch === 'number' && e.timestamp_epoch * 1000 >= cutoff && e.timestamp_epoch * 1000 <= Date.now());
     }
     return evs;
   }
@@ -90,17 +99,17 @@
     const fields = [
       ['host', e.source], ['src_ip', e.ip], ['status', e.status],
       ['severity', sev], ['category', e.category], ['suspicious', e.suspicious],
-    ].map(([k, v]) => `<span class="spl-fv" ${act('siemSetSearch', [v])}>
+    ].map(([k, v]) => `<span class="spl-fv" ${act('siemSetSearch', [k + '=' + JSON.stringify(v)])}>
         <span class="spl-fk">${k}</span>=<span class="spl-fvv">${escapeHtml(String(v))}</span></span>`).join('');
     return `
-      <div class="spl-event ${e.suspicious ? 'spl-event-susp' : ''}" style="border-left-color:${sevColor}"
+      <div tabindex="0" role="button" aria-label="Inspect event fields" class="spl-event ${e.suspicious ? 'spl-event-susp' : ''}" style="border-left-color:${sevColor}"
            ${act('toggleOpen')}>
         <div class="spl-event-top">
           <span class="spl-ts">${escapeHtml(e.timestamp)}</span>
           <span class="spl-raw">${escapeHtml(raw)}</span>
-          <span class="spl-sev" style="background:${sevColor}">${escapeHtml(sev)}</span>
+          ${SOCUI.provenance(e)}<span class="spl-sev" style="background:${sevColor}">${escapeHtml(sev)}</span>
         </div>
-        <div class="spl-event-fields">${fields}</div>
+        <div class="spl-event-fields">${fields}<span data-stop>${SOCUI.entity(e.ip)}</span><pre>${escapeHtml(JSON.stringify(e,null,2))}</pre></div>
       </div>`;
   }
 
@@ -149,7 +158,7 @@
       const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
       const distinct = Object.keys(counts).length;
       const vals = top.map(([v, c]) => `
-        <div class="spl-field-val" ${act('siemSetSearch', [v])}>
+        <div class="spl-field-val" ${act('siemSetSearch', [key + '=' + JSON.stringify(v)])}>
           <span class="spl-field-v">${escapeHtml(v)}</span><span class="spl-field-c">${c}</span>
         </div>`).join('');
       return `<div class="spl-field">
@@ -162,8 +171,38 @@
   function siemSetSearch(v) {
     const inp = document.getElementById('siem-search');
     if (inp) { inp.value = v; renderSiemEvents(); }
-    event && event.stopPropagation && event.stopPropagation();
+
   }
+
+  function siemSavedQueries() {
+    try { const items = JSON.parse(localStorage.getItem('trace.siem.history') || '[]'); return Array.isArray(items) ? items.slice(0,20) : []; } catch (_) { return []; }
+  }
+  function siemHistoryOptions() {
+    const el = document.getElementById('siem-history');
+    if (el) el.innerHTML = '<option value="">Saved / recent searches · this browser</option>' + siemSavedQueries().map((item,index) => `<option value="${index}">${escapeHtml(item.query || '(all events)')} · ${item.minutes || 'all'} minutes</option>`).join('');
+  }
+  async function siemRunSearch() {
+    renderSiemEvents();
+    const record = {query:document.getElementById('siem-search').value.slice(0,200),minutes:Number(document.getElementById('siem-timerange').value),suspicious:document.getElementById('siem-suspicious-only').checked};
+    const history = siemSavedQueries().filter(item => JSON.stringify(item) !== JSON.stringify(record));
+    try { localStorage.setItem('trace.siem.history',JSON.stringify([record,...history].slice(0,20))); } catch (_) { SOCUI.notify('Browser search history could not be saved.'); }
+    siemHistoryOptions();
+    try { await SOCUI.request('/api/console/siem-query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)}); }
+    catch (error) { SOCUI.notify('Query displayed, but audit recording failed: ' + error.message); }
+  }
+  function siemRestoreQuery(el) {
+    const item = siemSavedQueries()[Number(el.value)]; if (el.value === '' || !item) return;
+    document.getElementById('siem-search').value = item.query;
+    document.getElementById('siem-timerange').value = item.minutes;
+    document.getElementById('siem-suspicious-only').checked = item.suspicious;
+    siemRunSearch();
+  }
+  function siemExportSearch() {
+    const payload = {generated_at:new Date().toISOString(),query:document.getElementById('siem-search').value,minutes:Number(document.getElementById('siem-timerange').value),suspicious_only:document.getElementById('siem-suspicious-only').checked,scope:'Retained browser SIEM buffer; exact exported snapshot, not the full source log',events:_siemFiltered()};
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+    const a = document.createElement('a'); a.href = url; a.download = 'trace-siem-evidence.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+  }
+  onPanelReady('siem', siemHistoryOptions);
 
   socket.on('siem_event', e => {
     siemEventsBuffer.unshift(e);
@@ -178,7 +217,7 @@
       bump('pipe-siem-susp', 1);
       pushLive('siem', e.severity,
         `<b>${escapeHtml(e.category)}</b> <span class="lv-ip">${escapeHtml(e.ip)}</span> ` +
-        `<span class="text-muted">(${escapeHtml(e.source)})</span>`);
+        `<span class="text-muted">(${escapeHtml(e.source)})</span> ${SOCUI.provenance(e)}`);
     }
     // 패널 열려 있을 때만, 그리고 rAF 스로틀로 재렌더(렉 방지)
     const panel = document.getElementById('panel-siem');
@@ -841,6 +880,6 @@
   Object.assign(window, {
     checkReputation, edrKill, loadAuthlog, loadEdr, loadNetwork, loadPurple, loadReputation,
     loadSiem, renderAuthEvents, renderSiemEvents, runPurpleAll, runPurpleOne, sevColor,
-    siemSetSearch,
+    siemSetSearch, siemRunSearch, siemRestoreQuery, siemExportSearch,
   });
 })();

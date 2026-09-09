@@ -204,12 +204,12 @@
   }
 
   const VVERDICT = {
-    vulnerable: { c: '#f85149', t: '미패치 · 정탐유력' },
-    patched: { c: '#3fb950', t: '패치됨 · 오탐유력' },
-    unknown: { c: '#6e7681', t: '미확인' },
+    vulnerable: { c: '#f85149', t: 'VULNERABLE · package check' },
+    patched: { c: '#3fb950', t: 'PATCHED / BACKPORTED' },
+    unknown: { c: '#6e7681', t: 'UNKNOWN' },
   };
   function vulnVerdict(v) {
-    if (!v) return '';
+    if (!v) v = {state:'unknown',note:'No package validation recorded. Scanner match remains unverified.'};
     const s = VVERDICT[v.state] || VVERDICT.unknown;
     const ver = v.installed
       ? `<span class="text-muted font-monospace" style="font-size:var(--fs-meta)">설치: ${escapeHtml(v.installed)}${v.candidate ? ' → ' + escapeHtml(v.candidate) : ''}</span>` : '';
@@ -313,17 +313,17 @@
     box.innerHTML = list.map(r => {
       const rows = (r.ports || []).map(p => {
         const items = (p.cves || []).map(c =>
-          `<div class="small">${vsevBadge(c.severity)} <span class="font-monospace text-danger">${escapeHtml(c.cve)}</span>
+          `<div class="small">${vsevBadge(c.severity)} <button class="entity-link" ${act('vulnInspectEvidence',[r.id,p.port,c.cve])}>${escapeHtml(c.cve)}</button>
             <span class="text-muted">${escapeHtml(c.desc || '')}</span></div>`).join('')
           + (p.findings || []).map(f =>
           `<div class="small">${vsevBadge(f.severity)} <span class="text-orange">노출</span>
             <span class="text-muted">${escapeHtml(f.desc || '')}</span></div>`).join('');
-        const demo = p.demo ? '<span class="demo-badge ms-1">데모</span>' : '';
+        const demo = SOCUI.provenance({provenance:{state:p.demo ? 'DEMO' : 'REAL',reason:p.demo ? 'Scanner demo fixture' : 'Recorded scan result'}});
         return `<tr>
           <td class="font-monospace text-cyan" style="white-space:nowrap">${p.port}</td>
           <td class="small" style="color:var(--text-primary)">${escapeHtml(p.service || '')}</td>
           <td class="small text-muted font-monospace text-truncate" style="max-width:180px" title="${escapeHtml(p.version || '')}">${escapeHtml(p.version || '—')}</td>
-          <td>${vsevBadge(p.severity)}${demo}${vulnVerdict(p.verdict)}<div class="mt-1">${items || '<span class="small text-muted">알려진 취약점 없음</span>'}</div></td>
+          <td>${vsevBadge(p.severity)}${demo}${vulnVerdict(p.verdict)}<div class="mt-1">${items || '<span class="small text-muted">No CVE match recorded; scan coverage is limited</span>'}</div></td>
         </tr>`;
       }).join('');
       const remote = r.addr && r.addr !== '127.0.0.1';
@@ -331,9 +331,9 @@
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="fa ${remote ? 'fa-network-wired text-orange' : 'fa-desktop text-cyan'}"></i>
           <strong style="color:var(--text-primary)">${escapeHtml(r.host)}</strong>
-          <span class="text-muted font-monospace small">${escapeHtml(r.addr)}</span>
+          <span class="text-muted font-monospace small">${SOCUI.entity(r.addr)}</span>
           <span class="badge bg-secondary ms-1" style="font-size:var(--fs-meta)">열린 포트 ${r.open || 0}</span>
-          <span class="badge bg-danger" style="font-size:var(--fs-meta)">취약점 ${r.vulns || 0}</span>
+          <span class="badge bg-danger" style="font-size:var(--fs-meta)">CVE / exposure matches ${r.vulns || 0}</span>
           <span class="text-muted small ms-auto">${escapeHtml(r.scanned || '')}</span>
         </div>
         <div class="table-responsive">
@@ -346,6 +346,22 @@
     }).join('');
     updateVulnSevChart();
   }
+
+  function vulnInspectEvidence(hostId, portNumber, cveId) {
+    const host = _vulnResults[hostId], port = host?.ports?.find(p => p.port === portNumber);
+    const cve = port?.cves?.find(c => c.cve === cveId);
+    if (!host || !port || !cve) return;
+    const dialog = document.getElementById('exposure-detail-dialog');
+    const id = String(cveId).match(/CVE-\d{4}-\d{4,}/)?.[0];
+    document.getElementById('exposure-detail-title').textContent = cveId;
+    document.getElementById('exposure-detail-content').innerHTML = `<div class="workspace-context">${SOCUI.provenance({provenance:{state:port.demo ? 'DEMO' : 'REAL'}})} Scanner match · confirm CVE applicability using package evidence.</div><dl class="evidence-fields">${[['Asset',host.host + ' / ' + host.addr],['Service',port.service + ' / ' + port.port],['Banner',port.version || 'Unavailable'],['CVSS',cve.cvss ?? cve.score ?? 'Unavailable'],['Scan timestamp',host.scanned || 'Unavailable'],['Patch validation',port.verdict?.state?.toUpperCase() || 'UNKNOWN']].map(([key,value]) => `<div class="evidence-field"><dt>${key}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}</dl><section class="investigation-section mt-3"><h3>Validation evidence</h3>${vulnVerdict(port.verdict)}<p>Package state is supporting evidence; it does not independently prove exploitability of every banner match.</p><pre class="raw-evidence">${escapeHtml(JSON.stringify({match:cve,validation:port.verdict || null},null,2))}</pre><h3>Remediation review</h3><p>Confirm vendor applicability and installed package/backport status. Review the patch plan and dry-run output before applying changes.</p>${id ? `<a class="entity-link" id="exposure-cve-reference" target="_blank" rel="noopener noreferrer">Open CVE record ↗</a>` : ''}</section>`;
+    // User navigation only; no third-party asset is fetched by the application.
+    const reference = document.getElementById('exposure-cve-reference');
+    if (reference && id) reference.href = new URL('/vuln/detail/' + id, 'https://nvd.nist.gov').href;
+    dialog.showModal();
+  }
+  function vulnCloseEvidence() { document.getElementById('exposure-detail-dialog')?.close(); }
+  function vulnReviewPatch() { vulnCloseEvidence(); SOCUI.navigate('patch'); }
 
   function updateVulnSevChart() {
     const cnt = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -743,6 +759,6 @@
     fuzzRun, fuzzStop, generateReport, loadFuzz, loadNotify, loadPatch, loadReport,
     loadSigma, loadVulnScan, notifyTest, openReport, patchCommand, patchPlaybook, patchRun,
     patchSelectAllHosts, reloadSigma, showPatchLog, toggleSigma, vulnScan,
-    vulnSelectAllHosts,
+    vulnSelectAllHosts, vulnInspectEvidence, vulnCloseEvidence, vulnReviewPatch,
   });
 })();

@@ -12,16 +12,22 @@
         <span class="spl-prompt">&gt;</span>
         <input type="text" id="siem-search" aria-label="SIEM 이벤트 검색" class="spl-search-input"
                placeholder='검색: ip, 요청, 분류, source (예: /.env  또는  185.220  또는  suspicious)'
-               data-action-input="renderSiemEvents" data-action-enter="renderSiemEvents">
+               data-action-input="renderSiemEvents" data-action-enter="siemRunSearch">
         <select id="siem-timerange" aria-label="조회 시간 범위" class="spl-timerange" data-action-change="renderSiemEvents">
           <option value="0">전체 시간</option>
           <option value="5">최근 5분</option>
           <option value="15">최근 15분</option>
           <option value="60">최근 1시간</option>
         </select>
-        <button class="spl-search-btn" data-action="renderSiemEvents"><i class="fa fa-magnifying-glass"></i></button>
+        <button class="spl-search-btn" aria-label="Run and record query" data-action="siemRunSearch"><i class="fa fa-magnifying-glass"></i></button>
       </div>
 
+      <div class="console-toolbar">
+        <select id="siem-history" aria-label="Recent queries saved in this browser" data-action-change="siemRestoreQuery" data-args='["@el"]' ></select>
+        <button class="btn btn-xs btn-outline-secondary" data-action="siemRunSearch">Save / run query</button>
+        <button class="btn btn-xs btn-outline-secondary" data-action="siemExportSearch">Export evidence snapshot</button>
+        <span class="text-muted small">Text AND · exact field=value · quoted values. Retained buffer only; unknown timestamps excluded from time filters.</span>
+      </div>
       <!-- 결과 요약 라인 -->
       <div class="spl-resultbar">
         <span id="siem-result-count"><b>0</b> 이벤트</span>

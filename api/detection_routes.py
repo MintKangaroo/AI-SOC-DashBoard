@@ -256,9 +256,8 @@ def update_alert_verdict(alert_id):
     reason = str(data.get("reason") or "").strip()[:500]
     if verdict in ("TRUE_POSITIVE", "FALSE_POSITIVE") and len(reason) < 3:
         return jsonify({"error": "확정 판정에는 근거를 3자 이상 입력하세요"}), 400
-    actor = str(request.cookies.get("user") or "")
-    from flask import session
-    actor = session.get("user") or actor or "analyst"
+    from api._common import _actor
+    actor = _actor()
     ok = td.set_alert_verdict(alert_id, verdict, actor, reason)
     if ok:
         audit_record("ALERT_VERDICT", target=f"알림 #{alert_id}",

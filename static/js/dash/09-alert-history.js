@@ -81,10 +81,10 @@
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">조건에 맞는 알림이 없습니다.</td></tr>';
       } else {
         tbody.innerHTML = rows.map(a => `
-          <tr>
+          <tr tabindex="0" data-alert-id="${a.id}" ${act('consoleOpenInvestigation',[a.id])}>
             <td class="font-monospace small text-nowrap">${escapeHtml(a.timestamp || '')}</td>
             <td>${sevBadge(a.severity)}</td>
-            <td class="small">${escapeHtml(a.threat_label || a.threat_type || '')}</td>
+            <td class="small">${escapeHtml(a.threat_label || a.threat_type || '')} ${SOCUI.provenance(a)}</td>
             <td class="font-monospace small">${escapeHtml(a.src_ip || '')}</td>
             <td class="font-monospace small">${escapeHtml(a.dst_ip || '')}</td>
             <td class="small">${escapeHtml(a.description || '')}</td>

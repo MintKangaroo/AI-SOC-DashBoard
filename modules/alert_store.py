@@ -249,10 +249,11 @@ class AlertStore:
             params.append(assignee)
         params.append(alert_id)
         with self._lock:
-            self._conn.execute(
+            cur = self._conn.execute(
                 f"UPDATE alerts SET {', '.join(sets)} WHERE id = ?", params
             )
             self._conn.commit()
+        return cur.rowcount == 1
 
     def update_details(self, alert_id, details):
         """외부 평판 등 사후 강화 결과를 기존 알림에 병합 저장한다."""
@@ -289,7 +290,8 @@ class AlertStore:
         out = dict(zip(ALERT_COLUMNS, row))
         out["details"] = details
         out["archived"] = bool(row[len(ALERT_COLUMNS)])
-        return out
+        from modules.provenance import annotate
+        return annotate(out)
 
     def search(self, severity=None, status=None, threat_type=None, verdict=None, origin=None,
                ip=None, text=None, date_from=None, date_to=None,
@@ -337,6 +339,21 @@ class AlertStore:
                 params + [int(limit), int(offset)],
             ).fetchall()
         return [self._row_to_dict(r) for r in rows], total
+
+    def get_alert(self, alert_id):
+        """Exact durable lookup, including archive; never substitutes a recent row."""
+        if not 0 <= int(alert_id) <= 9223372036854775807:
+            return None
+        row = self._reader().execute(
+            f"SELECT {_COLS}, archived FROM alerts_all WHERE id=? LIMIT 1",
+            (int(alert_id),)).fetchone()
+        return self._row_to_dict(row) if row else None
+
+    def console_search(self, **filters):
+        """Investigation read boundary shared by the queue, search and summary."""
+        from modules.console_store import search
+        scope = filters.get('scope', 'all')
+        return search(self._reader(), self._source(scope), _COLS, self._row_to_dict, **filters)
 
     def aggregate(self, days=14, scope="all", max_age=None):
         """운영 지표용 시계열 집계 (최근 N일). timestamp 는 'YYYY-MM-DD HH:MM:SS'.
@@ -454,17 +471,15 @@ class AlertStore:
         }
 
     def since(self, hours=24, limit=5000, scope="all"):
-        """최근 N시간 알림(실 IP 출발지만) — 상관관계 분석용. 시간 오름차순."""
+        """Newest bounded alert evidence for source/time correlation, including IPv6."""
         src = self._source(scope)
+        archived = 'archived' if scope == 'all' else str(int(scope == 'archive'))
         rows = self._reader().execute(
-            f"""SELECT id, threat_type, severity, src_ip, dst_ip, timestamp
-               FROM {src}
-               WHERE timestamp >= datetime('now', ?, 'localtime')
-                     AND src_ip LIKE '%.%.%.%'
-               ORDER BY timestamp ASC LIMIT ?""",
+            f"SELECT {_COLS}, {archived} FROM {src} "
+            "WHERE timestamp >= datetime('now', ?, 'localtime') "
+            "AND COALESCE(src_ip, '') != '' ORDER BY timestamp DESC LIMIT ?",
             (f"-{int(hours)} hours", int(limit))).fetchall()
-        return [{"id": r[0], "threat_type": r[1], "severity": r[2],
-                 "src_ip": r[3], "dst_ip": r[4], "timestamp": r[5]} for r in rows]
+        return sorted((self._row_to_dict(r) for r in rows), key=lambda row: row['timestamp'])
 
     def grouped_recent(self, hours=24, min_count=2, limit=20, scope="all"):
         """최근 반복 알림을 출발지·위협유형별로 묶어 조사 우선순위로 반환한다."""

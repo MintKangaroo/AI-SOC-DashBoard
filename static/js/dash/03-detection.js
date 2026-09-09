@@ -12,6 +12,7 @@
   }
 
   function loadAlerts() {
+    if (window.consoleLoadQueue) return consoleLoadQueue();
     // 표 라이브러리는 이 패널을 처음 열 때 받아온다(01-core.ensureTableLibs).
     // 데이터 요청과 나란히 기다려 왕복을 겹친다.
     Promise.all([fetch('/api/alerts?limit=200').then(r => r.json()), ensureTableLibs()])
@@ -70,6 +71,7 @@
   }
 
   function prependAlertRow(alert, prepend = true, draw = true) {
+    if (window.consoleQueueIncoming) { consoleQueueIncoming(alert); return; }
     const tbody = document.getElementById('alerts-tbody');
     if (!tbody) return;
     const statusColors = { OPEN: 'danger', ACK: 'warning', CLOSED: 'secondary' };
@@ -187,7 +189,7 @@
             <td class="small font-monospace">${escapeHtml(e.src_ip || '-')}</td>
             <td class="small">${escapeHtml(e.description || '')}</td>
             <td class="small text-muted">${escapeHtml(e.reason || '')}</td>
-            <td class="small font-monospace">${e.parent_alert ? '#' + e.parent_alert : '-'}</td>
+            <td class="small font-monospace">${e.parent_alert ? `<button class="text-link" ${act('consoleOpenInvestigation',[e.parent_alert])}>#${e.parent_alert}</button>` : '-'}</td>
           </tr>`;
         }).join('')
       : '<tr><td colspan="8" class="text-muted text-center p-3">억제된 이벤트 없음</td></tr>';
@@ -236,6 +238,7 @@
 
   /* 개요 카드 클릭 → 알림 패널로 이동하며 필터 적용 */
   function filterAlerts(severity) {
+    if (window.consoleQueueView) return consoleQueueView(severity.toLowerCase());
     showPanel('alerts');
     // DataTables 초기화 후 필터 적용 (비동기)
     setTimeout(() => {
@@ -261,6 +264,9 @@
     if (!list) return;
     const item = document.createElement('div');
     item.className = `alert-item ${alert.severity}`;
+    item.setAttribute('role', 'button'); item.tabIndex = 0;
+    item.setAttribute('data-action', 'consoleOpenInvestigation');
+    item.setAttribute('data-args', JSON.stringify([alert.id]));
     item.innerHTML = `
       <div>${sevBadge(alert.severity)}</div>
       <div class="flex-fill">
@@ -461,6 +467,7 @@
 
   /* ════════════════════ AI 분석 (패널은 제거됨 — 알림 테이블에서만 호출) ════════════════════ */
   function analyzeAlertAI(alertId) {
+    if (window.consoleOpenInvestigation) return consoleOpenInvestigation(alertId);
     fetch(`/api/ai/analyze/alert/${alertId}`, { method: 'POST' })
       .then(r => r.json())
       .then(d => {
@@ -490,8 +497,10 @@
   let _globeArcs = [];
   let _globeRings = [];
   let _globePoints = [];
+  const globeEvidence = [];
+  let globeRenderScheduled = false;
 
-  const DEFENDER = { lat: 37.5665, lng: 126.9780, label: 'Seoul (방어 서버)' };
+  const DEFENDER = { lat: 37.5665, lng: 126.9780, label: 'Camera reference only' };
 
   /* 3D 지구본 라이브러리(three.js + globe.gl, 합 1.7MB)를 필요할 때 받아온다.
      개요 패널의 공격 지도 하나에만 쓰이므로 모든 진입에서 받을 이유가 없다.
@@ -533,7 +542,7 @@
       .showGraticules(false)
       .atmosphereColor('#39d0d8')
       .atmosphereAltitude(0.18)
-      .showAtmosphere(true)
+      .showAtmosphere(false)
       // 대륙을 점(hex dot)으로 그린 사이버 점묘 지구본
       .hexPolygonsData([])
       .hexPolygonResolution(3)
@@ -547,9 +556,9 @@
       .arcEndLat(d => d.endLat).arcEndLng(d => d.endLng)
       .arcColor(d => d.color)
       .arcStroke(0.4)
-      .arcDashLength(0.35).arcDashGap(1.2)
+      .arcDashLength(1).arcDashGap(0)
       .arcDashInitialGap(() => 1)
-      .arcDashAnimateTime(1800)
+      .arcDashAnimateTime(0)
       .arcAltitudeAutoScale(0.45)
       // Rings (임팩트/레이더 펄스)
       .ringsData(_globeRings)
@@ -595,74 +604,39 @@
     controls.enableZoom = true;
     globe.pointOfView({ lat: DEFENDER.lat, lng: DEFENDER.lng, altitude: 2.2 }, 0);
 
-    // 방어자(서울) 마커 + 상시 레이더 펄스 링
-    _globePoints.push({
-      lat: DEFENDER.lat, lng: DEFENDER.lng, color: '#39d0d8',
-      radius: 0.55, alt: 0.012, label: `<b style="color:var(--cyan)">🛡 ${DEFENDER.label}</b>`
-    });
-    _globeRings.push({
-      lat: DEFENDER.lat, lng: DEFENDER.lng,
-      rgb: '57,208,216', maxR: 4, speed: 1.8, repeat: 1400,
-    });
-    globe.pointsData([..._globePoints]).ringsData([..._globeRings]);
+    renderMapEvidence();
+    SOCRealtime.subscribe(state => { if (!globe) return; if (state.paused) globe.pauseAnimation(); else if (document.querySelector('.console-legacy')?.open) globe.resumeAnimation(); });
+    document.querySelector('.console-legacy')?.addEventListener('toggle', event => { if (event.target.open && !SOCRealtime.paused) { resize(); globe.resumeAnimation(); renderMapEvidence(); } else globe.pauseAnimation(); });
   }
 
   function animateAttack(entry) {
-    if (!globeInited || !globe) return;
-
-    const sevColors = {
-      CRITICAL: '#ff2d5e', HIGH: '#ff7b00', MEDIUM: '#ffd23f', LOW: '#00e1ff'
-    };
-    const sevRgb = {
-      CRITICAL: '255,45,94', HIGH: '255,123,0', MEDIUM: '255,210,63', LOW: '0,225,255'
-    };
-    const color = sevColors[entry.severity] || cssVar('--text-dim', '#94949b');
-    const rgb   = sevRgb[entry.severity]   || '139,148,158';
-
-    // Arc (미사일 궤적)
-    const arc = {
-      startLat: entry.src_lat, startLng: entry.src_lng,
-      endLat:   entry.dst_lat || DEFENDER.lat,
-      endLng:   entry.dst_lng || DEFENDER.lng,
-      color:    [color + '00', color, color + '00'],  // 그라디언트
-    };
-    _globeArcs.push(arc);
-    if (_globeArcs.length > 40) _globeArcs.shift();
-    globe.arcsData([..._globeArcs]);
-
-    // 출발지 마커 (공격자)
-    const atk = {
-      lat: entry.src_lat, lng: entry.src_lng, color,
-      radius: 0.35, alt: 0.008,
-      label: `<b style="color:${color}">⚠ ${escapeHtml(entry.src_country || '')}</b> ${escapeHtml(entry.src_city || '')}<br/>
-              IP: <span style="font-family:monospace">${escapeHtml(entry.ip)}</span><br/>
-              유형: <b>${escapeHtml(entry.threat_type)}</b><br/>등급: ${escapeHtml(entry.severity)}`,
-    };
-    _globePoints.push(atk);
-    if (_globePoints.length > 80) _globePoints.splice(1, 1);  // 0번은 방어자
-    globe.pointsData([..._globePoints]);
-
-    // 임팩트 링 (도착 후 트리거)
-    setTimeout(() => {
-      const impact = {
-        lat: arc.endLat, lng: arc.endLng, rgb,
-        maxR: 6, speed: 5, repeat: 0,
-      };
-      _globeRings.push(impact);
-      globe.ringsData([..._globeRings]);
-      setTimeout(() => {
-        const i = _globeRings.indexOf(impact);
-        if (i > -1) _globeRings.splice(i, 1);
-        globe.ringsData([..._globeRings]);
-      }, 2500);
-    }, 1600);
-
-    // 출발지 마커는 8초 후 제거
-    setTimeout(() => {
-      const i = _globePoints.indexOf(atk);
-      if (i > -1) _globePoints.splice(i, 1);
-      globe.pointsData([..._globePoints]);
-    }, 8000);
+    globeEvidence.push({...entry, receivedAt:Date.now()});
+    if (globeEvidence.length > 2000) globeEvidence.shift();
+    if (!globeRenderScheduled) {
+      globeRenderScheduled = true;
+      setTimeout(() => { globeRenderScheduled = false; if (!SOCRealtime.paused) renderMapEvidence(); },500);
+    }
+  }
+  function renderMapEvidence() {
+    if (!globeInited || !globe || !document.querySelector('.console-legacy')?.open) return;
+    const minutes = Number(document.getElementById('map-timeframe')?.value || 15);
+    const severity = document.getElementById('map-severity')?.value || '';
+    const cutoff = Date.now() - minutes * 60000;
+    const records = globeEvidence.filter(e => (e.timestamp_epoch ? e.timestamp_epoch * 1000 : e.receivedAt) >= cutoff && (!severity || e.severity === severity));
+    const groups = new Map();
+    records.forEach(e => {
+      if (!Number.isFinite(e.src_lat) || !Number.isFinite(e.src_lng)) return;
+      const key = [e.src_country,e.severity,e.threat_type,e.provenance?.state,e.destination_basis].join('|');
+      if (!groups.has(key)) groups.set(key,{...e,count:0,ips:new Set()});
+      const group = groups.get(key); group.count++; if (group.ips.size < 10) group.ips.add(e.ip);
+    });
+    const visible = [...groups.values()].sort((a,b) => b.count - a.count).slice(0,80);
+    _globePoints = visible.map(e => ({lat:e.src_lat,lng:e.src_lng,color:cssVar('--severity-' + String(e.severity).toLowerCase(), '#80baff'),radius:Math.min(.7,.2 + Math.log2(e.count + 1)*.08),label:`${SOCUI.provenance(e)} <b>${escapeHtml(e.src_country || 'Unknown country')}</b><br/>${escapeHtml([...e.ips].join(', '))}<br/>${escapeHtml(e.threat_type)} · ${escapeHtml(e.severity)} · ${e.count} events<br/>Destination: ${e.destination_basis === 'display_anchor' ? 'not geolocated' : escapeHtml(e.dst_city || 'unavailable')}`}));
+    // Draw a destination arc only when coordinates are explicitly validated.
+    _globeArcs = visible.filter(e => e.dst_location_verified === true && Number.isFinite(e.dst_lat) && Number.isFinite(e.dst_lng)).slice(0,40).map(e => ({startLat:e.src_lat,startLng:e.src_lng,endLat:e.dst_lat,endLng:e.dst_lng,color:cssVar('--severity-' + String(e.severity).toLowerCase(),'#80baff')}));
+    globe.pointsData(_globePoints).arcsData(_globeArcs).ringsData([]);
+    const label = document.getElementById('map-scope');
+    if (label) label.textContent = `${records.length} events / ${groups.size} groups · showing ${visible.length} source groups · last ${minutes}m within this session (max 2,000). Destination coordinates are unavailable; no inferred arcs.`;
   }
 
   function prependAttackLog(entry) {
@@ -671,7 +645,7 @@
     const item = document.createElement('div');
     item.className = 'attack-log-item';
     item.innerHTML = `
-      <span class="country">${escapeHtml(entry.src_country)} &rarr; Seoul</span>
+      <span class="country">${escapeHtml(entry.src_country)} · destination unavailable ${SOCUI.provenance(entry)}</span>
       <span class="meta">${escapeHtml(entry.threat_type)} | ${escapeHtml(entry.ip)}</span>
       <span class="meta">${escapeHtml(entry.timestamp)} | ${sevBadge(entry.severity)}</span>`;
     list.insertBefore(item, list.firstChild);
@@ -710,7 +684,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    analyzeAlertAI, analyzeTrafficAI, animateAttack, demoBadge, filterAlerts, globe,
+    analyzeAlertAI, analyzeTrafficAI, animateAttack, renderMapEvidence, demoBadge, filterAlerts, globe,
     initMap, initPacketsTable, initSysmonTable, initTrafficCharts, loadAlerts,
     loadSuppressed, prependAlertRow, prependAttackLog, prependOverviewAlert,
     redrawAlertsTable, setAlertVerdict, updateAlertStatus, updateCountryChart,

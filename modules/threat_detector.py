@@ -74,7 +74,8 @@ class Alert:
         self.verdict_at = ""
 
     def to_dict(self):
-        return {
+        from modules.provenance import annotate
+        return annotate({
             "id": self.id,
             "threat_type": self.threat_type,
             "threat_label": THREAT_TYPES.get(self.threat_type, self.threat_type),
@@ -94,7 +95,7 @@ class Alert:
             "verdict_reason": self.verdict_reason,
             "verdict_at": self.verdict_at,
             "confidence": getattr(self, "confidence", None),
-        }
+        })
 
 
 _STATUS_STAT_KEY = {"OPEN": "open", "ACK": "acknowledged", "CLOSED": "closed"}
@@ -373,7 +374,11 @@ class ThreatDetector:
             return False
 
     def update_alert_status(self, alert_id, status, note=None, assignee=None):
+        # Commit first: a failed durable write must not look successful in the UI.
         with self._lock:
+            stored = self.store.update_status(alert_id, status, note, assignee) if self.store else False
+            if self.store and not stored:
+                return False  # Archived or missing records cannot be edited.
             for alert in self.alerts:
                 if alert.id == alert_id:
                     old_key = _STATUS_STAT_KEY.get(alert.status, "open")
@@ -385,13 +390,8 @@ class ThreatDetector:
                         alert.assignee = assignee
                     self.stats[old_key] = max(0, self.stats.get(old_key, 0) - 1)
                     self.stats[new_key] = self.stats.get(new_key, 0) + 1
-                    if self.store:
-                        try:
-                            self.store.update_status(alert_id, status, note, assignee)
-                        except Exception:
-                            pass
                     return True
-        return False
+        return bool(stored)
 
     def enrich_alert(self, alert_id, details):
         """외부 위협 인텔 결과를 메모리와 영속 알림에 병합한다."""
@@ -414,14 +414,16 @@ class ThreatDetector:
         decided_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         found = False
         with self._lock:
+            if self.store:
+                found = self.store.set_verdict(alert_id, verdict, actor, reason, decided_at)
+                if not found:
+                    return False
             for alert in self.alerts:
                 if alert.id == alert_id:
                     alert.verdict, alert.verdict_actor = verdict, actor
                     alert.verdict_reason, alert.verdict_at = reason, decided_at
                     found = True
                     break
-        if self.store:
-            found = self.store.set_verdict(alert_id, verdict, actor, reason, decided_at) or found
         if found and self.decision and verdict in ("TRUE_POSITIVE", "FALSE_POSITIVE"):
             self.decision.record_verdict(alert_id, verdict == "TRUE_POSITIVE", source="분석가")
         return found

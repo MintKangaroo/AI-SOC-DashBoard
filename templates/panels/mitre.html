@@ -43,7 +43,7 @@
           <div class="stat-card border-purple">
             <div class="stat-icon text-purple"><i class="fa fa-shield"></i></div>
             <div class="stat-value" id="mitre-coverage">0%</div>
-            <div class="stat-label">매트릭스 커버리지</div>
+            <div class="stat-label">관측된 기법 비율 · 현재 프로세스</div>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@
           </div>
           <div class="col-6 col-md-3">
             <div class="stat-value text-warning fs-kpi-sm" id="cov-seen">-</div>
-            <div class="stat-label">실제 히트 기법</div>
+            <div class="stat-label">관측 히트 · 현재 프로세스</div>
           </div>
         </div>
         <div id="cov-untracked" class="small mb-2"></div>
@@ -98,6 +98,7 @@
             <i class="fa fa-sync me-1"></i>새로고침
           </button>
         </h3>
+        <div class="console-toolbar"><select id="mitre-tactic" aria-label="Filter tactic" data-action-change="filterMitreTactic"><option value="">All tactics</option></select><select id="mitre-hours" aria-label="Matrix observation range" data-action-change="loadMitreScope"><option value="1">Last hour</option><option value="24" selected>Last 24 hours</option><option value="168">Last 7 days</option></select><span id="mitre-observation-scope" class="text-muted small">Loading stored observations…</span></div>
         <div class="mitre-matrix-wrapper" id="mitre-matrix-container"></div>
       </div>
 

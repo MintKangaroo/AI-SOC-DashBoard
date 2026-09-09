@@ -145,6 +145,11 @@ class AttackMapTracker:
     # ------------------------------------------------------------------ #
 
     def _emit_attack(self, entry):
+        entry = dict(entry)
+        entry['timestamp_epoch'] = time.time()
+        entry['destination_basis'] = 'display_anchor'  # Existing Seoul coordinates are not asset geolocation.
+        entry['provenance'] = {'state': 'DEMO' if entry.get('demo') else 'UNAVAILABLE',
+                               'reason': 'Generated map event' if entry.get('demo') else 'GeoIP lookup is real; original event provenance was not passed to the map.'}
         with self._lock:
             self.recent_attacks.append(entry)
         self.socketio.emit("map_attack", entry)
@@ -161,6 +166,7 @@ class AttackMapTracker:
             idx = random.randint(0, len(threat_types) - 1)
 
             entry = {
+                "demo": True,
                 "src_lat":     src["lat"],
                 "src_lng":     src["lng"],
                 "src_country": src["country"],

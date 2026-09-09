@@ -172,6 +172,8 @@
 
   /* ════════════════════ MITRE ATT&CK ════════════════════ */
   let mitreMatrixData = null;
+  let mitreObserved = null;
+  let mitreScopeVersion = 0;
 
   function loadMitreMatrix() {
     fetch('/api/mitre/matrix')
@@ -182,9 +184,29 @@
         updateMitreStats(d);
       });
     loadMitreCoverage();
+    loadMitreScope();
     loadMitreTop();
     loadMitreRecent();
     loadMitreLog();
+  }
+
+  async function loadMitreScope() {
+    const version = ++mitreScopeVersion;
+    const label = document.getElementById('mitre-observation-scope');
+    try {
+      const hours = document.getElementById('mitre-hours')?.value || 24;
+      const data = await SOCUI.request('/api/console/mitre?hours=' + hours);
+      if (version !== mitreScopeVersion) return;
+      mitreObserved = data;
+      if (label) label.textContent = `Matrix observations: last ${data.hours}h · ${data.sample_size.toLocaleString()} ${data.truncated ? 'sampled / ' + data.total.toLocaleString() : 'stored'} alerts · provenance per cell. Rule inventory and process counters above have independent scopes.`;
+      if (_lastMatrix) renderMitreMatrix(_lastMatrix);
+    } catch (error) { if (label) label.textContent = 'Time-scoped observations unavailable: ' + error.message; }
+  }
+  function filterMitreTactic() { if (_lastMatrix) renderMitreMatrix(_lastMatrix); }
+  function mitreEvidencePivot(technique) {
+    bootstrap.Modal.getInstance(document.getElementById('mitreDetailModal'))?.hide();
+    SOCUI.navigate('alerts'); document.getElementById('queue-search').value = technique;
+    document.getElementById('queue-status').value = ''; consoleLoadQueue(true);
   }
 
   /* ── 상세 MITRE 로그 테이블 ── */
@@ -320,7 +342,7 @@
           </div>`).join('')
         : '<div class="text-success p-2">공백 없음 — 매트릭스의 모든 기법에 룰이 있다.</div>';
     }
-    if (_mitreView === 'coverage' && _lastMatrix) renderMitreMatrix(_lastMatrix);
+    if (_lastMatrix) renderMitreMatrix(_lastMatrix);
   }
 
   function renderMitreMatrix(data) {
@@ -328,7 +350,10 @@
     const container = document.getElementById('mitre-matrix-container');
     if (!container) return;
 
-    const tactics = data.tactics || [];
+    const selector = document.getElementById('mitre-tactic');
+    const chosen = selector?.value || '';
+    if (selector && selector.options.length < 2) selector.innerHTML = '<option value="">All tactics</option>' + (data.tactics || []).map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+    const tactics = (data.tactics || []).filter(t => !chosen || t.id === chosen);
     let html = '<div class="mitre-matrix">';
 
     tactics.forEach(tac => {
@@ -340,10 +365,12 @@
         </div>`;
 
       (tac.techniques || []).forEach(tech => {
-        const count = tech.count || 0;
+        const observation = mitreObserved?.techniques[tech.id];
+        const count = mitreObserved ? observation?.count || 0 : 0;
+        const coverage = _covByTechnique[tech.id];
         let hitClass = '';
         if (count > 0 && count < 3)        hitClass = 'hit-low';
-        else if (count < 10)                hitClass = 'hit-med';
+        else if (count >= 3 && count < 10)                hitClass = 'hit-med';
         else if (count >= 10)               hitClass = 'hit-high';
 
         /* 커버리지 뷰에서는 히트 색 대신 '룰이 있는가/검증됐는가'로 칠한다.
@@ -360,32 +387,34 @@
             : `${tech.name} — 진단 정보 없음`;
         }
 
-        html += `<div class="mitre-technique clickable ${hitClass}"
+        html += `<button type="button" class="mitre-technique clickable ${hitClass}"
                       title="${escapeHtml(title)}"
                       ${act('showTechniqueDetail', [tech.id])}
                       data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
           <div class="tech-id">${escapeHtml(tech.id)}</div>
           <div class="tech-name">${escapeHtml(tech.ko)}</div>
-          ${count > 0 ? `<div class="tech-count">${count}</div>` : ''}
-        </div>`;
+          ${count > 0 ? `<div class="tech-count">${count} observed</div>` : ''}<span class="tech-state">${coverage?.validated ? 'VALIDATED · simulated' : coverage?.rules?.length ? 'RULE EXISTS' : coverage ? 'NO RULE COVERAGE' : 'RULE STATUS UNKNOWN'}</span><span class="tech-provenance">${Object.entries(observation?.provenance || {}).map(([p,n]) => escapeHtml(p) + ' ' + Number(n)).join(' · ') || (mitreObserved ? 'No stored observation' : 'Loading observations')}</span>
+        </button>`;
       });
 
       html += '</div>';
     });
 
     html += '</div>';
-    container.innerHTML = html;
+    const focused = container.contains(document.activeElement) ? document.activeElement.dataset.technique : null;
+    if (container.innerHTML !== html) container.innerHTML = html;
+    if (focused) container.querySelector(`[data-technique="${CSS.escape(focused)}"]`)?.focus({preventScroll:true});
   }
 
   /* ── Technique 상세 모달 ── */
   function showTechniqueDetail(techId) {
     const modalEl = document.getElementById('mitreDetailModal');
-    if (!modalEl) return;
+    if (!modalEl || !/^T\d{4}(?:\.\d{3})?$/.test(techId)) return;
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const body  = document.getElementById('mitre-detail-body');
     const title = document.getElementById('mitre-detail-title');
     const ref   = document.getElementById('mitre-detail-ref');
-    title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${techId} 로딩 중...`;
+    title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${escapeHtml(techId)} 로딩 중...`;
     body.innerHTML = '<div class="text-center text-muted py-5"><i class="fa fa-spinner fa-spin fa-2x"></i></div>';
     ref.href = `https://attack.mitre.org/techniques/${techId}/`;
     modal.show();
@@ -394,7 +423,7 @@
       .then(r => r.json())
       .then(d => {
         if (!d.found) {
-          body.innerHTML = `<div class="alert alert-warning">${d.message || '해당 Technique 정보가 없습니다.'}</div>`;
+          body.innerHTML = `<div class="alert alert-warning">${escapeHtml(d.message || '해당 Technique 정보가 없습니다.')}</div>`;
           return;
         }
         title.innerHTML = `<i class="fa fa-crosshairs text-danger me-2"></i>${escapeHtml(d.technique_id)} · ${escapeHtml(d.technique_ko)}
@@ -412,7 +441,7 @@
         }).join('');
 
         const rowHtml = arr => arr.length
-          ? arr.map(x => `<tr><td class="font-monospace">${x.ip||x.name}</td><td class="text-end">${x.count}</td></tr>`).join('')
+          ? arr.map(x => `<tr><td class="font-monospace">${SOCUI.entity(x.ip||x.name)}</td><td class="text-end">${x.count}</td></tr>`).join('')
           : '<tr><td colspan="2" class="text-muted text-center">-</td></tr>';
 
         const recentHtml = (d.recent||[]).length
@@ -421,10 +450,10 @@
                           : e.severity === 'HIGH'     ? 'text-orange'
                           : 'text-warning';
               return `<tr>
-                <td class="text-muted" style="font-size:var(--fs-label)">${e.timestamp.split(' ')[1] || e.timestamp}</td>
-                <td class="${sevCls}">${e.severity||'-'}</td>
-                <td class="font-monospace">${e.src_ip||'-'}</td>
-                <td class="font-monospace">${e.dst_ip||'-'}</td>
+                <td class="text-muted" style="font-size:var(--fs-label)">${escapeHtml(e.timestamp.split(' ')[1] || e.timestamp)}</td>
+                <td class="${sevCls}">${escapeHtml(e.severity||'-')}</td>
+                <td class="font-monospace">${SOCUI.entity(e.src_ip)}</td>
+                <td class="font-monospace">${SOCUI.entity(e.dst_ip)}</td>
                 <td>${escapeHtml(e.description||'')}</td>
               </tr>`;
             }).join('')
@@ -435,6 +464,7 @@
           : '<div class="text-muted">권고사항 없음</div>';
 
         body.innerHTML = `
+          <div class="workspace-context"><span class="provenance provenance-mixed">MIXED SOURCES</span>Detail counters below: current process history. Stored alert search uses the command bar time range.</div><button class="btn btn-sm btn-outline-cyan mb-3" ${act('mitreEvidencePivot',[techId])}>Investigate stored alerts for ${escapeHtml(techId)}</button>
           <div class="mb-3" style="color:var(--text-primary)">${escapeHtml(d.description||'')}</div>
           <div class="row g-3 mb-3">
             <div class="col-sm-4"><div class="stat-card stat-sm border-danger">
@@ -475,7 +505,7 @@
         `;
       })
       .catch(e => {
-        body.innerHTML = `<div class="alert alert-danger">로딩 오류: ${e}</div>`;
+        body.innerHTML = `<div class="alert alert-danger">로딩 오류: ${escapeHtml(String(e))}</div>`;
       });
   }
 
@@ -485,7 +515,7 @@
   /* 이 파일이 다른 파일·인라인 핸들러에 공개하는 이름.
      여기 없는 것은 파일 밖에서 보이지 않는다. */
   Object.assign(window, {
-    retrainML,
+    retrainML, loadMitreScope, filterMitreTactic, mitreEvidencePivot,
     MITRE_LOG_MAX, initMLCharts, loadMitreCoverage, loadMitreMatrix, mitreLogBuffer,
     renderMitreLog, sendFeedback, setMitreView, showTechniqueDetail, triggerMLAnalysis,
   });

@@ -132,6 +132,7 @@ class AccessLogCollector:
         self.promote_alerts = promote_alerts
         self.state_path = state_path
         self.running = False
+        self.source_mode = 'off'
         self._lock = threading.Lock()
 
         self.events = deque(maxlen=1000)
@@ -210,8 +211,10 @@ class AccessLogCollector:
             return
         self.running = True
         if any(s["exists"] for s in self.sources):
+            self.source_mode = 'real'
             threading.Thread(target=self._collect_loop, daemon=True).start()
         elif demo:
+            self.source_mode = 'demo'
             _log.warning("[SIEM] 접근 로그 파일 없음 — 데모 이벤트 생성")
             threading.Thread(target=self._demo_loop, daemon=True).start()
 
@@ -355,6 +358,18 @@ class AccessLogCollector:
         공격 지도를 칠하거나 SOAR 자동대응을 돌리면 안 되기 때문이다.
         """
         backfill = (mode == "backfill")
+        # Retain the event clock; never approximate time ranges by buffer length.
+        event = dict(event)
+        event['timestamp_epoch'] = None
+        for fmt in ('%d/%b/%Y %H:%M:%S', '%d/%b/%Y:%H:%M:%S %z', '%Y-%m-%d %H:%M:%S'):
+            try:
+                event['timestamp_epoch'] = datetime.strptime(event['timestamp'], fmt).timestamp()
+                break
+            except (ValueError, TypeError):
+                continue
+        event['timestamp_basis'] = 'Recorded log time; timezone-less records use server timezone.'
+        event['provenance'] = {'state': 'DEMO' if event.get('demo') else 'REAL',
+                               'reason': 'Demo generator' if event.get('demo') else 'Collected access log'}
         with self._lock:
             self.events.append(event)
             self.ip_counter[event["ip"]] += 1
@@ -425,6 +440,7 @@ class AccessLogCollector:
                     "request": event["request"][:200],
                     "status": event["status"],
                     "log_timestamp": event["timestamp"],
+                    "demo": bool(event.get('demo')),
                 },
             )
         except Exception as e:
@@ -453,6 +469,7 @@ class AccessLogCollector:
             req, status = random.choice(self._DEMO_REQUESTS)
             suspicious, severity, category = classify_request(req, status)
             self._record_event({
+                "demo": True,
                 "source": random.choice(names),
                 "ip": f"{random.randint(1,223)}.{random.randint(0,254)}."
                       f"{random.randint(0,254)}.{random.randint(1,254)}",

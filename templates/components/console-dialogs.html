@@ -1,0 +1,16 @@
+<dialog id="command-palette" class="command-palette" aria-labelledby="palette-title">
+  <div class="palette-header"><i class="fa fa-magnifying-glass" aria-hidden="true"></i><label id="palette-title" for="palette-input" class="sr-only">Search entities and commands</label><input id="palette-input" type="search" autocomplete="off" placeholder="IP, host, hash, CVE, alert ID… or a command"/><button class="console-icon-btn" data-action="consoleClosePalette" aria-label="Close command palette"><kbd>Esc</kbd></button></div>
+  <div class="palette-scope">Searches stored alerts, cases and IOCs. Alert time range follows the command bar.</div>
+  <div id="palette-results" class="palette-results" aria-live="polite"></div>
+  <div class="palette-footer"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span>Evidence, within reach.</span></div>
+</dialog>
+<dialog id="investigation-drawer" class="investigation-drawer" aria-labelledby="investigation-title">
+  <header class="investigation-header"><div><div class="eyebrow" id="investigation-reference">INVESTIGATION</div><h2 id="investigation-title">Loading evidence…</h2></div><button class="console-icon-btn" data-action="consoleCloseInvestigation" aria-label="Close investigation"><i class="fa fa-xmark"></i></button></header>
+  <div id="investigation-meta" class="investigation-meta"></div>
+  <nav class="investigation-tabs" aria-label="Investigation sections"><button class="active" data-action="consoleInvestigationTab" data-args='["evidence","@el"]'>Evidence</button><button data-action="consoleInvestigationTab" data-args='["timeline","@el"]'>Timeline</button><button data-action="consoleInvestigationTab" data-args='["copilot","@el"]'>Analyst copilot</button><button data-action="consoleInvestigationTab" data-args='["response","@el"]'>Response & audit</button></nav>
+  <div class="investigation-scroll" id="investigation-content" tabindex="0"></div>
+  <footer class="investigation-footer" id="investigation-actions"></footer>
+</dialog>
+<dialog id="analyst-action-dialog" class="analyst-action-dialog" aria-labelledby="analyst-action-title">
+  <form id="analyst-action-form"><div class="dialog-heading"><h2 id="analyst-action-title">Record analyst action</h2><button type="button" class="console-icon-btn" data-action="consoleCancelAction" aria-label="Cancel action"><i class="fa fa-xmark"></i></button></div><p id="analyst-action-description"></p><label for="analyst-action-reason">Investigation note / supporting evidence</label><textarea id="analyst-action-reason" rows="4" minlength="3" maxlength="500" required placeholder="Explain the evidence supporting this decision."></textarea><p class="text-muted">The action and your note will be recorded in the audit log. Alert evidence is retained.</p><p id="analyst-action-error" role="alert"></p><div class="dialog-buttons"><button type="button" class="btn btn-outline-secondary" data-action="consoleCancelAction">Cancel</button><button type="submit" class="btn btn-cyan" id="analyst-action-submit">Record action</button></div></form>
+</dialog>

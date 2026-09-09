@@ -11,86 +11,16 @@
   <meta name="apple-mobile-web-app-title" content="SOC"/>
   <meta name="theme-color" content="#0b0f13"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>로그인 · SOC 보안관제</title>
+  <title>Sign in · TRACE Security Operations</title>
   <link href="/static/vendor/fontawesome/css/all.min.css" rel="stylesheet"/>
-  <style>
-    /* 이 페이지는 style.css 를 로드하지 않는 독립 페이지다(76KB 를 로그인에 쓸
-       이유가 없다). 그래서 쓰는 토큰은 여기서 직접 정의한다 — 값은 style.css 의
-       블랙 팔레트와 같다. 한때 토큰만 참조하고 정의가 없어 배경이 흰색, 글자가
-       검정, 입력칸이 투명으로 떨어진 적이 있다. 토큰을 바꾸면 양쪽을 같이 볼 것. */
-    :root {
-      color-scheme: dark;
-      --bg-primary:   #0a0a0b;
-      --bg-secondary: #121214;
-      --bg-card:      #17171a;
-      --border:       #2c2c31;
-      --text-primary: #ececed;
-      --text-dim:     #94949b;
-      --cyan:         #3bd0d8;
-      --red:          #f85249;
-      --green:        #30cf65;
-      --on-accent:    #001417;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      background:
-        radial-gradient(ellipse at top, color-mix(in srgb, var(--cyan) 6%, transparent) 0%, transparent 55%),
-        var(--bg-primary);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-      color: var(--text-primary); padding: 20px;
-      word-break: keep-all;
-    }
-    .login-card {
-      width: 100%; max-width: 360px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 32px 26px;
-      box-shadow: 0 12px 40px rgba(0,0,0,.5);
-    }
-    .brand { text-align: center; margin-bottom: 22px; }
-    .brand i { font-size: 34px; color: var(--cyan); }
-    .brand h1 { font-size: 17px; margin: 12px 0 2px; font-weight: 700; }
-    .brand p { font-size: 12px; color: var(--text-dim); margin: 0; }
-    label { display: block; font-size: 12px; color: var(--text-dim); margin: 14px 0 5px; }
-    input {
-      width: 100%; padding: 11px 12px; min-height: 44px;
-      background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text-primary); font-size: 16px; outline: none;   /* 16px: iOS 자동 확대 방지 */
-      caret-color: var(--cyan);
-    }
-    input::placeholder { color: var(--text-dim); }
-    input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent); }
-    button {
-      width: 100%; margin-top: 22px; padding: 12px; min-height: 44px;
-      background: var(--cyan); color: var(--on-accent); border: none; border-radius: 8px;
-      font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s;
-    }
-    button:hover { background: color-mix(in srgb, var(--cyan) 85%, #000); }
-    button:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
-    .error {
-      margin-top: 16px; padding: 10px 12px;
-      background: color-mix(in srgb, var(--red) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
-      border-radius: 8px; color: var(--red); font-size: 12.5px; text-align: center;
-    }
-    .foot { margin-top: 18px; text-align: center; font-size: 11px; color: var(--text-dim); }
-    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:5px; animation: blink 1.6s infinite; }
-    @keyframes blink { 50% { opacity:.3; } }
-    /* 맥박은 멈추되 점은 켜진 채로 둔다 — '실시간'이라는 정보가 사라지지 않게. */
-    @media (prefers-reduced-motion: reduce) {
-      .live-dot { animation: none; opacity: 1; }
-    }
-  </style>
+  <link href="/static/css/style.css" rel="stylesheet"/>
+  <link href="/static/css/login.css" rel="stylesheet"/>
 </head>
-<body>
+<body class="trace-login">
+  <div class="login-identity" aria-hidden="true"><span class="login-wordmark">TRACE</span><div><span class="login-eyebrow">AI-ASSISTED SECURITY OPERATIONS</span><h1>Evidence decides.</h1><p>Investigate with context.<br/>Respond with confidence.</p></div><span class="login-art-note">Abstract artwork · no operational data</span></div>
   <form class="login-card" method="POST" action="/login">
     <div class="brand">
-      <i class="fa-solid fa-shield-halved"></i>
-      <h1>SOC 보안관제 대시보드</h1>
-      <p><span class="live-dot"></span>AI 기반 실시간 관제 · 인증 필요</p>
+      <div class="login-eyebrow">TRACE / ANALYST WORKSPACE</div><h1>Sign in to security operations</h1><p>증거를 확인하고, 판단을 기록하세요.</p>
     </div>
 
     <label for="username">사용자명</label>

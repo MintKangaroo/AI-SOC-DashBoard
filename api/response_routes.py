@@ -201,14 +201,20 @@ def block_decision_replay(decision_id):
 
     def _flag(name):
         raw = a.get(name)
-        return None if raw in (None, "") else raw.lower() in ("1", "true", "yes")
+        if raw in (None, ''):
+            return None
+        if raw.lower() not in ('1', 'true', 'yes', '0', 'false', 'no'):
+            raise ValueError(f'Invalid {name}')
+        return raw.lower() in ('1', 'true', 'yes')
 
     try:
         result = log.replay(
             decision_id,
-            min_confidence=(a.get("min_confidence", type=float)),
+            min_confidence=(float(a['min_confidence']) if a.get('min_confidence') else None),
             require_corroboration=_flag("require_corroboration"),
-            auto_block=_flag("auto_block"))
+            auto_block=_flag("auto_block"),
+            without_evidence=a.get('without_evidence') or None,
+            is_true_positive=_flag('is_true_positive'))
     except (TypeError, ValueError) as e:
         return jsonify({"error": f"잘못된 재생 파라미터: {e}"}), 400
     if result is None:

@@ -64,7 +64,7 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 | `api/_common.py` | 공용 헬퍼 (`api_bp`, `get_services`, `_mitre`, `_actor`, `audit_record`) |
 | `api/{detection,analysis,monitoring,scan,response}_routes.py` | 도메인별 REST 엔드포인트 (모두 `api_bp` 공유) |
 | `templates/dashboard.html` | 레이아웃·사이드바 (패널은 `templates/panels/*.html` include) |
-| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 37개) |
+| `templates/panels/*.html` | 패널별 UI 조각 (Jinja include, 38개) |
 | `static/js/dash/01~23-*.js` | 패널별 JS (원본 순서대로 `<script>` 로드). 각 파일은 IIFE — 공개 이름만 파일 끝 `Object.assign(window, {...})` 에 명시 |
 | `static/vendor/` | 자체 호스팅 프런트 라이브러리 (CDN 미사용 — 격리망 동작·CSP `'self'`) |
 
@@ -301,3 +301,18 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 | `DEDUP_STORM_THRESHOLD` | 20 | 60초 내 동일 핑거프린트 이 횟수 초과 시 스톰 |
 | `DEDUP_SUPPRESS_RULES` | - | 최초 1회 시드 "이름=유형:출발지접두:룰ID:사유;..." |
 | `DEDUP_RETENTION_DAYS` | 90 | 억제·병합 이벤트 보관 기간 |
+
+## TRACE 조사 콘솔 (2026-09-09)
+
+현재 UX/API/데이터 범위는 [TRACE_CONSOLE](docs/TRACE_CONSOLE.md), 감사와 검증 이력은
+[CONSOLE_REDESIGN](docs/CONSOLE_REDESIGN.md)을 기준으로 한다. 기존 37개 기능 패널과
+추가 Detection Quality를 유지한다. 신규 코드는 `modules/console*.py`,
+`api/console_routes.py`, `static/js/dash/00-console-runtime.js`, `24`–`27` 모듈에 나눈다.
+
+- 새 데이터는 REAL/DEMO/SYNTHETIC/SIMULATED/EXPERIMENTAL/UNAVAILABLE를 명시한다.
+  전역 DEMO_MODE만으로 센서 가시성을 판단하지 않는다.
+- copilot의 facts는 저장 증거에서 구성한다. 모델은 사실을 교체하거나 대응을 실행하지 않는다.
+- PAUSED는 표시만 멈춘다. 수집·저장·서버 대응 정책을 바꾸지 않는다.
+- 아카이브는 읽기 전용이다. 상태/판정 쓰기는 SQLite 성공 후 메모리에 반영한다.
+- 디자이너 토큰과 공통 컴포넌트를 사용하고 lazy panel 및 자체 호스팅 CSP를 유지한다.
+- 브라우저 회귀는 `tests/test_browser_sweep.py`와 `tests/test_console_browser.py`를 함께 실행한다.

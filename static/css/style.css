@@ -8,6 +8,49 @@
      자체가 밝게 렌더돼서, DataTables 의 "Show [ ] entries" 셀렉트가 흰 상자로
      남아 값이 보이지 않았다. 색 규칙보다 먼저 와야 하는 선언이다. */
   color-scheme: dark;
+  /* TRACE design system. Legacy palette/typography remain compatible below. */
+  --surface-base: #0d1015;
+  --surface-raised: #14181f;
+  --surface-overlay: #1b212b;
+  --surface-selected: #182c3c;
+  --border-subtle: #272f3a;
+  --border-strong: #3c4a5c;
+  --accent-operational: #80baff;
+  --text-secondary: #b4becb;
+  --text-tertiary: #95a3b5;
+  --severity-critical: #ff8791;
+  --severity-high: #ffb16b;
+  --severity-medium: #e5cd73;
+  --severity-low: #87bfff;
+  --severity-info: #b2bfce;
+  --status-live: #78d7ae;
+  --status-degraded: #e5cd73;
+  --status-offline: #b0baca;
+  --confidence-high: #9bc8ed;
+  --confidence-medium: #c9bd91;
+  --confidence-unknown: #a2adbc;
+  --provenance-real: #8ed8bb;
+  --provenance-demo: #dbc39a;
+  --provenance-synthetic: #cab4ec;
+  --provenance-simulated: #b4c4f0;
+  --focus-ring: #8bc4ff;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-overlay: 0 20px 70px rgb(0 0 0 / 40%);
+  --shadow-surface: 0 1px 2px rgb(0 0 0 / 12%);
+  --font-ui: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --nav-width: 224px;
+  --commandbar-height: 60px;
+
 
   /* 중립 블랙 계열. 이전 팔레트(GitHub 다크: var(--bg-primary)/var(--bg-card))는 파랑 성분이
      섞여 있어 네이비로 읽혔다. 색상 성분을 빼고 명도만으로 층을 나눈다 —

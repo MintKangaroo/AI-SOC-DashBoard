@@ -21,6 +21,7 @@ AI 근거 추적(제안 #6)도 여기에 포함된다 — AI 판정·모델·요
 들어간다. 감사 권고대로 **프롬프트 전문은 저장하지 않는다**(알림 사본이 생긴다).
 """
 import json
+import math
 import os
 import sqlite3
 import threading
@@ -128,6 +129,8 @@ class BlockDecisionLog:
                 "CREATE INDEX IF NOT EXISTS idx_dec_ts ON decisions(ts)")
             self._conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_dec_ip ON decisions(src_ip)")
+            self._conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_dec_alert ON decisions(alert_id)")
             self._conn.commit()
 
     # ------------------------------------------------------------------ #
@@ -199,6 +202,14 @@ class BlockDecisionLog:
                 (int(decision_id),)).fetchone()
         return self._row_to_dict(row) if row else None
 
+    def for_alert(self, alert_id, limit=100):
+        """Exact evidence link; never confuses a shared IP with the same alert."""
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT {self._COLS} FROM decisions WHERE alert_id=? ORDER BY id DESC LIMIT ?",
+                (int(alert_id), min(100, max(1, int(limit))))).fetchall()
+        return [self._row_to_dict(row) for row in rows]
+
     def stats(self):
         with self._lock:
             total, blocked = self._conn.execute(
@@ -224,7 +235,8 @@ class BlockDecisionLog:
     # ------------------------------------------------------------------ #
 
     def replay(self, decision_id=None, *, record=None, min_confidence=None,
-               require_corroboration=None, auto_block=None):
+               require_corroboration=None, auto_block=None, without_evidence=None,
+               is_true_positive=None):
         """임계값을 바꿨다면 결과가 달라졌을지 같은 신호로 다시 계산한다."""
         record = record or (self.get(decision_id) if decision_id is not None else None)
         if not record:
@@ -242,15 +254,23 @@ class BlockDecisionLog:
                     if require_corroboration is None else bool(require_corroboration))
         new_auto = (thresholds.get("auto_block") if auto_block is None
                     else bool(auto_block))
+        if not math.isfinite(float(new_min)) or not 0 <= float(new_min) <= 100:
+            raise ValueError('Confidence must be between 0 and 100.')
+        evidence = list(signals.get('evidence') or [])
+        if without_evidence:
+            if without_evidence not in evidence:
+                raise ValueError('The evidence source is not in the original snapshot.')
+            evidence.remove(without_evidence)
+        verdict = orig('verdict_true_positive', 'actual', False) if is_true_positive is None else is_true_positive
 
         would_block, gates = evaluate_gates(
             playbook_enabled=orig("playbook_enabled", "actual", True),
             auto_block=new_auto,
             severity=orig("severity_critical", "actual"),
-            is_true_positive=orig("verdict_true_positive", "actual", False),
+            is_true_positive=verdict,
             confidence=signals.get("confidence", 0),
             min_confidence=new_min,
-            evidence=signals.get("evidence") or [],
+            evidence=evidence,
             require_corroboration=new_corr,
             is_demo=signals.get("demo", False),
             is_external=orig("external_ip", "actual", False),
@@ -258,14 +278,21 @@ class BlockDecisionLog:
         return {
             "decision_id": record["id"],
             "original": {"blocked": record["blocked"],
+                         "gates_passed": all(g['passed'] for g in record['gates']),
+                         "outcome": record.get('outcome_label') or record.get('outcome'),
                          "thresholds": thresholds},
             "replayed": {"blocked": would_block,
+                         "gates_passed": would_block,
+                         "without_evidence": without_evidence, "is_true_positive": verdict,
                          "thresholds": {"min_block_confidence": new_min,
                                         "require_corroboration": new_corr,
                                         "auto_block": new_auto},
                          "gates": gates,
                          "blocked_by": blocking_reasons(gates)},
             "changed": would_block != record["blocked"],
+            "gates_changed": would_block != all(g['passed'] for g in record['gates']),
+            "mode": "SIMULATED", "writes": False,
+            "limits": "Gate eligibility only. Firewall result, approval, allowlist and current target safety are not simulated. No production state changes.",
         }
 
     def purge_older_than(self, days=None):

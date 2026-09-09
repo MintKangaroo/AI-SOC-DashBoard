@@ -71,9 +71,10 @@
           + (g.id === 'confidence' ? ` (${escapeHtml(g.actual)}/${escapeHtml(g.required)})` : '')
           + '</span>').join('');
         const sig = rec.signals || {};
+        const mode = rec.thresholds?.block_mode === 'simulate' ? 'SIMULATED' : rec.thresholds?.block_mode ? 'REAL' : 'UNAVAILABLE';
         box.innerHTML = `
           <div class="bd-replay">
-            <div class="mb-1"><b>결정 #${Number(rec.id)}</b>
+            <div class="mb-1">${SOCUI.provenance({provenance:{state:mode}})} <b>결정 #${Number(rec.id)}</b>
               <span class="font-monospace ms-2">${escapeHtml(rec.src_ip || '-')}</span>
               <span class="badge ${rec.blocked ? 'bg-danger' : 'bg-secondary'} ms-2">${escapeHtml(rec.outcome_label || '')}</span>
             </div>
@@ -84,15 +85,17 @@
               근거: ${escapeHtml((sig.evidence || []).join(', ') || '없음')}
               ${sig.ai_summary ? `<br/>AI: ${escapeHtml(sig.ai_summary)}` : ''}
             </div>
-            <div class="d-flex align-items-center gap-2 mt-2">
-              <span class="small">임계값을 바꿨다면?</span>
+            <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
+              <span class="provenance provenance-simulated">SIMULATED</span><label for="bd-replay-conf" class="small">Confidence threshold</label>
               <input id="bd-replay-conf" type="number" min="0" max="100" value="${Number(rec.thresholds?.min_block_confidence ?? 95)}"
                      class="form-control form-control-sm bg-dark text-white border-secondary" style="width:90px">
               <label class="form-check form-switch small mb-0">
                 <input id="bd-replay-corr" class="form-check-input" type="checkbox"
                        ${rec.thresholds?.require_corroboration ? 'checked' : ''}> 독립 근거 요구
               </label>
-              <button class="btn btn-xs btn-cyan" ${act('replayBlockDecision', [Number(rec.id)])}>재생</button>
+              <select id="bd-replay-evidence" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="Remove one evidence source" style="width:auto;max-width:100%"><option value="">Keep all evidence</option>${(sig.evidence || []).map(source => `<option value="${escapeHtml(source)}">Without ${escapeHtml(source)}</option>`).join('')}</select>
+              <select id="bd-replay-verdict" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="Simulated verdict" style="width:auto;max-width:100%"><option value="">Original verdict</option><option value="true">What if TP?</option><option value="false">What if FP?</option></select>
+              <button class="btn btn-xs btn-cyan" ${act('replayBlockDecision', [Number(rec.id)])}>Compare gates</button>
             </div>
             <div id="bd-replay-out" class="small mt-2"></div>
           </div>`;
@@ -106,19 +109,18 @@
     const p = new URLSearchParams({
       min_confidence: conf ? conf.value : '',
       require_corroboration: corr && corr.checked ? 'true' : 'false',
+      without_evidence: document.getElementById('bd-replay-evidence')?.value || '',
+      is_true_positive: document.getElementById('bd-replay-verdict')?.value || '',
     });
     fetch(`/api/soar/decisions/${id}/replay?` + p.toString())
       .then(r => r.json())
       .then(res => {
         const out = document.getElementById('bd-replay-out');
-        if (!out || res.error) return;
-        const before = res.original.blocked ? '차단' : '차단 안 함';
-        const after = res.replayed.blocked ? '차단' : '차단 안 함';
-        const left = (res.replayed.blocked_by || []).length
-          ? ` · 남은 미충족: ${res.replayed.blocked_by.map(escapeHtml).join(', ')}` : '';
-        out.innerHTML = res.changed
-          ? `<span class="flip">결과가 바뀐다: ${escapeHtml(before)} → ${escapeHtml(after)}</span>${left}`
-          : `결과 동일 (${escapeHtml(after)})${left}`;
+        if (!out) return;
+        if (res.error) { out.textContent = res.error; return; }
+        const before = res.original.gates_passed ? 'ELIGIBLE' : 'GATES NOT MET';
+        const after = res.replayed.gates_passed ? 'ELIGIBLE' : 'GATES NOT MET';
+        out.innerHTML = `<div class="replay-comparison"><div><small>ORIGINAL GATES</small><strong>${before}</strong><span>Recorded outcome: ${escapeHtml(res.original.outcome || 'Unavailable')}</span></div><div><small>SIMULATED GATES</small><strong>${after}</strong><span>${res.gates_changed ? 'Eligibility changed' : 'Eligibility unchanged'}</span></div></div><div class="my-2">${(res.replayed.gates || []).map(g => `<span class="bd-gate ${g.passed ? 'pass' : 'fail'}">${g.passed ? '✓' : '×'} ${escapeHtml(g.label)}</span>`).join('')}</div><p class="text-muted">${escapeHtml(res.limits)}</p>`;
       })
       .catch(() => {});
   }
@@ -642,10 +644,10 @@
     const tbody = document.getElementById('inc-tbody');
     if (!tbody) return;
     const rows = (d.incidents || []).map(inc => `
-      <tr style="cursor:pointer" ${act('selectIncident', [inc.id])}
+      <tr tabindex="0" role="button" style="cursor:pointer" ${act('selectIncident', [inc.id])}
           ${inc.id === selectedIncidentId ? 'class="table-active"' : ''}>
         <td class="small text-cyan">#${inc.id}</td>
-        <td class="small" style="color:var(--text-primary)">${escapeHtml(inc.title)}</td>
+        <td class="small" style="color:var(--text-primary)">${escapeHtml(inc.title)} ${SOCUI.provenance(inc)}</td>
         <td class="small">${sevBadge(inc.severity)}</td>
         <td class="small">${INC_STATUS_BADGES[inc.status] || escapeHtml(inc.status)}</td>
         <td class="small" style="color:var(--text-primary)">${inc.alert_count}</td>
@@ -670,19 +672,19 @@
     fetch(`/api/incidents/${id}`)
       .then(r => r.json())
       .then(inc => {
-        if (inc.error) return;
+        if (inc.error || id !== selectedIncidentId) return;
         const title = document.getElementById('inc-detail-title');
         if (title) title.textContent = `#${inc.id} ${inc.title}`;
         const controls = document.getElementById('inc-detail-controls');
         if (controls) controls.classList.remove('d-none');
         const sel = document.getElementById('inc-status-select');
-        if (sel) sel.value = inc.status;
+        if (sel && document.activeElement !== sel) sel.value = inc.status;
         const asg = document.getElementById('inc-assignee-input');
-        if (asg) asg.value = inc.assignee || '';
+        if (asg && document.activeElement !== asg) asg.value = inc.assignee || '';
 
         const box = document.getElementById('inc-timeline');
         if (box) {
-          box.innerHTML = [...(inc.timeline || [])].reverse().map(t => `
+          box.innerHTML = `<section class="investigation-section">${SOCUI.provenance(inc)}<h3 class="mt-3">Linked alert evidence</h3><div class="d-flex flex-wrap gap-2">${(inc.alert_ids || []).slice(-100).map(aid => `<button class="btn btn-xs btn-outline-secondary" ${act('consoleOpenInvestigation',[aid])}>Alert #${aid}</button>`).join('') || 'No alert IDs recorded.'}</div></section>` + [...(inc.timeline || [])].reverse().map(t => `
             <div class="d-flex gap-2 p-2 border-bottom border-secondary small">
               <span>${INC_TL_ICONS[t.kind] || ''}</span>
               <span class="text-muted" style="white-space:nowrap; font-size:var(--fs-meta)">${escapeHtml((t.ts || '').slice(5))}</span>

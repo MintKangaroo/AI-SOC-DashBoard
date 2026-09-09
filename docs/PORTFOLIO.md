@@ -1,19 +1,38 @@
-# SOC 보안관제 대시보드 — 포트폴리오
+# TRACE · AI SOC 보안관제 — 포트폴리오
 
 > **운영 중인 자동매매 홈서버(KR·USA)를 실시간으로 지키는 SOC 플랫폼**
 > 침해 시도를 실시간 관제하고, AI로 **정탐(True Positive)과 오탐(False Positive)을 구분**하며,
 > 탐지 → 자동대응(SOAR) → 취약점 관리까지 SOC 업무 흐름 전체를 하나의 대시보드로 구현했습니다.
 
 실제 SOC 운영 개념(SIEM · SOAR · EDR · Threat Intelligence · Detection Engineering ·
-Vulnerability Management · Purple Team · SOC Metrics)을 **51개 모듈 / 약 15,000 LOC**로 구현한
+Vulnerability Management · Purple Team · SOC Metrics)을 **54개 모듈 / 38개 워크스페이스**로 구현한
 개인 학습·포트폴리오 프로젝트입니다.
 
 - **기간**: 2026.07 ~ (지속 개발)
 - **역할**: 기획 · 설계 · 개발 · 운영 전 과정 1인
 - **동기**: 인터넷에 노출된 자동매매 봇 서버가 실제로 스캐닝·공격을 받고 있어, 이를 직접 관제하면서 SOC(보안관제) 직무를 학습
-- ※ 본 문서는 화면과 사용 기술 중심의 소개이며, 소스 코드는 비공개입니다.
+- 공개 소스: [AI-SOC-DashBoard](https://github.com/MintKangaroo/AI-SOC-DashBoard). 화면의 출처와 측정 범위를 함께 확인해야 합니다.
 
 ---
+
+## 2026-09-09 · TRACE 조사 콘솔
+
+Flask/Jinja·Socket.IO·SQLite WAL을 유지하면서 운영 상태 → 우선순위 알림 → 원문 증거 →
+분석가 판정 → 자동 대응 근거로 이어지는 조사 흐름을 추가했습니다. 기존 기능은 업무별
+탐색으로 정리하고, 지속적으로 변하는 스트림과 읽고 있는 알림 큐를 분리했습니다.
+
+![Command Center](portfolio_img/trace-command-center.png)
+![Alert queue](portfolio_img/trace-alert-queue.png)
+![Investigation workspace](portfolio_img/trace-investigation.png)
+
+위 세 화면은 **임시 DEMO 환경에서 실행한 실제 앱**입니다. 운영 탐지 실적을 나타내지 않습니다.
+AI 요약은 FACTS / INFERENCES / RECOMMENDATIONS / UNKNOWN을 분리하고, 데이터가 없는
+지표는 측정 불가로 남깁니다. Higgsfield 생성 이미지는 로그인 배경에만 적용했습니다.
+
+[구현 및 검증 기록](CONSOLE_REDESIGN.md) · [현재 동작과 범위](TRACE_CONSOLE.md)
+
+아래 기존 화면·수치는 개발 당시 기록입니다. 현재 UI와 측정 조건은 위 가이드를 우선합니다.
+과거 ML 분포나 리플레이 감축률을 현재 탐지 정확도·실시간 운영 성능으로 해석하지 않습니다.
 
 ## 목차
 1. [핵심 차별점 — "오탐과의 싸움"](#핵심-차별점--오탐과의-싸움)

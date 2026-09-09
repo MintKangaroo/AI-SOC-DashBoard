@@ -17,9 +17,9 @@
       <!-- 안내 -->
       <div class="panel-note mb-3 panel-note--cyan">
         <div class="panel-note-body">
-          탐지 → <strong>AI 트리아지</strong>(Claude 가 정탐/오탐 판정) → 대응(차단·종결·에스컬레이션)을 플레이북이 자동으로 잇습니다.
-          오탐은 자동 종결되어 ML 에 피드백되고, 정탐 CRITICAL 은 외부 IP 를 차단합니다.
-          차단 모드 <code id="soar-mode-label">simulate</code> 는 기록만 하며, 실차단은 <code>.env</code> 의 <code>SOAR_BLOCK_MODE=ufw</code> 입니다.
+          탐지 → 강화 → 판정 → 안전장치 → 승인 정책 → 대응 → 감사 기록을 확인하세요.
+          AI 판정은 조언이며, 사용 불가 시 규칙 기반 경로와 구분합니다. 자동 종결·차단은 활성 플레이북과 모든 정책 조건을 충족할 때만 수행됩니다.
+          현재 차단 모드: <code id="soar-mode-label">unavailable</code>. SIMULATE는 방화벽을 변경하지 않습니다.
           <span class="d-block mt-1"><i class="fa fa-shield-halved text-success me-1"></i><strong>안전장치</strong> —
           사설·Tailscale(100.64.0.0/10)·서버 자신은 어떤 판정에서도 차단하지 않습니다(자가 락아웃 방지).
           <span id="soar-safety-extra"></span></span>

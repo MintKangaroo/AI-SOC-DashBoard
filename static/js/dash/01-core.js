@@ -124,7 +124,7 @@
     // 같은 문구가 반복되면 건수로 접는다.
     const counts = new Map();
     items.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
-    const text = [...counts.entries()]
+    const text = (counts.size > 3 ? `${items.length} security updates. Review the analyst queue. ` : '') + [...counts.entries()].slice(0,3)
       .map(([t, n]) => (n > 1 ? `${t} ${n}건` : t)).join('. ');
     // 같은 문자열을 다시 넣으면 스크린리더가 변화를 감지하지 못한다.
     box.textContent = '';
@@ -298,6 +298,7 @@
   function toggleOpen() { this.classList.toggle('open'); }
 
   const socket = io();
+  if (window.SOCRealtime) SOCRealtime.attach(socket);
 
   /* ════════════════════ API 오류 표면화 ════════════════════
      서버는 이제 어떤 실패에도 /api/ 에 JSON 을 돌려준다(docs/AUDIT.md A-3).
@@ -392,7 +393,10 @@
   }
 
   // 소켓 인증 실패(미로그인) 시 로그인 페이지로
-  socket.on('connect_error', () => { window.location.href = '/login'; });
+  socket.on('connect_error', () => {
+    const badge = document.getElementById('badge-status');
+    if (badge) badge.textContent = 'RECONNECTING';
+  });
 
   /* ─────────────────── 유틸 ─────────────────── */
   function fmtBytes(b) {
@@ -403,7 +407,8 @@
   }
 
   function sevBadge(sev) {
-    return `<span class="badge sev-${sev}">${sev}</span>`;
+    const safe = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'].includes(sev) ? sev : 'INFO';
+    return `<span class="badge sev-${safe}">${safe}</span>`;
   }
 
   function protoColor(p) {
@@ -421,7 +426,7 @@
   /* 실시간 이벤트는 모든 패널에 도착한다. 숨겨진 패널·백그라운드 탭의
      무거운 차트/테이블 렌더를 생략해 장시간 실행 시 브라우저 부하를 줄인다. */
   function isPanelVisible(name) {
-    if (document.hidden) return false;
+    if (document.hidden || (window.SOCRealtime && SOCRealtime.paused)) return false;
     const panel = document.getElementById('panel-' + name);
     return !!panel && !panel.classList.contains('d-none');
   }
@@ -533,7 +538,7 @@
     closeSidebar();   // 모바일: 패널 선택 시 드로어 닫기
 
     if (name === 'overview') setTimeout(() => {
-      initMap();
+      if (document.querySelector('.console-legacy')?.open) initMap();
       if (typeof renderLiveStream === 'function') renderLiveStream();
       if (typeof renderTopAttackers === 'function') renderTopAttackers();
       if (typeof renderThreatTypeChart === 'function') renderThreatTypeChart();
@@ -575,6 +580,10 @@
     if (name === 'watchlist') loadWatchlist();
     if (name === 'health') { loadHealth(); startHealthAuto(); }
     else if (typeof stopHealthAuto === 'function') stopHealthAuto();
+    if (window.SOCUI) {
+      SOCUI.currentPanel = name;
+      document.dispatchEvent(new CustomEvent('soc:panel', {detail: name}));
+    }
   }
 
   /* ════════════════════ 내 정보 (System Info) ════════════════════ */

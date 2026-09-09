@@ -3,7 +3,21 @@
 이 문서는 "지금 어디까지 됐고, 무엇이 돌아가고 있고, 무엇을 결정해야 하는가"만 적는다.
 설계·근거는 [README](../README.md)·[architecture](architecture.md)·[CLAUDE.md](../CLAUDE.md)에 있다.
 
-## 1. 지금 상태 한 눈에
+## TRACE 콘솔 변경 인계 · 2026-09-09
+
+기존 Flask 앱의 셸/조사 흐름을 TRACE로 개선했다. 기존 37개 기능은 유지하고
+Detection Quality를 추가해 총 38개 워크스페이스가 됐다. 운영 프로세스나 보호 서버,
+방화벽, 패치, `.env`, 운영 DB는 이 작업에서 변경하지 않았다.
+
+- 구현과 전체 검증 결과: [CONSOLE_REDESIGN](CONSOLE_REDESIGN.md)
+- API/출처/버퍼/조회 범위/제약: [TRACE_CONSOLE](TRACE_CONSOLE.md)
+- Higgsfield 로그인 자산: [IDENTITY_ASSET](IDENTITY_ASSET.md)
+- 다음 우선순위: 인증·역할 경계, 수집기별 출처 기록, 영속 이벤트/전이 시각, 부하 검증.
+
+아래 표와 운영 환경 수치는 **TRACE 변경 이전의 인계 스냅샷**이며 이번 작업에서
+운영 상태를 재확인하거나 배포 완료를 주장하는 자료가 아니다.
+
+## 1. 이전 운영 스냅샷
 
 | 항목 | 상태 |
 |---|---|
