@@ -5,6 +5,25 @@ capacity certification or an end-to-end sensor test. The same Flask/Jinja applic
 Blueprints, authentication and SQLite stores run in a temporary process. No operational
 server is restarted, no original database is written and no response action is executed.
 
+## 2026-09-11 재측정 (한국어 요약)
+
+조사 콘솔·권한 검사가 들어온 뒤 처음 다시 쟀다. **회귀는 없다.**
+
+| 프로파일 | `alert_store.search` p95 | 가장 느린 경로 | 예산(2초) 초과 |
+|---|---|---|---|
+| `legacy` | 444ms (09-06 약 400ms) | `/api/metrics/soc?days=90` 1회차 2,291ms | 1건(1회차만, 캐시 뒤 수 ms) |
+| `both` | 1,078ms | `/api/alerts/history/export.ocsf.json?limit=2000` 2,306ms | 1건 |
+
+- 데이터: 알림 111,378건(활성 630 + 아카이브 110,748), 인시던트 23,303건, 동시 8.
+- HTTP 실패 0 · 텔레메트리 `failing` 0 · `slow` 0 · 캐시 재사용 정상.
+- **같은 조건에서는 안 느려졌다.** `both` 에서 두 배가 되는 것은 콘솔 질의가 같은
+  저장소를 함께 때리기 때문이며, 새 기능이 쓰는 값이지 회귀가 아니다.
+- `/api/metrics/soc` 1회차가 1.1초→2.3초로 는 원인은 인덱스가 아니라 **인시던트
+  23,303건을 파이썬으로 훑는 집계**다(`soc_metrics._incident_times`). 캐시가 받아
+  주므로 사용자는 패널을 처음 열 때 한 번 겪는다. 줄이려면 그 집계를 미리 계산하거나
+  인시던트 보존을 조이는 두 길이 있고, 아직 어느 쪽도 하지 않았다.
+- OCSF 내보내기 2,000건 2.3초는 다운로드 경로라 화면을 막지 않는다.
+
 ## Reproduce
 
 ```bash
