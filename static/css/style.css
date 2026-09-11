@@ -2019,7 +2019,11 @@ td, .alert-item, .stream-item, .desc, code, pre, .mono, .table-monospace td {
   /* 표 안의 조작 버튼은 44px 로 키우면 행이 뭉개진다 — 세로로 쌓아 폭을 지킨다. */
   td .btn-xs { min-width: 0; padding: 6px 10px; }
   .form-control, .form-select { min-height: 44px; }
-  .form-check-input { width: 22px; height: 22px; }
+  /* 맨 `<input type=checkbox>` 까지 포함한다 — 알림 선택·열 표시·스캔 대상 표는
+     Bootstrap 클래스 없이 쓴다. 그래서 이 규칙을 비껴가 실측 13x13px 이었다
+     (손끝 접촉면은 보통 8~10mm). 표 행 높이는 모바일에서 이미 44px 이라 여유가 있다. */
+  .form-check-input,
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; }
 }
 
 /* 표 행의 조치 버튼 묶음 — 5개가 폭에 따라 4+1 로 어긋나 접히던 것을 격자로 고정.

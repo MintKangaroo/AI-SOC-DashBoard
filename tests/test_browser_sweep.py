@@ -188,3 +188,116 @@ def test_sidebar_menus_are_not_clipped(live, label):  # noqa: F811
     assert findings == [], (
         f"[{label} {width}x{height}] 사이드바 메뉴가 잘리거나 눌리지 않음:\n  "
         + "\n  ".join(findings))
+
+
+# ---------------------------------------------------------------- #
+#  폰 크기에서 컨트롤이 실제로 눌리는가 · 접촉 면적은 충분한가
+# ---------------------------------------------------------------- #
+#
+# 위 두 검사는 "패널이 열리는가"와 "메뉴가 잘리지 않는가"를 본다. 정작 패널 **안**
+# 버튼이 눌리는지는 아무도 안 봤다. 그래서 여기서는 39개 패널의 컨트롤을 전부
+# Playwright 의 실제 클릭 가능성 검사(trial click — 보이는가·움직이지 않는가·
+# 그 점을 눌렀을 때 이 요소가 받는가)로 두드려 본다.
+#
+# 실측으로 잡은 것: 알림 선택·열 표시·스캔 대상 체크박스가 **13x13px** 이었다.
+# 프로젝트는 이미 `@media (pointer: coarse)` 에서 44px 규칙을 세워 뒀는데, 새 표가
+# Bootstrap 클래스 없이 맨 `<input type=checkbox>` 를 써서 그 규칙을 통째로
+# 비껴갔다. 규칙이 있어도 **새 마크업이 그 규칙을 안 타면 소용이 없다** — 그래서
+# 클래스가 아니라 화면에 그려진 실제 크기를 잰다.
+TOUCH_MIN_PX = 20            # 체크박스·라디오의 최소 변 길이(현재 CSS 는 22px)
+CONTROLS_PER_PANEL = 30      # 표가 길면 같은 모양이 반복된다 — 앞쪽만 봐도 충분하다
+
+_CONTROL_SEL = ("button:not([disabled]), [data-action]:not([disabled]), "
+                "select:not([disabled])")
+
+# ⚠ 화살표 함수에는 `arguments` 가 없다(바깥 스코프의 것을 집어 undefined 와 비교하게
+#   되어 **무엇과 비교해도 통과하는 가짜 가드**가 된다 — 이 테스트의 첫 판이 그랬다).
+#   인자는 배열 하나로 받아 구조분해한다.
+_BOXES_JS = """([name, minPx]) => {
+  const root = document.getElementById('panel-' + name);
+  if (!root) return [];
+  const out = [];
+  root.querySelectorAll('input[type=checkbox], input[type=radio]').forEach(el => {
+    if (!el.offsetParent) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    if (Math.min(r.width, r.height) < minPx)
+      out.push(`${el.id || el.dataset.action || el.getAttribute('aria-label') || 'checkbox'}`
+               + ` ${Math.round(r.width)}x${Math.round(r.height)}px`);
+  });
+  return out;
+}"""
+
+
+def _phone_page(pw, live, width, height):  # noqa: F811
+    """폰으로 연 상태를 만든다 — 터치 기기여야 `pointer: coarse` 규칙이 걸린다."""
+    browser = _launch(pw)
+    ctx = browser.new_context(viewport={"width": width, "height": height},
+                             is_mobile=True, has_touch=True)
+    page = ctx.new_page()
+    page.goto(live["base"] + "/", wait_until="load")
+    page.wait_for_timeout(2000)
+    # 실시간 갱신을 멈춘다. 안 멈추면 목록이 다시 그려지는 순간 요소가 떨어져 나가
+    # '눌리지 않음' 으로 보인다(실측: 그것만으로 허위 지적 42건).
+    page.evaluate("() => { if (typeof consoleToggleLive === 'function') consoleToggleLive(); }")
+    page.wait_for_timeout(500)
+    return browser, page
+
+
+@pytest.mark.skipif(sync_playwright is None, reason="playwright 미설치")
+def test_controls_are_clickable_on_phone(live):  # noqa: F811
+    width, height = 390, 750
+    findings = []
+    with sync_playwright() as pw:
+        browser, page = _phone_page(pw, live, width, height)
+        try:
+            names = page.eval_on_selector_all(
+                ".sidebar-link[data-panel]", "els => els.map(e => e.dataset.panel)")
+            for name in list(dict.fromkeys(names)):
+                page.evaluate("n => showPanel(n)", name)
+                page.wait_for_timeout(PANEL_SETTLE_MS)
+                controls = page.locator(f"#panel-{name} >> {_CONTROL_SEL}")
+                for i in range(min(controls.count(), CONTROLS_PER_PANEL)):
+                    el = controls.nth(i)
+                    try:
+                        if not el.is_visible():
+                            continue
+                        box = el.bounding_box()
+                        if not box or box["width"] < 1 or box["height"] < 1:
+                            continue
+                        el.click(trial=True, timeout=1000)
+                    except PWError:
+                        try:                      # 다시 그려진 것뿐일 수 있다 — 한 번 더
+                            el.click(trial=True, timeout=1500)
+                        except PWError as again:
+                            label = ""
+                            try:
+                                label = (el.get_attribute("data-action")
+                                         or (el.inner_text() or "")[:24] or "").strip()
+                            except PWError:
+                                pass
+                            findings.append(f"{name}: {label!r} 를 누를 수 없음"
+                                            f" — {str(again).splitlines()[0][:80]}")
+        finally:
+            browser.close()
+    assert findings == [], (
+        f"[{width}x{height}] 폰에서 눌리지 않는 컨트롤:\n  " + "\n  ".join(findings))
+
+
+@pytest.mark.skipif(sync_playwright is None, reason="playwright 미설치")
+def test_touch_targets_are_big_enough(live):  # noqa: F811
+    findings = []
+    with sync_playwright() as pw:
+        browser, page = _phone_page(pw, live, 390, 750)
+        try:
+            names = page.eval_on_selector_all(
+                ".sidebar-link[data-panel]", "els => els.map(e => e.dataset.panel)")
+            for name in list(dict.fromkeys(names)):
+                page.evaluate("n => showPanel(n)", name)
+                page.wait_for_timeout(PANEL_SETTLE_MS)
+                for small in page.evaluate(_BOXES_JS, [name, TOUCH_MIN_PX]):
+                    findings.append(f"{name}: {small}")
+        finally:
+            browser.close()
+    assert findings == [], (
+        f"폰에서 {TOUCH_MIN_PX}px 보다 작은 선택 컨트롤:\n  " + "\n  ".join(findings))

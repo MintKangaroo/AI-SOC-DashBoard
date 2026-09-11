@@ -160,3 +160,14 @@
 @media(max-width:768px) { .trace-console .mitre-top-item { grid-template-columns:20px 65px minmax(0,1fr) 30px; }.trace-console .mitre-top-item .bar-wrap { display:none; }#panel-mitre>.row>.col-md-3 { width:50%; } }
 
 .access-context { color:var(--text-tertiary); font-size:var(--fs-label); margin-bottom:var(--space-3); }.access-restricted { opacity:.6; cursor:not-allowed; } #access-role-badge { color:var(--accent-operational); } #panel-access .console-card-body { overflow-wrap:anywhere; } #access-dialog { max-height:92dvh; overflow:auto; }
+
+/* 손가락 기기 — 표 속 인라인 링크(IP·호스트·해시)의 접촉 면적.
+   44px 로 키우면 행 높이가 1.5배가 되어 한 화면에 보이는 알림이 줄고, 관제 표에서
+   밀도는 곧 값어치다. `padding-block` 도 안 된다 — 이 링크들은 <button> 이라
+   inline-block 이고, 실제로 행 높이가 66→76px 로 늘었다. 그래서 **레이아웃을
+   건드리지 않는 투명 덮개**로 누를 수 있는 범위만 넓힌다(17px → 27px).
+   위아래 5px 는 행 클릭(조사 열기)에서 가져오는 것이라 그 이상 키우지 않는다. */
+@media(pointer:coarse) {
+  .entity-link,.text-link { position:relative; }
+  .entity-link::after,.text-link::after { content:''; position:absolute; inset:-5px -2px; }
+}
