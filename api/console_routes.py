@@ -23,7 +23,7 @@ def _coalesced(key, produce):
 def _store():
     store = getattr(getattr(_app(), 'threat_detector', None), 'store', None)
     if store is None:
-        raise ServiceUnavailable('Alert store is unavailable.')
+        raise ServiceUnavailable('알림 저장소를 사용할 수 없습니다.')
     return store
 
 
@@ -46,7 +46,7 @@ def _filters():
               'source_name': str(a.get('source') or ''), 'rule': str(a.get('rule') or ''),
               'minimum_confidence': _number('confidence', 0, 0, 100)}
     if any(len(result[key]) > 200 for key in ('query', 'source_name', 'rule')):
-        raise BadRequest('Search fields are limited to 200 characters.')
+        raise BadRequest('검색 필드는 200자까지입니다.')
     for key, allowed, default in [
         ('severity', ('', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'), ''),
         ('status', ('', 'OPEN', 'ACK', 'CLOSED'), ''),
@@ -72,17 +72,17 @@ def console_siem_query():
             or len(body['query']) > 200 or type(body.get('minutes')) is not int
             or body['minutes'] not in (0, 5, 15, 60)
             or type(body.get('suspicious')) is not bool):
-        raise BadRequest('Invalid SIEM query scope.')
+        raise BadRequest('SIEM 검색 범위가 올바르지 않습니다.')
     scope = {key: body[key] for key in ('query', 'minutes', 'suspicious')}
     audit_record('SIEM_QUERY', 'retained event buffer', json.dumps(scope, ensure_ascii=False))
-    return jsonify({'recorded': True, 'scope': 'Browser buffer query; export a snapshot to reproduce exact results.'})
+    return jsonify({'recorded': True, 'scope': '브라우저 버퍼 검색 · 정확한 결과 재현은 스냅샷 내보내기를 사용.'})
 
 
 @api_bp.get('/console/alerts/<int:alert_id>')
 def console_alert_detail(alert_id):
     context = console.alert_context(_app(), alert_id)
     if context is None:
-        return jsonify({'error': 'Alert not found.'}), 404
+        return jsonify({'error': '알림을 찾을 수 없습니다.'}), 404
     context['brief'] = console.evidence_brief(context)
     return jsonify(context)
 
@@ -110,8 +110,8 @@ def _summary(hours):
     result = {'generated_at': console.now_text(), 'hours': hours, 'queue': data,
               'activity': {'total': activity['total'], 'counts': activity['counts'], 'timeline': activity['timeline']},
               'incidents': {'active': len(active), 'provenance': sorted({(i.get('provenance') or {}).get('state', 'UNAVAILABLE') for i in active}), 'critical': sum(i['severity'] == 'CRITICAL' for i in active),
-                            'recent': [dict(i, provenance=i.get('provenance') or {'state': 'UNAVAILABLE', 'reason': 'Historical case origin was not recorded.'}) for i in active[:4]],
-                            'scope': 'Current active cases, all ages; historical case provenance may be unavailable.'},
+                            'recent': [dict(i, provenance=i.get('provenance') or {'state': 'UNAVAILABLE', 'reason': '과거 인시던트의 출처가 기록되지 않았습니다.'}) for i in active[:4]],
+                            'scope': '현재 진행 중 인시던트(기간 무관) · 과거 인시던트 출처는 없을 수 있음.'},
               'campaigns': {'count': len(campaigns), 'recent': campaigns[:3], 'sample_size': len(activity['alerts']),
                             'truncated': activity['total'] > 5000},
               'response': {'mode': soar.get('block_mode') or app.config.get('SOAR_BLOCK_MODE', 'simulate'),
@@ -121,7 +121,7 @@ def _summary(hours):
                            'min_confidence': soar.get('min_block_confidence'), 'ttl_hours': soar.get('block_ttl_hours'),
                            'approvals': [run for run in soar.get('executions', []) if run.get('status') == 'waiting_approval']},
               'health': collect(app), 'telemetry': telemetry.snapshot(), 'ai': app.ai_analyst.get_status(),
-              'missing_metrics': ['MTTD', 'Detection coverage change'],
+              'missing_metrics': ['MTTD', '탐지 커버리지 변화'],
               'demo_environment': bool(app.config.get('DEMO_MODE'))}
     cache.clear() if len(cache) > 8 else None
     cache[hours] = (time.monotonic(), result)
@@ -146,8 +146,8 @@ def console_entities():
     groups = [{'type': 'Alerts', 'items': alerts['alerts']}, {'type': 'Incidents', 'items': incidents},
               {'type': 'IOCs', 'items': iocs[:10]}]
     return jsonify({'query': query, 'groups': groups, 'total_alerts': alerts['total'],
-                    'scope': 'Alerts include archive and selected time range. Cases and watchlist are current inventories.',
-                    'unavailable': ['Dedicated asset inventory', 'Historical network connections without persisted alerts']})
+                    'scope': '알림은 아카이브와 선택 기간을 포함. 인시던트·워치리스트는 현재 인벤토리.',
+                    'unavailable': ['전용 자산 인벤토리', '알림으로 저장되지 않은 과거 네트워크 연결']})
 
 
 @api_bp.get('/console/quality')
@@ -171,7 +171,7 @@ def console_mitre():
         return {'techniques': console.technique_observations(data['alerts']), 'hours': hours,
                 'sample_size': len(data['alerts']), 'total': data['total'],
                 'truncated': data['total'] > len(data['alerts']),
-                'basis': 'Recorded technique fields and threat-type mappings. Not proof of technique execution.'}
+                'basis': '기록된 기법 필드와 위협 유형 매핑 · 기법 실행의 증명 아님.'}
     return jsonify(_coalesced(('mitre', hours), produce))
 
 
@@ -179,12 +179,12 @@ def console_mitre():
 def console_preview():
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
-        raise BadRequest('Expected an object.')
+        raise BadRequest('JSON 객체가 필요합니다.')
     criteria = {key: body.get(key, '') for key in ('rule', 'source_prefix', 'threat_type')}
     if any(not isinstance(v, str) or len(v) > 200 for v in criteria.values()):
-        raise BadRequest('Criteria must be strings of at most 200 characters.')
+        raise BadRequest('조건은 200자 이하 문자열이어야 합니다.')
     if not any(criteria.values()):
-        raise BadRequest('Specify a rule, source prefix, or threat type.')
+        raise BadRequest('룰·출발지 접두·위협 유형 중 하나는 지정해야 합니다.')
     data = _store().console_search(hours=24, limit=5000, order='newest')
     result = console.suppression_preview(data['alerts'], **criteria)
     result.update(total=data['total'], truncated=data['total'] > len(data['alerts']), hours=24)
@@ -196,14 +196,14 @@ def console_preview():
 def console_copilot():
     body = request.get_json(silent=True)
     if not isinstance(body, dict) or type(body.get('alert_id')) is not int:
-        raise BadRequest('A stored alert ID is required.')
-    question = body.get('intent', 'Summarize evidence')
-    intents = ('Summarize evidence', 'Suggest investigation steps', 'Explain response decision', 'Generate handoff summary')
+        raise BadRequest('저장된 알림 ID 가 필요합니다.')
+    question = body.get('intent', '증거 요약')
+    intents = ('증거 요약', '조사 단계 제안', '대응 결정 설명', '인계 요약 생성')
     if question not in intents:
-        raise BadRequest('Unsupported copilot intent.')
+        raise BadRequest('지원하지 않는 코파일럿 요청입니다.')
     context = console.alert_context(_app(), body['alert_id'])
     if context is None:
-        return jsonify({'error': 'Alert not found.'}), 404
+        return jsonify({'error': '알림을 찾을 수 없습니다.'}), 404
     brief = console.evidence_brief(context)
     ai = _app().ai_analyst
     # Facts are composed from recorded evidence, never generated by the model.

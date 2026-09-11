@@ -69,7 +69,7 @@ class IdentityStore:
                 if isinstance(actor, dict):
                     current = self._conn.execute('SELECT role, active, version FROM users WHERE username=?', (actor['username'],)).fetchone()
                     if not current or not current['active'] or (require_admin and current['role'] != 'admin') or current['version'] != actor['version']:
-                        raise PermissionError('Administrator session changed. Sign in again.')
+                        raise PermissionError('관리자 세션이 바뀌었습니다. 다시 로그인하세요.')
                 yield
                 self._conn.commit()
             except Exception:

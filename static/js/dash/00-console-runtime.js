@@ -63,7 +63,7 @@
       const p = record?.provenance;
       const state = p?.state || (record?.details?.demo || record?.origin === 'demo' ? 'DEMO' : 'UNAVAILABLE');
       const safe = ['REAL', 'DEMO', 'SYNTHETIC', 'SIMULATED', 'EXPERIMENTAL', 'UNAVAILABLE', 'MIXED'].includes(state) ? state : 'UNAVAILABLE';
-      return `<span class="provenance provenance-${safe.toLowerCase()}" title="${escapeHtml(p?.reason || 'Source provenance not recorded')}">${safe}</span>`;
+      return `<span class="provenance provenance-${safe.toLowerCase()}" title="${escapeHtml(p?.reason || '출처 미기록')}">${safe}</span>`;
     },
     entity(value) {
       if (value == null || value === '') return '<span class="text-muted">—</span>';
@@ -72,7 +72,7 @@
     async request(url, options) {
       const response = await fetch(url, options);
       const data = await response.json();
-      if (!response.ok || data.success === false) throw new Error(data.error || 'The request could not be completed.');
+      if (!response.ok || data.success === false) throw new Error(data.error || '요청을 완료하지 못했습니다.');
       return data;
     },
     notify(text) {

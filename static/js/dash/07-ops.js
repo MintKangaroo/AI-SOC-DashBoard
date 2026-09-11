@@ -204,12 +204,12 @@
   }
 
   const VVERDICT = {
-    vulnerable: { c: '#f85149', t: 'VULNERABLE · package check' },
-    patched: { c: '#3fb950', t: 'PATCHED / BACKPORTED' },
-    unknown: { c: '#6e7681', t: 'UNKNOWN' },
+    vulnerable: { c: '#f85149', t: '취약 · 패키지 확인' },
+    patched: { c: '#3fb950', t: '패치됨 / 백포트' },
+    unknown: { c: '#6e7681', t: '미확인' },
   };
   function vulnVerdict(v) {
-    if (!v) v = {state:'unknown',note:'No package validation recorded. Scanner match remains unverified.'};
+    if (!v) v = {state:'unknown',note:'패키지 검증 기록 없음. 스캐너 매칭은 미검증 상태입니다.'};
     const s = VVERDICT[v.state] || VVERDICT.unknown;
     const ver = v.installed
       ? `<span class="text-muted font-monospace" style="font-size:var(--fs-meta)">설치: ${escapeHtml(v.installed)}${v.candidate ? ' → ' + escapeHtml(v.candidate) : ''}</span>` : '';
@@ -318,12 +318,12 @@
           + (p.findings || []).map(f =>
           `<div class="small">${vsevBadge(f.severity)} <span class="text-orange">노출</span>
             <span class="text-muted">${escapeHtml(f.desc || '')}</span></div>`).join('');
-        const demo = SOCUI.provenance({provenance:{state:p.demo ? 'DEMO' : 'REAL',reason:p.demo ? 'Scanner demo fixture' : 'Recorded scan result'}});
+        const demo = SOCUI.provenance({provenance:{state:p.demo ? 'DEMO' : 'REAL',reason:p.demo ? '스캐너 데모 픽스처' : '기록된 스캔 결과'}});
         return `<tr>
           <td class="font-monospace text-cyan" style="white-space:nowrap">${p.port}</td>
           <td class="small" style="color:var(--text-primary)">${escapeHtml(p.service || '')}</td>
           <td class="small text-muted font-monospace text-truncate" style="max-width:180px" title="${escapeHtml(p.version || '')}">${escapeHtml(p.version || '—')}</td>
-          <td>${vsevBadge(p.severity)}${demo}${vulnVerdict(p.verdict)}<div class="mt-1">${items || '<span class="small text-muted">No CVE match recorded; scan coverage is limited</span>'}</div></td>
+          <td>${vsevBadge(p.severity)}${demo}${vulnVerdict(p.verdict)}<div class="mt-1">${items || '<span class="small text-muted">CVE 매칭 없음 · 스캔 범위 제한</span>'}</div></td>
         </tr>`;
       }).join('');
       const remote = r.addr && r.addr !== '127.0.0.1';
@@ -354,7 +354,7 @@
     const dialog = document.getElementById('exposure-detail-dialog');
     const id = String(cveId).match(/CVE-\d{4}-\d{4,}/)?.[0];
     document.getElementById('exposure-detail-title').textContent = cveId;
-    document.getElementById('exposure-detail-content').innerHTML = `<div class="workspace-context">${SOCUI.provenance({provenance:{state:port.demo ? 'DEMO' : 'REAL'}})} Scanner match · confirm CVE applicability using package evidence.</div><dl class="evidence-fields">${[['Asset',host.host + ' / ' + host.addr],['Service',port.service + ' / ' + port.port],['Banner',port.version || 'Unavailable'],['CVSS',cve.cvss ?? cve.score ?? 'Unavailable'],['Scan timestamp',host.scanned || 'Unavailable'],['Patch validation',port.verdict?.state?.toUpperCase() || 'UNKNOWN']].map(([key,value]) => `<div class="evidence-field"><dt>${key}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}</dl><section class="investigation-section mt-3"><h3>Validation evidence</h3>${vulnVerdict(port.verdict)}<p>Package state is supporting evidence; it does not independently prove exploitability of every banner match.</p><pre class="raw-evidence">${escapeHtml(JSON.stringify({match:cve,validation:port.verdict || null},null,2))}</pre><h3>Remediation review</h3><p>Confirm vendor applicability and installed package/backport status. Review the patch plan and dry-run output before applying changes.</p>${id ? `<a class="entity-link" id="exposure-cve-reference" target="_blank" rel="noopener noreferrer">Open CVE record ↗</a>` : ''}</section>`;
+    document.getElementById('exposure-detail-content').innerHTML = `<div class="workspace-context">${SOCUI.provenance({provenance:{state:port.demo ? 'DEMO' : 'REAL'}})} 스캐너 매칭 · 패키지 근거로 CVE 해당 여부를 확인하세요.</div><dl class="evidence-fields">${[['자산',host.host + ' / ' + host.addr],['서비스',port.service + ' / ' + port.port],['배너',port.version || '없음'],['CVSS',cve.cvss ?? cve.score ?? '없음'],['스캔 시각',host.scanned || '없음'],['패치 검증',port.verdict?.state?.toUpperCase() || 'UNKNOWN']].map(([key,value]) => `<div class="evidence-field"><dt>${key}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('')}</dl><section class="investigation-section mt-3"><h3>검증 근거</h3>${vulnVerdict(port.verdict)}<p>패키지 상태는 보조 근거이며, 배너 매칭마다 실제 악용 가능성을 단독으로 증명하지는 않습니다.</p><pre class="raw-evidence">${escapeHtml(JSON.stringify({match:cve,validation:port.verdict || null},null,2))}</pre><h3>조치 검토</h3><p>벤더 해당 여부와 설치된 패키지/백포트 상태를 확인하세요. 변경 적용 전에 패치 계획과 dry-run 출력을 검토합니다.</p>${id ? `<a class="entity-link" id="exposure-cve-reference" target="_blank" rel="noopener noreferrer">CVE 원문 열기 ↗</a>` : ''}</section>`;
     // User navigation only; no third-party asset is fetched by the application.
     const reference = document.getElementById('exposure-cve-reference');
     if (reference && id) reference.href = new URL('/vuln/detail/' + id, 'https://nvd.nist.gov').href;

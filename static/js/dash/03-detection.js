@@ -500,7 +500,7 @@
   const globeEvidence = [];
   let globeRenderScheduled = false;
 
-  const DEFENDER = { lat: 37.5665, lng: 126.9780, label: 'Camera reference only' };
+  const DEFENDER = { lat: 37.5665, lng: 126.9780, label: '카메라 기준점' };
 
   /* 3D 지구본 라이브러리(three.js + globe.gl, 합 1.7MB)를 필요할 때 받아온다.
      개요 패널의 공격 지도 하나에만 쓰이므로 모든 진입에서 받을 이유가 없다.
@@ -638,12 +638,12 @@
       const group = groups.get(key); group.count++; if (group.ips.size < 10) group.ips.add(e.ip);
     });
     const visible = [...groups.values()].sort((a,b) => b.count - a.count).slice(0,80);
-    _globePoints = visible.map(e => ({lat:e.src_lat,lng:e.src_lng,color:cssVar('--severity-' + String(e.severity).toLowerCase(), '#80baff'),radius:Math.min(.7,.2 + Math.log2(e.count + 1)*.08),label:`${SOCUI.provenance(e)} <b>${escapeHtml(e.src_country || 'Unknown country')}</b><br/>${escapeHtml([...e.ips].join(', '))}<br/>${escapeHtml(e.threat_type)} · ${escapeHtml(e.severity)} · ${e.count} events<br/>Destination: ${e.destination_basis === 'display_anchor' ? 'not geolocated' : escapeHtml(e.dst_city || 'unavailable')}`}));
+    _globePoints = visible.map(e => ({lat:e.src_lat,lng:e.src_lng,color:cssVar('--severity-' + String(e.severity).toLowerCase(), '#80baff'),radius:Math.min(.7,.2 + Math.log2(e.count + 1)*.08),label:`${SOCUI.provenance(e)} <b>${escapeHtml(e.src_country || '국가 미상')}</b><br/>${escapeHtml([...e.ips].join(', '))}<br/>${escapeHtml(e.threat_type)} · ${escapeHtml(e.severity)} · ${e.count}건<br/>목적지: ${e.destination_basis === 'display_anchor' ? '위치 미확인' : escapeHtml(e.dst_city || '없음')}`}));
     // Draw a destination arc only when coordinates are explicitly validated.
     _globeArcs = visible.filter(e => e.dst_location_verified === true && Number.isFinite(e.dst_lat) && Number.isFinite(e.dst_lng)).slice(0,40).map(e => ({startLat:e.src_lat,startLng:e.src_lng,endLat:e.dst_lat,endLng:e.dst_lng,color:cssVar('--severity-' + String(e.severity).toLowerCase(),'#80baff')}));
     globe.pointsData(_globePoints).arcsData(_globeArcs).ringsData([]);
     const label = document.getElementById('map-scope');
-    if (label) label.textContent = `${records.length} events / ${groups.size} groups · showing ${visible.length} source groups · last ${minutes}m within this session (max 2,000). Destination coordinates are unavailable; no inferred arcs.`;
+    if (label) label.textContent = `이벤트 ${records.length}건 / ${groups.size}그룹 · 출발지 그룹 ${visible.length}개 표시 · 이 세션의 최근 ${minutes}분 (최대 2,000건). 목적지 좌표가 없으면 호를 그리지 않습니다.`;
   }
 
   function prependAttackLog(entry) {

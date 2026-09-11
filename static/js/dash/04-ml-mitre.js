@@ -198,9 +198,9 @@
       const data = await SOCUI.request('/api/console/mitre?hours=' + hours);
       if (version !== mitreScopeVersion) return;
       mitreObserved = data;
-      if (label) label.textContent = `Matrix observations: last ${data.hours}h · ${data.sample_size.toLocaleString()} ${data.truncated ? 'sampled / ' + data.total.toLocaleString() : 'stored'} alerts · provenance per cell. Rule inventory and process counters above have independent scopes.`;
+      if (label) label.textContent = `매트릭스 관측: 최근 ${data.hours}시간 · 알림 ${data.sample_size.toLocaleString()}건${data.truncated ? ' (표본 / 전체 ' + data.total.toLocaleString() + '건)' : ' (저장분)'} · 셀마다 출처 표시. 위의 룰 인벤토리와 프로세스 카운터는 범위가 다릅니다.`;
       if (_lastMatrix) renderMitreMatrix(_lastMatrix);
-    } catch (error) { if (label) label.textContent = 'Time-scoped observations unavailable: ' + error.message; }
+    } catch (error) { if (label) label.textContent = '기간별 관측을 가져오지 못함: ' + error.message; }
   }
   function filterMitreTactic() { if (_lastMatrix) renderMitreMatrix(_lastMatrix); }
   function mitreEvidencePivot(technique) {
@@ -393,7 +393,7 @@
                       data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
           <div class="tech-id">${escapeHtml(tech.id)}</div>
           <div class="tech-name">${escapeHtml(tech.ko)}</div>
-          ${count > 0 ? `<div class="tech-count">${count} observed</div>` : ''}<span class="tech-state">${coverage?.validated ? 'VALIDATED · simulated' : coverage?.rules?.length ? 'RULE EXISTS' : coverage ? 'NO RULE COVERAGE' : 'RULE STATUS UNKNOWN'}</span><span class="tech-provenance">${Object.entries(observation?.provenance || {}).map(([p,n]) => escapeHtml(p) + ' ' + Number(n)).join(' · ') || (mitreObserved ? 'No stored observation' : 'Loading observations')}</span>
+          ${count > 0 ? `<div class="tech-count">관측 ${count}건</div>` : ''}<span class="tech-state">${coverage?.validated ? '검증됨 · 모의' : coverage?.rules?.length ? '룰 있음' : coverage ? '룰 없음' : '룰 상태 미상'}</span><span class="tech-provenance">${Object.entries(observation?.provenance || {}).map(([p,n]) => escapeHtml(p) + ' ' + Number(n)).join(' · ') || (mitreObserved ? '저장된 관측 없음' : '관측 불러오는 중')}</span>
         </button>`;
       });
 
@@ -464,7 +464,7 @@
           : '<div class="text-muted">권고사항 없음</div>';
 
         body.innerHTML = `
-          <div class="workspace-context"><span class="provenance provenance-mixed">MIXED SOURCES</span>Detail counters below: current process history. Stored alert search uses the command bar time range.</div><button class="btn btn-sm btn-outline-cyan mb-3" ${act('mitreEvidencePivot',[techId])}>Investigate stored alerts for ${escapeHtml(techId)}</button>
+          <div class="workspace-context"><span class="provenance provenance-mixed">MIXED SOURCES</span>아래 상세 카운터는 현재 프로세스 이력입니다. 저장 알림 검색은 상단 시간 범위를 씁니다.</div><button class="btn btn-sm btn-outline-cyan mb-3" ${act('mitreEvidencePivot',[techId])}>${escapeHtml(techId)} 저장 알림 조사</button>
           <div class="mb-3" style="color:var(--text-primary)">${escapeHtml(d.description||'')}</div>
           <div class="row g-3 mb-3">
             <div class="col-sm-4"><div class="stat-card stat-sm border-danger">

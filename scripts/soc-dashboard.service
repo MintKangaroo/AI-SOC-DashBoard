@@ -1,0 +1,27 @@
+# SOC 대시보드 (포트 5055) — systemd 사용자 서비스
+# 설치:  cp scripts/soc-dashboard.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#        systemctl --user enable --now soc-dashboard
+# 상태:  systemctl --user status soc-dashboard    로그: logs/dashboard.out
+# 재기동: systemctl --user restart soc-dashboard  (템플릿·파이썬 변경 반영, 사용자 로그아웃됨)
+# WSL 재시작·OOM 킬 뒤에도 자동 복구된다(Restart=always, loginctl enable-linger 필요).
+[Unit]
+Description=SOC dashboard (port 5055)
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/mintkangaroo/Project/SOC_DashBoard
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/mintkangaroo/Project/SOC_DashBoard/venv/bin/python app.py
+# 기존 운영 절차(logs/dashboard.pid)와의 호환
+ExecStartPost=/bin/sh -c 'echo $MAINPID > /home/mintkangaroo/Project/SOC_DashBoard/logs/dashboard.pid'
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=20
+StandardOutput=append:/home/mintkangaroo/Project/SOC_DashBoard/logs/dashboard.out
+StandardError=inherit
+
+[Install]
+WantedBy=default.target

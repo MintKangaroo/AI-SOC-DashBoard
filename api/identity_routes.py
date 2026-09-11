@@ -9,7 +9,7 @@ from modules.identity import ROLES
 def _directory():
     auth = current_app.auth
     if not current_app.config.get('AUTH_ENABLED') or not auth.user_store:
-        raise ServiceUnavailable('Managed users are unavailable. Configure AUTH_USERS_DB and enable authentication.')
+        raise ServiceUnavailable('관리 사용자 기능을 쓸 수 없습니다. AUTH_USERS_DB 를 설정하고 인증을 켜세요.')
     return auth.user_store
 
 
@@ -20,10 +20,10 @@ def _change_request(allowed_fields):
     if not isinstance(body.get('reason'), str) or not 3 <= len(body['reason'].strip()) <= 500:
         raise BadRequest('A reason of 3–500 characters is required.')
     if not isinstance(body.get('current_password'), str):
-        raise BadRequest('Confirm your current password.')
+        raise BadRequest('현재 비밀번호를 입력하세요.')
     ok, _ = current_app.auth.verify(g.principal['username'], body['current_password'], request.remote_addr or '?')
     if not ok:
-        raise Forbidden('Password confirmation failed or login attempts are temporarily limited.')
+        raise Forbidden('비밀번호 확인에 실패했거나 로그인 시도가 일시 제한되었습니다.')
     return body
 
 
@@ -32,7 +32,7 @@ def identity_status():
     auth = current_app.auth
     return jsonify({'mode':'managed' if auth.user_store else 'single_admin' if current_app.config.get('AUTH_ENABLED') else 'auth_disabled',
                     'roles':{role:sorted(permissions) for role,permissions in ROLES.items()},
-                    'sso':'UNAVAILABLE', 'session_policy':'Absolute expiry; server-side revocation; no role claims from browser cookies.'})
+                    'sso':'UNAVAILABLE', 'session_policy':'절대 만료 · 서버측 회수 · 브라우저 쿠키의 역할 주장 불신.'})
 
 
 @api_bp.get('/identity/users')
@@ -44,7 +44,7 @@ def identity_users():
 @api_bp.get('/identity/audit')
 def identity_audit():
     store = current_app.auth.user_store
-    return jsonify({'events':store.audit() if store else [], 'scope':'Latest 100 identity administration events. Changes and events commit atomically.'})
+    return jsonify({'events':store.audit() if store else [], 'scope':'최근 계정 관리 이벤트 100건 · 변경과 이벤트는 원자적으로 커밋.'})
 
 
 @api_bp.post('/identity/users')
@@ -66,7 +66,7 @@ def identity_change(username):
     store = _directory()
     body = _change_request({'role','active','password','revoke'})
     if not any(key in body for key in ('role','active','password')) and body.get('revoke') is not True:
-        raise BadRequest('Specify a role, enabled state, password reset or session revocation.')
+        raise BadRequest('역할·활성 상태·비밀번호 재설정·세션 회수 중 하나는 지정해야 합니다.')
     if 'revoke' in body and type(body['revoke']) is not bool:
         raise BadRequest('Revoke must be a boolean.')
     if any(key in body and body[key] is None for key in ('role','active','password')):

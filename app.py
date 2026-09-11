@@ -182,7 +182,7 @@ def create_app():
         if not g.principal:
             session.clear()
             if request.path.startswith('/api/'):
-                return jsonify({'error':'Sign in required or session revoked.', 'auth_required':True}), 401
+                return jsonify({'error':'로그인이 필요하거나 세션이 회수되었습니다.', 'auth_required':True}), 401
             return redirect('/login')
         # Never use a role or username supplied in a cookie as authorization evidence.
         session['user'] = g.principal['username']
@@ -195,7 +195,7 @@ def create_app():
         if not allowed(g.principal, permission):
             from api._common import audit_record
             audit_record('ACCESS_DENIED', request.endpoint, 'Required permission: ' + str(permission))
-            return jsonify({'error':'Your role does not permit this action.',
+            return jsonify({'error':'현재 역할로는 이 작업을 할 수 없습니다.',
                             'permission_required':permission, 'forbidden':True}), 403
 
     @app.context_processor
@@ -402,9 +402,9 @@ def create_app():
         if auth_on and not allowed(auth.principal(session.get('auth_sid')), 'investigate'):
             if not auth.principal(session.get('auth_sid')):
                 socketio.server.disconnect(request.sid, namespace='/')
-            return {'accepted':False, 'error':'Investigation permission required.'}
+            return {'accepted':False, 'error':'조사 권한이 필요합니다.'}
         if not isinstance(data, dict) or not isinstance(data.get('message'), str) or not 1 <= len(data['message']) <= 4000 or not isinstance(data.get('context', {}), dict):
-            return {'accepted':False, 'error':'Invalid chat request.'}
+            return {'accepted':False, 'error':'잘못된 채팅 요청입니다.'}
         message = data.get("message", "")
         context = data.get("context", {})
         response = app.ai_analyst.chat(message, context)
@@ -417,7 +417,7 @@ def create_app():
     @socketio.on("request_ai_analysis")
     def on_ai_analysis(data):
         if auth_on and not auth.principal(session.get('auth_sid')):
-            return {'accepted':False, 'error':'Session revoked.'}
+            return {'accepted':False, 'error':'세션이 회수되었습니다.'}
         # 이전 프런트엔드 호환용 no-op. 자동 AI 트리아지는 서버 SOAR가 1회 수행한다.
         # 브라우저별 재분석은 접속자 수만큼 중복 작업을 만들므로 실행하지 않는다.
         return {"accepted": False, "reason": "server_managed_triage"}

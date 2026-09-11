@@ -50,7 +50,7 @@
           <span class="small text-muted">알림 ${c.alert_count}건 · ${escapeHtml(c.start)} ~ ${escapeHtml((c.end||'').slice(11))} (${c.duration_min}분)</span>
         </div>
         <div class="camp-chain">${chain}</div>
-        <details class="camp-evidence"><summary>Investigate member evidence · ${c.alert_count} alerts</summary><p class="text-muted small">Stages are ordered by MITRE tactic, not proof of a causal sequence. Recorded first-seen timestamps are shown above. Shared source and time establish correlation only.</p><div class="d-flex flex-wrap gap-2">${(c.alert_ids || []).map(id => `<button class="btn btn-xs btn-outline-secondary" ${act('consoleOpenInvestigation',[id])}>Alert #${id}</button>`).join('')}</div></details>
+        <details class="camp-evidence"><summary>구성 알림 증거 조사 · ${c.alert_count}건</summary><p class="text-muted small">단계는 MITRE 전술 순서로 정렬한 것이지 인과 관계의 증명이 아닙니다. 기록된 최초 관측 시각은 위에 표시됩니다. 같은 출발지와 시간은 상관관계만 뜻합니다.</p><div class="d-flex flex-wrap gap-2">${(c.alert_ids || []).map(id => `<button class="btn btn-xs btn-outline-secondary" ${act('consoleOpenInvestigation',[id])}>알림 #${id}</button>`).join('')}</div></details>
       </div>`;
   }
 

@@ -124,7 +124,7 @@
     // 같은 문구가 반복되면 건수로 접는다.
     const counts = new Map();
     items.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
-    const text = (counts.size > 3 ? `${items.length} security updates. Review the analyst queue. ` : '') + [...counts.entries()].slice(0,3)
+    const text = (counts.size > 3 ? `보안 갱신 ${items.length}건. 알림 큐를 확인하세요. ` : '') + [...counts.entries()].slice(0,3)
       .map(([t, n]) => (n > 1 ? `${t} ${n}건` : t)).join('. ');
     // 같은 문자열을 다시 넣으면 스크린리더가 변화를 감지하지 못한다.
     box.textContent = '';

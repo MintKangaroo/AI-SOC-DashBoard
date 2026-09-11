@@ -127,7 +127,7 @@
                 <button class="btn btn-xs live-filter" data-lf="soar" data-action="setLiveFilter" data-args='["soar","@el"]'>대응</button>
               </span>
             </h3>
-            <div class="px-2 py-1"><button class="btn btn-xs btn-outline-secondary" data-action="consoleToggleLive" id="console-pending">Pause display updates</button></div>
+            <div class="px-2 py-1"><button class="btn btn-xs btn-outline-secondary" data-action="consoleToggleLive" id="console-pending">화면 갱신 일시정지</button></div>
             <div id="live-stream" class="live-stream flex-fill">
               <div class="text-muted p-3 small text-center">이벤트 수신 대기 중…</div>
             </div>
@@ -139,8 +139,8 @@
               <i class="fa fa-earth-asia text-cyan me-2"></i>글로벌 관측 지도
               <span class="ms-auto small text-muted">드래그 회전 · 휠 확대 · 접기</span>
             </summary>
-            <div class="console-toolbar px-3"><select id="map-timeframe" aria-label="Map event timeframe" data-action-change="renderMapEvidence"><option value="1">LIVE · last minute</option><option value="15" selected>Last 15m</option><option value="60">Last hour</option><option value="1440">Last 24h</option></select><select id="map-severity" aria-label="Map severity" data-action-change="renderMapEvidence"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
-            <div id="map-scope" class="text-muted small px-3 pb-2">Source geolocation only. Country is not attacker attribution; destination is unverified.</div>
+            <div class="console-toolbar px-3"><select id="map-timeframe" aria-label="지도 이벤트 기간" data-action-change="renderMapEvidence"><option value="1">LIVE · 최근 1분</option><option value="15" selected>최근 15분</option><option value="60">최근 1시간</option><option value="1440">최근 24시간</option></select><select id="map-severity" aria-label="지도 심각도" data-action-change="renderMapEvidence"><option value="">전체 심각도</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+            <div id="map-scope" class="text-muted small px-3 pb-2">출발지 위치만 표시합니다. 국가는 공격자 귀속이 아니며 목적지는 미검증입니다.</div>
             <div id="attack-globe" style="height:300px; background:var(--bg-primary); position:relative;"></div>
           </details>
         </div>

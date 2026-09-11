@@ -66,12 +66,12 @@ def test_queue_to_evidence_copilot_and_durable_ack(console_page):
     page.wait_for_selector('#investigation-meta .provenance-demo')
     assert drawer.locator('img').count() == 0  # raw source markup remains escaped
     assert 'trace-test-host' in drawer.inner_text()
-    drawer.get_by_role('button', name='Analyst copilot', exact=True).click()
-    assert 'FACTS' in drawer.inner_text() and 'INFERENCES' in drawer.inner_text()
-    drawer.get_by_role('button', name='Summarize evidence', exact=True).click()
+    drawer.get_by_role('button', name='분석 코파일럿', exact=True).click()
+    assert '사실' in drawer.inner_text() and '추론' in drawer.inner_text()
+    drawer.get_by_role('button', name='증거 요약', exact=True).click()
     until(page, "document.querySelector('#investigation-brief .brief-section') !== null")
-    assert 'EVIDENCE SUMMARY' in drawer.inner_text()
-    drawer.get_by_role('button', name='Acknowledge', exact=True).click()
+    assert '증거 요약 · 생성이 아닌' in drawer.inner_text()
+    drawer.get_by_role('button', name='확인(ACK)', exact=True).click()
     page.locator('#analyst-action-reason').fill('Reviewed recorded evidence in the isolated browser regression.')
     page.locator('#analyst-action-submit').click()
     until(page, "!document.getElementById('analyst-action-dialog').open")
@@ -98,7 +98,7 @@ def test_paused_stream_buffers_and_queue_row_stays_selected(console_page):
     page.evaluate('SOCRealtime.setPaused(false)')
     assert page.evaluate("window.traceSelectedRow === document.querySelector('#console-queue-rows tr[data-alert-id]')")
     assert row.locator('input[type=checkbox]').is_checked()
-    assert '1 selected' in page.locator('#queue-selected').inner_text()
+    assert '1건 선택' in page.locator('#queue-selected').inner_text()
     assert page.locator('#queue-new-events').inner_text().startswith('+')
 
 
@@ -145,7 +145,7 @@ def test_siem_timestamp_filter_and_field_query(console_page):
     page.locator('#siem-search').press('Enter')
     until(page, "document.querySelector('#siem-history').options.length > 1")
     with page.expect_download() as info:
-        page.get_by_role('button', name='Export evidence snapshot').click()
+        page.get_by_role('button', name='증거 스냅샷 내보내기').click()
     data = json.loads(open(info.value.path()).read())
     assert len(data['events']) == 1 and data['minutes'] == 5
     assert data['events'][0]['provenance']['state'] == 'DEMO'
@@ -159,7 +159,7 @@ def test_mobile_critical_review_has_no_horizontal_overflow(console_page, width):
     open_seed_queue(page).click(position={'x':95,'y':16})
     page.wait_for_selector('#investigation-meta .provenance-demo')
     assert page.locator('#investigation-drawer').evaluate('(el) => el.scrollWidth <= el.clientWidth')
-    page.locator('#investigation-drawer').get_by_role('button', name='Acknowledge', exact=True).click()
+    page.locator('#investigation-drawer').get_by_role('button', name='확인(ACK)', exact=True).click()
     assert page.locator('#analyst-action-reason').is_visible()
     page.keyboard.press('Escape')
 

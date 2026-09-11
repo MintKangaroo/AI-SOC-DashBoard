@@ -19,14 +19,14 @@
           <option value="15">최근 15분</option>
           <option value="60">최근 1시간</option>
         </select>
-        <button class="spl-search-btn" aria-label="Run and record query" data-action="siemRunSearch"><i class="fa fa-magnifying-glass"></i></button>
+        <button class="spl-search-btn" aria-label="검색 실행 · 기록" data-action="siemRunSearch"><i class="fa fa-magnifying-glass"></i></button>
       </div>
 
       <div class="console-toolbar">
-        <select id="siem-history" aria-label="Recent queries saved in this browser" data-action-change="siemRestoreQuery" data-args='["@el"]' ></select>
-        <button class="btn btn-xs btn-outline-secondary" data-action="siemRunSearch">Save / run query</button>
-        <button class="btn btn-xs btn-outline-secondary" data-action="siemExportSearch">Export evidence snapshot</button>
-        <span class="text-muted small">Text AND · exact field=value · quoted values. Retained buffer only; unknown timestamps excluded from time filters.</span>
+        <select id="siem-history" aria-label="이 브라우저에 저장된 최근 검색" data-action-change="siemRestoreQuery" data-args='["@el"]' ></select>
+        <button class="btn btn-xs btn-outline-secondary" data-action="siemRunSearch">검색 저장 · 실행</button>
+        <button class="btn btn-xs btn-outline-secondary" data-action="siemExportSearch">증거 스냅샷 내보내기</button>
+        <span class="text-muted small">텍스트 AND · field=value 정확 일치 · 따옴표 값. 보관 버퍼만 검색하며 시각 미상 이벤트는 시간 필터에서 제외됩니다.</span>
       </div>
       <!-- 결과 요약 라인 -->
       <div class="spl-resultbar">

@@ -29,8 +29,8 @@
           <div class="stat-value text-purple" id="vuln-hosts">0</div><div class="stat-label">대상 서버</div></div></div>
       </div>
 
-      <div class="workspace-context">ASSET → SERVICE → CVE MATCH → VALIDATION → PATCH STATE → REMEDIATION. Select a CVE to review supporting evidence. Match counts are not confirmed vulnerabilities.</div>
-      <dialog id="exposure-detail-dialog" class="investigation-drawer" aria-labelledby="exposure-detail-title"><header class="investigation-header"><div><div class="eyebrow">EXPOSURE / VALIDATION</div><h2 id="exposure-detail-title">CVE evidence</h2></div><button class="console-icon-btn" aria-label="Close CVE evidence" data-action="vulnCloseEvidence">×</button></header><div id="exposure-detail-content" class="investigation-scroll"></div><footer class="investigation-footer"><button class="btn btn-sm btn-outline-secondary" data-action="vulnReviewPatch">Review patch workflow</button></footer></dialog>
+      <div class="workspace-context">자산 → 서비스 → CVE 매칭 → 검증 → 패치 상태 → 조치. CVE 를 선택하면 근거를 확인할 수 있습니다. 매칭 건수는 확인된 취약점이 아닙니다.</div>
+      <dialog id="exposure-detail-dialog" class="investigation-drawer" aria-labelledby="exposure-detail-title"><header class="investigation-header"><div><div class="eyebrow">노출 / 검증</div><h2 id="exposure-detail-title">CVE 근거</h2></div><button class="console-icon-btn" aria-label="닫기" data-action="vulnCloseEvidence">×</button></header><div id="exposure-detail-content" class="investigation-scroll"></div><footer class="investigation-footer"><button class="btn btn-sm btn-outline-secondary" data-action="vulnReviewPatch">패치 워크플로 보기</button></footer></dialog>
       <!-- 대상 서버 선택 -->
       <div class="card-panel mb-3">
         <div class="card-panel-header d-flex align-items-center">

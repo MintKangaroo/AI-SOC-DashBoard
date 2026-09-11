@@ -179,7 +179,7 @@ def test_copilot_unavailable_returns_evidence_not_random_mock(app, store):
     data = c.post('/api/console/copilot', json={'alert_id':1}).get_json()
     assert data['generated'] is False and data['mode'] == 'EVIDENCE SUMMARY'
     assert data['inferences'] == [] and 'alert:1' in data['facts'][0]
-    assert any('unavailable' in item for item in data['unknowns'])
+    assert any('없' in item for item in data['unknowns'])
     assert app.audit.search(action='COPILOT_BRIEF')[1] == 1
     assert c.post('/api/console/copilot', json={'alert_id':True}).status_code == 400
     assert c.post('/api/console/copilot', json={'alert_id':1,'intent':'Block IP'}).status_code == 400

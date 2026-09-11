@@ -117,8 +117,8 @@ session actor rather than a client-supplied cookie.
   read composition. No new response engine, database or migration of historical evidence.
 
 The globe libraries remain lazy and optional. The previously generated login bitmap
-is retained as an asset but is no longer displayed by the application. See its historical
-[asset provenance](IDENTITY_ASSET.md).
+(Higgsfield, 2026-09-09) is no longer displayed and was removed from the repository on
+2026-09-11 (git history before that date keeps it).
 
 ## Preserved safety and intentional limits
 

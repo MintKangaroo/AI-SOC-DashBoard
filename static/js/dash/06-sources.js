@@ -102,7 +102,7 @@
     ].map(([k, v]) => `<span class="spl-fv" ${act('siemSetSearch', [k + '=' + JSON.stringify(v)])}>
         <span class="spl-fk">${k}</span>=<span class="spl-fvv">${escapeHtml(String(v))}</span></span>`).join('');
     return `
-      <div tabindex="0" role="button" aria-label="Inspect event fields" class="spl-event ${e.suspicious ? 'spl-event-susp' : ''}" style="border-left-color:${sevColor}"
+      <div tabindex="0" role="button" aria-label="이벤트 필드 펼치기" class="spl-event ${e.suspicious ? 'spl-event-susp' : ''}" style="border-left-color:${sevColor}"
            ${act('toggleOpen')}>
         <div class="spl-event-top">
           <span class="spl-ts">${escapeHtml(e.timestamp)}</span>
@@ -179,16 +179,16 @@
   }
   function siemHistoryOptions() {
     const el = document.getElementById('siem-history');
-    if (el) el.innerHTML = '<option value="">Saved / recent searches · this browser</option>' + siemSavedQueries().map((item,index) => `<option value="${index}">${escapeHtml(item.query || '(all events)')} · ${item.minutes || 'all'} minutes</option>`).join('');
+    if (el) el.innerHTML = '<option value="">저장 · 최근 검색 (이 브라우저)</option>' + siemSavedQueries().map((item,index) => `<option value="${index}">${escapeHtml(item.query || '(전체 이벤트)')} · ${item.minutes ? item.minutes + '분' : '전체 시간'}</option>`).join('');
   }
   async function siemRunSearch() {
     renderSiemEvents();
     const record = {query:document.getElementById('siem-search').value.slice(0,200),minutes:Number(document.getElementById('siem-timerange').value),suspicious:document.getElementById('siem-suspicious-only').checked};
     const history = siemSavedQueries().filter(item => JSON.stringify(item) !== JSON.stringify(record));
-    try { localStorage.setItem('trace.siem.history',JSON.stringify([record,...history].slice(0,20))); } catch (_) { SOCUI.notify('Browser search history could not be saved.'); }
+    try { localStorage.setItem('trace.siem.history',JSON.stringify([record,...history].slice(0,20))); } catch (_) { SOCUI.notify('브라우저 검색 이력을 저장하지 못했습니다.'); }
     siemHistoryOptions();
     try { await SOCUI.request('/api/console/siem-query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)}); }
-    catch (error) { SOCUI.notify('Query displayed, but audit recording failed: ' + error.message); }
+    catch (error) { SOCUI.notify('검색은 표시했지만 감사 기록에 실패했습니다: ' + error.message); }
   }
   function siemRestoreQuery(el) {
     const item = siemSavedQueries()[Number(el.value)]; if (el.value === '' || !item) return;

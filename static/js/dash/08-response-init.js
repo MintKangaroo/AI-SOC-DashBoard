@@ -86,15 +86,15 @@
               ${sig.ai_summary ? `<br/>AI: ${escapeHtml(sig.ai_summary)}` : ''}
             </div>
             <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
-              <span class="provenance provenance-simulated">SIMULATED</span><label for="bd-replay-conf" class="small">Confidence threshold</label>
+              <span class="provenance provenance-simulated">SIMULATED</span><label for="bd-replay-conf" class="small">신뢰도 임계값</label>
               <input id="bd-replay-conf" type="number" min="0" max="100" value="${Number(rec.thresholds?.min_block_confidence ?? 95)}"
                      class="form-control form-control-sm bg-dark text-white border-secondary" style="width:90px">
               <label class="form-check form-switch small mb-0">
                 <input id="bd-replay-corr" class="form-check-input" type="checkbox"
                        ${rec.thresholds?.require_corroboration ? 'checked' : ''}> 독립 근거 요구
               </label>
-              <select id="bd-replay-evidence" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="Remove one evidence source" style="width:auto;max-width:100%"><option value="">Keep all evidence</option>${(sig.evidence || []).map(source => `<option value="${escapeHtml(source)}">Without ${escapeHtml(source)}</option>`).join('')}</select>
-              <select id="bd-replay-verdict" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="Simulated verdict" style="width:auto;max-width:100%"><option value="">Original verdict</option><option value="true">What if TP?</option><option value="false">What if FP?</option></select>
+              <select id="bd-replay-evidence" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="근거 하나 제외" style="width:auto;max-width:100%"><option value="">근거 전부 유지</option>${(sig.evidence || []).map(source => `<option value="${escapeHtml(source)}">${escapeHtml(source)} 제외</option>`).join('')}</select>
+              <select id="bd-replay-verdict" class="form-select form-select-sm bg-dark text-white border-secondary" aria-label="가정 판정" style="width:auto;max-width:100%"><option value="">원래 판정</option><option value="true">정탐이라면?</option><option value="false">오탐이라면?</option></select>
               <button class="btn btn-xs btn-cyan" ${act('replayBlockDecision', [Number(rec.id)])}>Compare gates</button>
             </div>
             <div id="bd-replay-out" class="small mt-2"></div>
@@ -684,7 +684,7 @@
 
         const box = document.getElementById('inc-timeline');
         if (box) {
-          box.innerHTML = `<section class="investigation-section">${SOCUI.provenance(inc)}<h3 class="mt-3">Linked alert evidence</h3><div class="d-flex flex-wrap gap-2">${(inc.alert_ids || []).slice(-100).map(aid => `<button class="btn btn-xs btn-outline-secondary" ${act('consoleOpenInvestigation',[aid])}>Alert #${aid}</button>`).join('') || 'No alert IDs recorded.'}</div></section>` + [...(inc.timeline || [])].reverse().map(t => `
+          box.innerHTML = `<section class="investigation-section">${SOCUI.provenance(inc)}<h3 class="mt-3">연결된 알림 증거</h3><div class="d-flex flex-wrap gap-2">${(inc.alert_ids || []).slice(-100).map(aid => `<button class="btn btn-xs btn-outline-secondary" ${act('consoleOpenInvestigation',[aid])}>알림 #${aid}</button>`).join('') || '연결된 알림 ID 없음.'}</div></section>` + [...(inc.timeline || [])].reverse().map(t => `
             <div class="d-flex gap-2 p-2 border-bottom border-secondary small">
               <span>${INC_TL_ICONS[t.kind] || ''}</span>
               <span class="text-muted" style="white-space:nowrap; font-size:var(--fs-meta)">${escapeHtml((t.ts || '').slice(5))}</span>

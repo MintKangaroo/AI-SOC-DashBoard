@@ -27,7 +27,6 @@ Claude AI(claude-sonnet-4-6)를 통합하여 보안 이벤트를 자동 분석�
 
 | 파일 | 역할 |
 |------|------|
-| `app.py` | Flask 앱 팩토리, 서비스 초기화, SocketIO 이벤트 |
 | `modules/identity.py` | 선택적 SQLite 사용자·해시 세션·원자적 계정 감사 |
 | `modules/authorization.py` | 쓰기 엔드포인트 권한 인벤토리·Socket.IO 세션 검증 |
 | `config.py` | 환경변수 기반 설정 (python-dotenv) |
