@@ -110,3 +110,81 @@ def test_every_panel_opens_clean(live, label):  # noqa: F811
     names, findings = _sweep(live, width, height)
     assert findings == [], (
         f"[{label} {width}px] 패널 {len(names)}개 순회 중 발견:\n  " + "\n  ".join(findings))
+
+
+# ---------------------------------------------------------------- #
+#  사이드바 메뉴가 짧은 화면에서 잘리지 않는가
+# ---------------------------------------------------------------- #
+#
+# 위 순회는 `showPanel(이름)` 을 **직접 호출**해서 패널을 연다. 그래서 "사이드바에
+# 그 메뉴가 실제로 보이고 누를 수 있는가" 는 원리적으로 못 본다. 실제로 그 틈으로
+# 결함이 하나 지나갔다 — 사이드바는 세로 flex 인데 자식의 기본 `flex-shrink:1` 이
+# 화면이 짧을 때 그룹 본문을 눌러버리고, `overflow:hidden` 이 눌린 만큼을 잘라냈다.
+# 사이드바는 스크롤도 생기지 않아(자식이 줄어드니 넘치지 않는다) 마지막 메뉴가
+# 통째로 사라져 보였다: 390×750 에서 '네트워크 관제' 1개, 414×700 에서 177px 분량.
+#
+# 그래서 여기서는 **사람이 하는 것과 같은 순서**로 본다 — 드로어를 열고, 그룹을
+# 펼치고, 링크가 부모 밖으로 잘리지 않았는지, 그리고 그 자리를 실제로 누를 수
+# 있는지(elementFromPoint) 확인한다.
+SHORT_VIEWPORTS = {"mobile-short": (390, 750), "small-laptop": (1280, 620)}
+
+_GROUPS_JS = """() => [...document.querySelectorAll('.sidebar-group[data-args]')]
+  .map(b => { try { return JSON.parse(b.dataset.args)[0]; } catch (e) { return null; } })
+  .filter(Boolean)"""
+
+# ⚠ 측정 순서가 중요하다. 링크마다 `scrollIntoView` 를 부르면서 재면 **아무것도
+#   못 잡는다** — `overflow:hidden` 컨테이너도 스크립트로는 스크롤되므로, 앞 링크를
+#   보이게 하는 과정에서 뒤 링크가 제자리로 끌려 들어와 잘림이 사라진다(실제로 이
+#   테스트의 첫 판이 그래서 결함을 통과시켰다). 그래서 **먼저 아무것도 건드리지 않고**
+#   본문이 제 내용을 다 담고 있는지(scrollHeight ≤ clientHeight) 보고, 그 다음에
+#   누를 수 있는지 확인한다.
+_CLIP_JS = """(group) => {
+  const body = document.getElementById('sgroup-' + group);
+  if (!body || body.classList.contains('collapsed')) return ['그룹이 안 열림'];
+  const out = [];
+  const cut = body.scrollHeight - body.clientHeight;
+  if (cut > 1) {
+    const gone = [...body.querySelectorAll('.sidebar-link[data-panel]')]
+      .filter(a => a.getBoundingClientRect().bottom > body.getBoundingClientRect().bottom + 1)
+      .map(a => a.dataset.panel);
+    out.push(`본문이 ${Math.round(cut)}px 잘림 — 안 보이는 메뉴: ${gone.join(', ') || '(경계)'}`);
+    return out;
+  }
+  body.querySelectorAll('.sidebar-link[data-panel]').forEach(a => {
+    a.scrollIntoView({ block: 'center' });
+    const c = a.getBoundingClientRect();
+    const hit = document.elementFromPoint(c.left + c.width / 2, c.top + c.height / 2);
+    const reached = hit && hit.closest('a.sidebar-link');
+    if (!reached || reached.dataset.panel !== a.dataset.panel)
+      out.push(`${a.dataset.panel}: 그 자리를 누를 수 없음(${reached ? reached.dataset.panel : '가려짐'})`);
+  });
+  return out;
+}"""
+
+
+@pytest.mark.skipif(sync_playwright is None, reason="playwright 미설치")
+@pytest.mark.parametrize("label", list(SHORT_VIEWPORTS))
+def test_sidebar_menus_are_not_clipped(live, label):  # noqa: F811
+    width, height = SHORT_VIEWPORTS[label]
+    findings = []
+    with sync_playwright() as pw:
+        browser = _launch(pw)
+        try:
+            page = browser.new_page(viewport={"width": width, "height": height})
+            page.goto(live["base"] + "/", wait_until="load")
+            page.wait_for_timeout(1500)
+            if width < 992:                      # 모바일은 드로어를 먼저 연다
+                page.evaluate("toggleSidebar()")
+                page.wait_for_timeout(400)
+            groups = page.evaluate(_GROUPS_JS)
+            assert groups, "사이드바 그룹을 못 찾음 — 셀렉터가 어긋난 것"
+            for group in groups:                 # 아코디언이라 한 번에 하나씩 본다
+                page.evaluate("g => toggleGroup(g)", group)
+                page.wait_for_timeout(300)
+                for problem in page.evaluate(_CLIP_JS, group):
+                    findings.append(f"{group} 그룹 · {problem}")
+        finally:
+            browser.close()
+    assert findings == [], (
+        f"[{label} {width}x{height}] 사이드바 메뉴가 잘리거나 눌리지 않음:\n  "
+        + "\n  ".join(findings))

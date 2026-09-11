@@ -236,6 +236,12 @@ html, body {
 }
 .sidebar-group.open .sgroup-chevron { transform: rotate(180deg); }
 .sidebar-group .sgroup-badge { font-size: var(--fs-meta); }
+/* 사이드바 항목은 **절대 줄지 않는다.** 사이드바는 세로 flex 라 자식들의
+   기본 flex-shrink:1 이 화면이 짧을 때 그룹 본문을 눌러버리고,
+   overflow:hidden 이 눌린 만큼을 잘라낸다 — 메뉴가 '사라진 것처럼' 보이고
+   클릭도 안 먹는다(실측: 390x750 에서 '네트워크 관제' 가 잘려 클릭 불가,
+   414x700 에서는 177px 가 잘렸다). 줄이는 대신 사이드바가 스크롤되게 한다. */
+.sidebar > * { flex-shrink: 0; }
 .sidebar-group-body { overflow: hidden; }
 .sidebar-group-body.collapsed { display: none; }
 .sidebar-group-body .sidebar-link { padding-left: 30px; }
