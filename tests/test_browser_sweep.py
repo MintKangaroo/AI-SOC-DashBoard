@@ -301,3 +301,75 @@ def test_touch_targets_are_big_enough(live):  # noqa: F811
             browser.close()
     assert findings == [], (
         f"폰에서 {TOUCH_MIN_PX}px 보다 작은 선택 컨트롤:\n  " + "\n  ".join(findings))
+
+
+# ---------------------------------------------------------------- #
+#  실시간 갱신이 화면의 숫자를 깨뜨리지 않는가
+# ---------------------------------------------------------------- #
+#
+# MITRE 매트릭스 칸은 처음엔 서버가 '관측 57건' 으로 그리고, 그 뒤로는 소켓 이벤트가
+# 1씩 올린다. 그 올리는 코드가 화면 글자를 `parseInt` 로 되읽었다 —
+# `parseInt('관측 57건')` 은 **NaN** 이고 NaN+1 도 NaN 이라, 칸에 'NaN' 이 찍히고
+# 색(hit-low/med/high)까지 함께 틀어졌다. 포트폴리오 스크린샷을 찍다가 발견했다.
+#
+# 이 계열은 "표시용 글자를 다시 숫자로 읽는" 실수라서, 한 번 나면 또 난다.
+# 그래서 **화면에 NaN·undefined·[object Object] 가 찍히지 않는지**를 본다.
+_BROKEN_TEXT = ("NaN", "undefined", "[object Object]", "Infinity")
+
+# 서버가 그려 둔 칸에 소켓 갱신이 한 번 들어오는 상황을 **그대로** 만든다.
+# 데모 알림이 우연히 그 칸을 때려 주기를 기다리면 아무것도 검사하지 않는 가드가
+# 된다(첫 판이 그랬다 — 버그를 되살려도 통과했다).
+_FIRE_HIT_JS = """([count]) => {
+  const cell = document.querySelector('#panel-mitre .mitre-technique[data-technique]');
+  if (!cell) return {error: '매트릭스 칸이 없다'};
+  cell.dataset.count = String(count);
+  let cnt = cell.querySelector('.tech-count');
+  if (!cnt) { cnt = document.createElement('div'); cnt.className = 'tech-count'; cell.appendChild(cnt); }
+  cnt.textContent = `관측 ${count}건`;          // 서버가 처음 그리는 형식
+  const handlers = (typeof socket !== 'undefined' && socket.listeners)
+    ? socket.listeners('mitre_hit') : [];
+  if (!handlers.length) return {error: 'mitre_hit 핸들러가 없다'};
+  handlers.forEach(fn => fn({tactic_id: cell.dataset.tactic, technique_id: cell.dataset.technique}));
+  return {text: (cell.querySelector('.tech-count') || {}).textContent,
+          klass: cell.className, kpi: (document.getElementById('kpi-mitre') || {}).textContent};
+}"""
+
+
+@pytest.mark.skipif(sync_playwright is None, reason="playwright 미설치")
+def test_live_updates_do_not_print_broken_numbers(live):  # noqa: F811
+    findings = []
+    with sync_playwright() as pw:
+        browser = _launch(pw)
+        try:
+            page = browser.new_page(viewport={"width": 1400, "height": 900})
+            page.goto(live["base"] + "/", wait_until="load")
+            page.wait_for_timeout(1500)
+            page.evaluate("n => showPanel(n)", "mitre")
+            page.wait_for_timeout(2000)
+
+            result = page.evaluate(_FIRE_HIT_JS, [57])
+            assert "error" not in result, result["error"]
+            if result["text"] != "관측 58건":
+                findings.append(f"소켓 갱신 뒤 칸 표기가 '관측 58건' 이 아니라 {result['text']!r}"
+                                " — 표시용 글자를 다시 숫자로 읽었을 때 나는 증상")
+            if "hit-high" not in result["klass"]:
+                findings.append(f"58건인데 색이 hit-high 가 아님: {result['klass']!r}")
+
+            # 화면 어디에도 깨진 값이 찍히지 않아야 한다
+            for name in ("mitre", "overview"):
+                page.evaluate("n => showPanel(n)", name)
+                page.wait_for_timeout(4000)
+                text = page.evaluate(
+                    "n => (document.getElementById('panel-' + n) || {}).innerText || ''", name)
+                for bad in _BROKEN_TEXT:
+                    if bad in text:
+                        line = next((ln.strip() for ln in text.splitlines() if bad in ln), bad)
+                        findings.append(f"{name} 패널에 '{bad}' 가 표시됨 — {line[:60]!r}")
+            odd = page.evaluate("""() => [...document.querySelectorAll('#panel-mitre .tech-count')]
+                .map(e => e.textContent.trim())
+                .filter(t => !/^관측 [0-9,]+건$/.test(t)).slice(0, 5)""")
+            if odd:
+                findings.append(f"매트릭스 칸 표기가 어긋남: {odd}")
+        finally:
+            browser.close()
+    assert findings == [], "실시간 갱신이 화면 숫자를 깨뜨림:\n  " + "\n  ".join(findings)

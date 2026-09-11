@@ -133,7 +133,8 @@
   socket.on('mitre_hit', entry => {
     // MITRE 매핑 KPI
     const kpiEl = document.getElementById('kpi-mitre');
-    if (kpiEl) kpiEl.textContent = parseInt(kpiEl.textContent || 0) + 1;
+    // 표시된 글자에서 숫자만 뽑는다 — '1,234' 를 parseInt 하면 1 이 되어 KPI 가 되감긴다.
+    if (kpiEl) kpiEl.textContent = (parseInt(String(kpiEl.textContent).replace(/[^0-9]/g, ''), 10) || 0) + 1;
 
     // 매트릭스 셀 카운트 즉시 업데이트
     const cell = document.querySelector(
@@ -141,14 +142,19 @@
     );
     if (cell) {
       let cntEl = cell.querySelector('.tech-count');
-      const cur = cntEl ? parseInt(cntEl.textContent, 10) : 0;
+      /* 숫자는 **data-count 에서** 읽는다. 화면 글자는 '관측 57건' 이라
+         parseInt 하면 NaN 이고, NaN+1 은 NaN 이라 칸에 'NaN' 이 찍혔다(실제 발생).
+         표기도 처음 그릴 때와 같은 형식을 지킨다 — 여기서만 맨 숫자를 쓰면
+         같은 매트릭스 안에서 칸마다 표기가 달라진다. */
+      const cur = parseInt(cell.dataset.count || '0', 10) || 0;
       const next = cur + 1;
       if (!cntEl) {
         cntEl = document.createElement('div');
         cntEl.className = 'tech-count';
         cell.appendChild(cntEl);
       }
-      cntEl.textContent = next;
+      cell.dataset.count = String(next);
+      cntEl.textContent = `관측 ${next}건`;
       cell.classList.remove('hit-low', 'hit-med', 'hit-high');
       cell.classList.add(next >= 10 ? 'hit-high' : next >= 3 ? 'hit-med' : 'hit-low');
       cell.classList.add('hit-flash');

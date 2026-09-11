@@ -15,27 +15,23 @@ Vulnerability Management · Purple Team · SOC Metrics)을 **56개 모듈 / 39�
 
 ---
 
-## 현재 화면 · 기존 관제 디자인 복원
+## 현재 화면 (모든 이미지 2026-09-11 재촬영)
 
 한국어 메뉴와 기존 검정·청록색 관제 화면을 복원했습니다. 조사 drawer·copilot·권한·감사 기능은 유지하며, 추가 집계는 하단의 **저장 증거 요약**에서 확인합니다.
 
 ![현재 관제 화면 · 격리 DEMO](portfolio_img/classic-command-center.png)
 
-아래 TRACE 이미지는 이전 디자인 작업 기록입니다. 현재 기본 화면은 위 이미지입니다.
+## 조사 흐름 — 알림 큐 · 조사 · 권한
 
-## 2026-09-09 · TRACE 조사 콘솔 (이전 디자인 기록)
+운영 상태에서 우선순위 알림, 원문 증거, 분석가 판정, 자동 대응 근거까지 한 줄로 잇습니다.
+지속적으로 변하는 스트림과 읽고 있는 알림 큐를 분리했습니다.
 
-Flask/Jinja·Socket.IO·SQLite WAL을 유지하면서 운영 상태 → 우선순위 알림 → 원문 증거 →
-분석가 판정 → 자동 대응 근거로 이어지는 조사 흐름을 추가했습니다. 기존 기능은 업무별
-탐색으로 정리하고, 지속적으로 변하는 스트림과 읽고 있는 알림 큐를 분리했습니다.
+![알림 큐](portfolio_img/15-alert-queue.png)
+![조사 drawer](portfolio_img/16-investigation.png)
+![계정·접근 권한](portfolio_img/17-access.png)
 
-![Command Center](portfolio_img/trace-command-center.png)
-![Alert queue](portfolio_img/trace-alert-queue.png)
-![Investigation workspace](portfolio_img/trace-investigation.png)
-
-위 세 화면은 **임시 DEMO 환경에서 실행한 실제 앱**입니다. 운영 탐지 실적을 나타내지 않습니다.
-AI 요약은 FACTS / INFERENCES / RECOMMENDATIONS / UNKNOWN을 분리하고, 데이터가 없는
-지표는 측정 불가로 남깁니다. Higgsfield 생성 이미지는 로그인 배경에만 적용했습니다.
+위 화면은 **임시 DEMO 환경에서 실행한 실제 앱**입니다. 운영 탐지 실적을 나타내지 않습니다.
+AI 요약은 사실 / 추론 / 권고 / 모르는 것을 분리하고, 데이터가 없는 지표는 측정 불가로 남깁니다.
 
 [구현 및 검증 기록](CONSOLE_REDESIGN.md) · [현재 동작과 범위](TRACE_CONSOLE.md)
 

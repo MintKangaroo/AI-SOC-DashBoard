@@ -101,7 +101,7 @@ deque can now be acknowledged. Archive evidence remains read-only.
 | Collector truthfulness | `modules/{access_log_parser,sysmon_parser,system_health,geoip}.py` |
 | Identity | `templates/login.html`, new `static/css/login.css`, `static/identity/telemetry-field.webp` (image removed 2026-09-11; not displayed) |
 | Regression coverage | new `tests/test_console.py`, `tests/test_console_browser.py`; obsolete unsafe-render exemption removed from `tests/test_frontend_counters.py`; `.github/workflows/ci.yml` runs both browser suites |
-| Documentation | `README.md`, `CLAUDE.md`, `docs/{HANDOVER,PORTFOLIO}.md`, new `docs/{CONSOLE_REDESIGN,TRACE_CONSOLE}.md` (IDENTITY_ASSET.md removed 2026-09-11), three actual demo screenshots in `docs/portfolio_img/trace-*.png` |
+| Documentation | `README.md`, `CLAUDE.md`, `docs/{HANDOVER,PORTFOLIO}.md`, new `docs/{CONSOLE_REDESIGN,TRACE_CONSOLE}.md` (IDENTITY_ASSET.md removed 2026-09-11), three actual demo screenshots (renamed `15`–`17` and re-captured 2026-09-11 after the Korean UI pass) in `docs/portfolio_img/` |
 
 ### Security and product review
 

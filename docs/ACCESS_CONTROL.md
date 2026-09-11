@@ -5,7 +5,7 @@ role enforcement with revocable sessions. OIDC/SAML SSO, MFA, tenant separation 
 independent security certification are **UNAVAILABLE**. No identity-provider token
 or trusted-header login is accepted.
 
-![Access & roles in the actual TRACE application](portfolio_img/trace-access.png)
+![Access & roles in the actual application](portfolio_img/17-access.png)
 
 *Isolated DEMO environment and temporary example accounts; no operational user data.*
 

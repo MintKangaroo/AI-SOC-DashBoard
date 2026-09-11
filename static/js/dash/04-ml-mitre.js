@@ -387,9 +387,12 @@
             : `${tech.name} — 진단 정보 없음`;
         }
 
+        /* data-count 는 실시간 갱신(05-svg-intel 의 mitre_hit)이 읽는 값이다.
+           화면 글자('관측 N건')를 parseInt 로 되읽으면 NaN 이 된다 — 실제로 그랬다. */
         html += `<button type="button" class="mitre-technique clickable ${hitClass}"
                       title="${escapeHtml(title)}"
                       ${act('showTechniqueDetail', [tech.id])}
+                      data-count="${count}"
                       data-tactic="${escapeHtml(tac.id)}" data-technique="${escapeHtml(tech.id)}">
           <div class="tech-id">${escapeHtml(tech.id)}</div>
           <div class="tech-name">${escapeHtml(tech.ko)}</div>
