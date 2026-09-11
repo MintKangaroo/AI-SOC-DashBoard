@@ -230,7 +230,7 @@ conn/dns/http/ssl 을 올리면 알림 파이프라인이 트래픽 로그가 �
 | 차단 근거 | `zeek_notice` — 단독 차단 불가, 다른 독립 근거와 합쳐야 함 |
 | 중복 제거 | 룰ID 로 `note` 를 읽어 같은 note 반복은 ×N 병합 |
 
-설치(Ubuntu): `apt install zeek` 후 `zeekctl deploy`. 로그 경로가 `/usr/local/zeek/logs/current` 면
+설치(Ubuntu): `sudo bash scripts/install_ids.sh`(Suricata 와 함께, OBS zeek-lts + JSON notice + 부팅 자동시작) 또는 수동으로 `apt install zeek` 후 `zeekctl deploy`. 로그 경로가 `/usr/local/zeek/logs/current` 면
 `ZEEK_NOTICE_PATH` 를 맞출 것. 없으면 수집기는 `waiting` 으로 있다가 파일이 생기면 붙는다.
 
 ### Suricata EVE JSON — 연동됨 (2026-09-07)
@@ -267,6 +267,7 @@ Possibly Unwanted Program·Executable code was detected)는 **의도적으로 �
 
 설치(Ubuntu):
 ```bash
+# 한 번에: sudo bash scripts/install_ids.sh   (아래는 수동 절차)
 sudo apt install suricata
 sudo suricata-update                       # ET Open 룰셋
 sudo systemctl enable --now suricata

@@ -86,7 +86,7 @@ cp scripts/soc-dashboard.service ~/.config/systemd/user/ && systemctl --user dae
 1. **서버가 조용히 죽던 문제 — 09-11 해결.** 09-08 과 09-09 두 번(두 번째는 09-09 22:36 ~ 09-11, WSL 재시작 포함) 죽어 있었다. systemd 사용자 서비스로 전환해 자동 재시작된다(2절). 근본 원인(OOM 의심, WSL 메모리 9.7GB 중 가용 4GB)은 그대로이므로 메모리 추이는 `systemctl --user status` 로 가끔 볼 것.
 2. **개별 라벨 6건 판정 대기** — YARA 테스트 파일 3(8/29, 이 저장소 검증용 스크래치 파일 → 오탐 권고), `/tmp/plab-sbx-*` 실행 3(사용자 실습 도구로 보임 → 오탐 권고). `plab-sbx` 가 무엇인지 사용자 확인 필요. 확인되면 EDR 예외 접두(`EDR_TMPEXEC_ALLOW_PREFIXES`)에 `/tmp/plab-sbx-` 추가 여부도 결정.
 3. **개별 라벨 100건**은 앞으로 쌓이는 실측 알림(최근 이틀 32건 속도)에서 알림 화면의 "정탐/오탐 확정"으로 채운다. 그룹 판정을 건별로 복사하지 말 것 — 같은 근거를 100번 복사한 것은 정직한 라벨이 아니다.
-4. **허니팟은 제거됨**(사용자 결정, 09-08). 전체 구현은 git `d75da7c` 이전에 있다. 알림 유형 `HONEYPOT`·플레이북 `PB-HONEYPOT-BLOCK` 정의는 과거 알림 표시를 위해 남아 있다.
+4. **허니팟은 제거됨**(사용자 결정, 09-08. **재구현 계획 없음** — 09-11 확정). 전체 구현은 git `d75da7c` 이전에 있다. 알림 유형 `HONEYPOT`·플레이북 `PB-HONEYPOT-BLOCK` 정의는 과거 알림 표시를 위해 남아 있다.
 5. Suricata·Zeek 는 코드만 있고 로컬 미설치. 설치법은 [integrations.md](integrations.md).
 
 ## 4. 최근 2일 변경 요약 (커밋 순)
@@ -102,8 +102,7 @@ cp scripts/soc-dashboard.service ~/.config/systemd/user/ && systemctl --user dae
 
 1. 개별 라벨 6건 판정 + `plab-sbx` 확인.
 2. 개별 라벨 100건 도달 후 `python scripts/eval_ml.py` 로 precision/recall 첫 측정 → ML 을 탐지 경로에 연결할지 결정(docs/ml_models.md 5절).
-3. Suricata·Zeek 실제 설치(선택).
-4. 허니팟 재구현(사용자가 원할 때).
+3. Suricata·Zeek 실제 설치 — `sudo bash scripts/install_ids.sh` 한 번(09-11 준비, sudo 라 사용자 실행).
 5. TRACE 문서의 다음 우선순위(IdP 선정 후 SSO/MFA, 영속 이벤트/전이 시각, 수집기별 출처).
 
 ## 6. 확인 명령 모음

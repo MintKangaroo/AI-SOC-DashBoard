@@ -234,7 +234,7 @@ KR/USA (logging.handlers.SysLogHandler → 127.0.0.1:5514 UDP/TCP)
 ## 허니팟 — 제거됨 (2026-09-08)
 
 유인 서비스 리스너(`modules/honeypot.py`·패널·`/api/integrations/honeypot`)는 사용자
-요청으로 걷어냈다(나중에 다시 만들 예정). git 이력 `d75da7c` 이전에 전체 구현이 있다.
+요청으로 걷어냈다(**재구현 계획 없음** — 2026-09-11 확정). git 이력 `d75da7c` 이전에 전체 구현이 있다.
 알림 유형 `HONEYPOT` 라벨·SOAR `PB-HONEYPOT-BLOCK`·상관 규칙의 HONEYPOT 항목은
 과거 알림 11만 건이 그 유형을 쓰므로 남겨 둔다(생산자만 없다).
 
