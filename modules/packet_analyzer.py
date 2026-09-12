@@ -2,6 +2,9 @@
 패킷 분석 모듈 - PyShark / Scapy 기반
 실제 캡처 불가 시 데모 데이터로 자동 전환
 """
+import asyncio
+import os
+import subprocess
 import threading
 import time
 import random
@@ -10,10 +13,18 @@ from collections import defaultdict, deque
 
 from modules.logging_setup import get_logger
 
+try:                                    # 캡처 프로세스의 메모리를 재는 데만 쓴다
+    import psutil
+except ImportError:                     # 없으면 시간 기준 재활용만 동작한다
+    psutil = None
+
 _log = get_logger(__name__)
+
 
 try:
     import pyshark
+    import pyshark.capture.capture
+    from pyshark.tshark.tshark import get_process_path
     PYSHARK_AVAILABLE = True
 except ImportError:
     PYSHARK_AVAILABLE = False
@@ -23,6 +34,39 @@ try:
     SCAPY_AVAILABLE = True
 except ImportError:
     SCAPY_AVAILABLE = False
+
+
+class _FdSafeLiveCapture(pyshark.LiveCapture if PYSHARK_AVAILABLE else object):
+    """pyshark 의 파일 서술자 누수를 막은 LiveCapture.
+
+    pyshark 는 dumpcap → tshark 를 잇느라 `os.pipe()` 를 만들고 두 끝을 자식에게
+    넘긴 뒤, **부모 쪽 사본을 닫지 않는다**(live_capture.py `_get_tshark_process`).
+    캡처를 한 번만 띄우던 시절에는 안 보였지만, 주기적으로 재활용하면 캡처마다
+    2개씩 샌다 — 30분 주기면 하루 96개, 기본 상한 1,024개를 열흘이면 넘는다
+    (실측 2026-09-12: 사이클마다 정확히 2개).
+
+    자식은 spawn 할 때 자기 사본을 이미 가지므로 부모 쪽은 닫아도 된다. 오히려
+    닫아야 dumpcap 이 죽었을 때 tshark 가 EOF 를 본다.
+    """
+
+    async def _get_tshark_process(self, packet_count=None, stdin=None):
+        read, write = os.pipe()
+        dumpcap_params = [get_process_path(process_name="dumpcap",
+                                           tshark_path=self.tshark_path)]
+        dumpcap_params += self._get_dumpcap_parameters()
+        dumpcap_process = await asyncio.create_subprocess_exec(
+            *dumpcap_params, stdout=write, stderr=subprocess.PIPE)
+        self._create_stderr_handling_task(dumpcap_process.stderr)
+        self._created_new_process(dumpcap_params, dumpcap_process, process_name="Dumpcap")
+        tshark = await pyshark.capture.capture.Capture._get_tshark_process(
+            self, packet_count=packet_count, stdin=read)
+        # 여기가 원본과 다른 전부 — 부모 쪽 사본을 닫는다.
+        for fd in (read, write):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        return tshark
 
 
 class PacketAnalyzer:
@@ -39,6 +83,10 @@ class PacketAnalyzer:
         # 두 값은 config 에 선언돼 있었으나 아무 데서도 읽히지 않았다(AUDIT F-1).
         self.max_packets_display = _cfg("MAX_PACKETS_DISPLAY", 200)
         self.demo_interval = _cfg("DEMO_UPDATE_INTERVAL", 2.0, float, 0.1)
+        # 캡처 재활용 — 아래 _capture_pyshark 주석 참조
+        self.capture_recycle_seconds = _cfg("CAPTURE_RECYCLE_MINUTES", 30) * 60
+        self.capture_max_rss_mb = _cfg("CAPTURE_MAX_RSS_MB", 700)
+        self.capture_cycles = 0
         self.threat_detector = threat_detector
         self.running = False
         self.thread = None
@@ -166,19 +214,142 @@ class PacketAnalyzer:
     # ------------------------------------------------------------------ #
 
     def _capture_pyshark(self, interface):
+        """실캡처. **한 번 띄운 tshark 를 영원히 두지 않는다.**
+
+        pyshark 는 dumpcap → tshark(PDML) 파이프로 도는데, tshark 는 대화·재조립
+        상태를 캡처가 끝날 때까지 들고 있다. 그래서 오래 켜 두면 RSS 가 단조
+        증가한다 — 실측 2026-09-12: 약 350pps 로 10시간 뒤 **3.6GB**, 9.7GB 짜리
+        WSL 의 가용 메모리가 1.6GB 까지 떨어져 다른 프로세스가 OOM 위험에 놓였다
+        (전날 실제로 커널이 여러 프로세스를 죽였다).
+
+        그래서 두 가지 한도로 캡처를 새로 띄운다. 시간(기본 30분)은 정상 상태를
+        위한 것이고, RSS 상한(기본 700MB)은 트래픽이 튈 때를 위한 안전망이다.
+        교체 사이에 수 백 ms 공백이 생기는데, ML 재학습은 pps·bps 가 0 인 창을
+        이미 제외하므로 학습 분포를 오염시키지 않는다.
+        """
+        while self.running:
+            cap = None
+            cycle_started = time.time()
+            packets = 0
+            try:
+                # 사이클마다 **새 이벤트 루프**를 이 스레드에 깔아 준다.
+                # pyshark 는 루프를 직접 만들지 않고 스레드의 현재 루프를 집어
+                # 쓰는데(capture.py `_setup_eventloop`), 앞 사이클에서 닫은 루프를
+                # 그대로 집으면 두 번째 캡처가 곧바로 죽는다 — 실제로 그렇게 만들어
+                # 첫 재활용 뒤 캡처가 데모로 폴백했다(2026-09-12).
+                asyncio.set_event_loop(asyncio.new_event_loop())
+                cap = _FdSafeLiveCapture(interface=interface, bpf_filter="ip or arp")
+                for pkt in cap.sniff_continuously():
+                    if not self.running:
+                        break
+                    self._process_pyshark_packet(pkt)
+                    packets += 1
+                    # 한도 확인은 128 패킷마다 — 매 패킷 확인은 그 자체가 비용이다
+                    if packets % 128 == 0 and self._capture_should_recycle(cycle_started):
+                        break
+            except Exception as e:
+                _log.warning(f"[PacketAnalyzer] PyShark error: {e} — fallback to demo")
+                self.source_mode = "demo"   # 여기부터 나오는 트래픽은 합성이다
+                self._demo_loop()
+                return
+            finally:
+                self._close_capture(cap)
+            if self.running:
+                self.capture_cycles += 1
+                _log.info(f"[PacketAnalyzer] 캡처 재활용 #{self.capture_cycles} — "
+                          f"{int(time.time() - cycle_started)}초 · {packets:,}패킷 처리")
+
+    def _capture_should_recycle(self, cycle_started):
+        """이번 캡처를 접고 새로 띄울 때인가 (시간 초과 또는 메모리 상한)."""
+        if time.time() - cycle_started >= self.capture_recycle_seconds:
+            return True
+        rss = self._capture_rss_mb()
+        if rss is not None and rss >= self.capture_max_rss_mb:
+            _log.warning(f"[PacketAnalyzer] tshark RSS {rss:,}MB — 상한"
+                         f" {self.capture_max_rss_mb:,}MB 도달, 캡처를 새로 띄운다")
+            return True
+        return False
+
+    def _capture_rss_mb(self):
+        """이 프로세스가 띄운 tshark·dumpcap 의 RSS 합(MB). 못 재면 None."""
+        if psutil is None:
+            return None
         try:
-            cap = pyshark.LiveCapture(
-                interface=interface,
-                bpf_filter="ip or arp",
-            )
-            for pkt in cap.sniff_continuously():
-                if not self.running:
-                    break
-                self._process_pyshark_packet(pkt)
+            total = 0
+            for child in psutil.Process().children(recursive=True):
+                try:
+                    if child.name() in ("tshark", "dumpcap"):
+                        total += child.memory_info().rss
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            return total // (1024 * 1024)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _close_capture(cap):
+        """캡처를 확실히 내린다 — **여기서 실패하면 재활용이 오히려 누수가 된다.**
+
+        tshark·dumpcap 이 남은 채로 새로 띄우면 30분마다 프로세스가 하나씩 쌓인다.
+        그래서 예외를 삼키되, 남은 자식이 있으면 마지막에 강제로 정리한다.
+        """
+        if cap is None:
+            return
+        # close() 가 목록을 비우므로 **먼저** 붙잡아 둔다.
+        procs = list(getattr(cap, "_running_processes", None) or [])
+        try:
+            cap.close()
         except Exception as e:
-            _log.warning(f"[PacketAnalyzer] PyShark error: {e} — fallback to demo")
-            self.source_mode = "demo"   # 여기부터 나오는 트래픽은 합성이다
-            self._demo_loop()
+            _log.warning(f"[PacketAnalyzer] 캡처 종료 중 오류(무시): {e}")
+        # pyshark 는 프로세스를 죽이기만 하고 거기 붙은 파이프(asyncio 서브프로세스
+        # 전송)는 닫지 않는다. 루프를 닫아 버리면 그 전송은 영영 안 닫혀
+        # **사이클마다 파이프 3개가 샌다**(실측: 4 사이클에 fd 12→22).
+        # pyshark 내부 이름이라 버전이 바뀌면 없을 수 있어 전부 방어적으로 만진다.
+        for proc in procs:
+            transport = getattr(proc, "_transport", None)
+            if transport is None:
+                continue
+            try:
+                transport.close()
+            except Exception:
+                pass
+        # pyshark 는 캡처마다 asyncio 이벤트 루프를 하나 만든다. 안 닫으면
+        # 재활용할 때마다 루프와 파일 서술자가 쌓인다 — 누수를 고치다 다른
+        # 누수를 만드는 셈이 된다.
+        loop = getattr(cap, "eventloop", None)
+        if loop is not None and not loop.is_closed():
+            try:
+                # 루프를 잠깐 더 돌린다. pyshark 의 close 는 프로세스를 죽이기만
+                # 하고, 그 프로세스에 붙은 파이프는 EOF 콜백이 돌아야 닫힌다.
+                # 이걸 건너뛰고 루프를 닫으면 **사이클마다 파이프 3개가 샌다**
+                # (실측: 4 사이클에 fd 12→22).
+                loop.run_until_complete(asyncio.sleep(0.15))
+                loop.run_until_complete(loop.shutdown_asyncgens())
+            except Exception:
+                pass
+            try:
+                loop.close()
+            except Exception:
+                pass
+        if psutil is None:
+            return
+        try:
+            for child in psutil.Process().children(recursive=True):
+                try:
+                    if child.name() in ("tshark", "dumpcap"):
+                        child.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            gone, alive = psutil.wait_procs(
+                [c for c in psutil.Process().children(recursive=True)
+                 if c.name() in ("tshark", "dumpcap")], timeout=3)
+            for proc in alive:
+                try:
+                    proc.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
 
     def _process_pyshark_packet(self, pkt):
         try:

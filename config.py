@@ -16,6 +16,14 @@ class Config:
     CAPTURE_INTERFACE = os.getenv("CAPTURE_INTERFACE", "").strip() or None
     MAX_PACKETS_DISPLAY = int(os.getenv("MAX_PACKETS_DISPLAY", 200))
 
+    # 캡처 재활용 — tshark 는 오래 켜 두면 메모리를 무한히 쌓는다(대화·재조립
+    # 상태). 실측 2026-09-12: 10시간 만에 RSS 3.6GB, 이 머신 가용 메모리가
+    # 1.6GB 까지 떨어져 다른 작업이 OOM 위험에 놓였다. 그래서 주기적으로,
+    # 그리고 메모리 상한에서 캡처를 새로 띄운다(수 백 ms 공백, ML 재학습은
+    # pps 0 인 창을 이미 제외한다).
+    CAPTURE_RECYCLE_MINUTES = int(os.getenv("CAPTURE_RECYCLE_MINUTES", 30))
+    CAPTURE_MAX_RSS_MB = int(os.getenv("CAPTURE_MAX_RSS_MB", 700))
+
     # 패킷 기반 탐지 임계값.
     # 기본값은 **실제로 동작하던 값**이다. 이전에는 코드에 2000/40 이 박혀 있고
     # 여기 선언된 1000/20 은 아무 데서도 읽히지 않아, .env 로 조정해도 아무 일이
