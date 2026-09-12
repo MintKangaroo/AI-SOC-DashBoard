@@ -83,6 +83,20 @@ cp scripts/soc-dashboard.service ~/.config/systemd/user/ && systemctl --user dae
 
 ## 3. 알려진 문제 · 결정 대기
 
+### 3-1. 실캡처 메모리 — 2026-09-12 해결
+
+tshark 가 10시간 만에 RSS **3.6GB** 를 먹어 이 머신 가용 메모리가 1.6GB 까지
+떨어졌다(다른 세션이 알려 왔고, 전날 커널 OOM 이 여러 프로세스를 죽였다).
+tshark 는 대화·재조립 상태를 캡처가 끝날 때까지 들고 있어 RSS 가 단조 증가한다.
+
+- 이제 캡처를 **30분마다, 또는 tshark+dumpcap RSS 합 700MB 에서** 새로 띄운다
+  (`CAPTURE_RECYCLE_MINUTES` · `CAPTURE_MAX_RSS_MB`). 교체 공백 수 백 ms.
+- pyshark 자체의 파일 서술자 누수(캡처당 2개)도 함께 막았다 — `_FdSafeLiveCapture`.
+  pyshark 가 이걸 고치면 `test_pyshark_still_leaks_the_pipe_we_patch` 가 실패하며
+  알려 준다. 그때 우리 덮어쓰기를 지우면 된다.
+- **이 머신은 메모리가 빠듯하다**(9.7GB, 다른 프로젝트의 주간 IC 측정이 2GB 를
+  쓴다). 장시간 도는 자식 프로세스를 새로 붙일 때는 상한을 함께 정할 것.
+
 ### 3-0. '완성'이라고 부르기 전에 비어 있는 칸 (2026-09-11 점검)
 
 패널 39개·테스트 936건·모듈 32개 중 27개 실제 모드로, 탐지→AI 트리아지→SOAR→
