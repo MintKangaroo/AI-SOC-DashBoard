@@ -94,6 +94,12 @@ class SOAREngine:
         execution_db_path = execution_db_path or os.path.join(
             os.path.dirname(blocklist_path) or "data", "soar_executions.db")
         self.execution_store = SOARExecutionStore(execution_db_path)
+        # 앞선 프로세스가 죽으며 남긴 '진행 중' 실행을 먼저 닫는다 — 이어받을
+        # 주체가 없는데 상태만 running 으로 남으면 화면과 통계가 계속 거짓말한다.
+        stale = self.execution_store.recover_interrupted()
+        if stale:
+            _log.warning(f"[SOAR] 이전 실행 {stale}건이 끊긴 채로 남아 있어 "
+                         f"interrupted 로 정리했다")
         restored = self.execution_store.load_recent(100)
         self.executions = deque(restored, maxlen=100)
         self._execution_id = max((e.get("id", 0) for e in restored), default=0)

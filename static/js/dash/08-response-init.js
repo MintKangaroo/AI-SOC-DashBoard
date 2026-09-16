@@ -295,7 +295,7 @@
         <div class="d-flex align-items-center gap-2 small">
           <span class="pb-tag">${escapeHtml(run.playbook)}</span>
           <strong style="color:var(--text-primary)">${escapeHtml(run.target)}</strong>
-          <span class="ms-auto badge ${run.status === 'running' ? 'bg-info text-dark' : run.status === 'waiting_approval' ? 'bg-warning text-dark' : ['failed','rejected','expired'].includes(run.status) ? 'bg-danger' : run.status === 'cancelled' ? 'bg-secondary' : 'bg-success'}">${escapeHtml(SOAR_RUN_STATE[run.status] || run.status)}</span>
+          <span class="ms-auto badge ${run.status === 'running' ? 'bg-info text-dark' : run.status === 'waiting_approval' ? 'bg-warning text-dark' : ['failed','rejected','expired','interrupted'].includes(run.status) ? 'bg-danger' : run.status === 'cancelled' ? 'bg-secondary' : 'bg-success'}">${escapeHtml(SOAR_RUN_STATE[run.status] || run.status)}</span>
           ${run.attempt > 1 ? `<span class="badge bg-secondary">${run.attempt}차 시도</span>` : ''}
           ${run.status === 'failed' && run.playbook === 'PB-MALWARE-ENRICH' ? `<button class="btn btn-xs btn-outline-warning" ${act('retrySoarExecution', [Number(run.id)])}><i class="fa fa-rotate-right me-1"></i>실패 단계 재시도</button>` : ''}
           ${run.status === 'waiting_approval' ? `<button class="btn btn-xs btn-success" ${act('reviewSoarApproval', [Number(run.id), 'approve'])}>승인</button><button class="btn btn-xs btn-outline-danger" ${act('reviewSoarApproval', [Number(run.id), 'reject'])}>거절</button><button class="btn btn-xs btn-outline-secondary" ${act('reviewSoarApproval', [Number(run.id), 'cancel'])}>취소</button>` : ''}

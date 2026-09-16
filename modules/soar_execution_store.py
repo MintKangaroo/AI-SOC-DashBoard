@@ -10,6 +10,11 @@ import threading
 # 사라진다(실 DB 기준 1,685건). processing_approval/running/pending 도 진행 중이다.
 NON_TERMINAL_STATUSES = ("waiting_approval", "processing_approval", "running", "pending")
 
+# 프로세스가 죽으면 그 자리에서 멈춘 실행들. 다음 기동 때 **종료 상태로 정리**한다.
+# waiting_approval 은 여기 없다 — 그건 사람의 결정을 기다리는 것이지 끊긴 게 아니다.
+# 살아남을 프로세스가 없으므로 running/pending/processing_approval 은 전부 고아다.
+INTERRUPTED_CANDIDATES = ("running", "pending", "processing_approval")
+
 
 class SOARExecutionStore:
     def __init__(self, db_path="data/soar_executions.db"):
@@ -96,6 +101,47 @@ class SOARExecutionStore:
                     f"DELETE FROM executions WHERE {self._purge_clause()}", params)
                 self._conn.commit()
         return n
+
+    def recover_interrupted(self):
+        """이전 프로세스에서 끊긴 실행을 `interrupted` 로 닫는다. 반환: 건수.
+
+        끊긴 실행은 **아무도 이어받지 않는다.** 그런데 `running` 은 정리 대상에서
+        제외되는 상태라(NON_TERMINAL_STATUSES) 보존 루프도 건드리지 않아, 서버가
+        한 번 죽을 때마다 화면과 통계에 영원히 '진행 중' 으로 남는다. 실제로
+        2026-08-27~29 에 죽은 4건이 3주 가까이 그렇게 남아 있었다.
+
+        `completed` 로 닫지 않는 이유는 **끝난 적이 없기 때문**이다. 상태 이름이
+        사실과 달라지면 이후 통계가 전부 거짓이 된다. 진행 중이던 단계도 그대로
+        `interrupted` 로 적어, 어디서 끊겼는지 나중에 볼 수 있게 남긴다.
+
+        `finished` 는 **비워 둔다.** 정리한 시각을 적으면 그게 종료 시각인 양
+        보이고, 보존 계산도 그 시점부터 다시 90일을 세어 기록이 그만큼 더 남는다.
+        비워 두면 `_purge_clause` 가 `started` 로 판단한다 — 원래 비정상 종료를
+        위해 만들어 둔 길이다.
+        """
+        marks = ",".join("?" for _ in INTERRUPTED_CANDIDATES)
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT id, snapshot FROM executions WHERE status IN ({marks})",
+                INTERRUPTED_CANDIDATES).fetchall()
+            for run_id, snapshot in rows:
+                try:
+                    entry = json.loads(snapshot)
+                except (TypeError, ValueError):
+                    entry = {"id": run_id}
+                entry["status"] = "interrupted"
+                entry["current_step"] = None
+                for step in entry.get("steps") or []:
+                    if step.get("status") in ("running", "pending"):
+                        step["status"] = "interrupted"
+                        detail = (step.get("detail") or "").strip()
+                        step["detail"] = (detail + " · " if detail else "") + "서버가 멈춰 여기서 끊김"
+                self._conn.execute(
+                    "UPDATE executions SET status=?, snapshot=? WHERE id=?",
+                    ("interrupted", json.dumps(entry, ensure_ascii=False), run_id))
+            if rows:
+                self._conn.commit()
+        return len(rows)
 
     def load_recent(self, limit=100):
         with self._lock:

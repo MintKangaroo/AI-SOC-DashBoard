@@ -83,6 +83,21 @@ cp scripts/soc-dashboard.service ~/.config/systemd/user/ && systemctl --user dae
 
 ## 3. 알려진 문제 · 결정 대기
 
+### 3-2. 끊긴 SOAR 실행 — 2026-09-16 해결
+
+서버가 죽으면 그때 돌던 SOAR 실행이 `running` 인 채로 멈춘다. 그런데 `running` 은
+보존 정리에서 **제외되는 상태**라 아무도 치우지 않아 화면·통계에 영원히 '진행 중'
+으로 남는다. 실제로 8/27~29 에 죽은 4건이 3주 가까이 남아 있었다.
+
+- 기동할 때 `SOARExecutionStore.recover_interrupted()` 가 이전 프로세스의
+  `running`·`pending`·`processing_approval` 을 **`interrupted`** 로 닫는다.
+  `waiting_approval` 은 건드리지 않는다 — 사람의 결정을 기다리는 것이지 끊긴 게 아니다.
+- `completed` 로 닫지 않는 이유는 끝난 적이 없기 때문이다. 어느 단계에서 끊겼는지도
+  그 단계에 적어 남긴다.
+- `finished` 는 비워 둔다. 정리한 시각을 적으면 종료 시각인 양 보이고, 보존 계산이
+  그 시점부터 다시 90일을 센다(`_purge_clause` 가 `started` 로 판단하는 길이 이미 있다).
+- 기존 4건은 2026-09-16 에 같은 코드로 정리했다. DB 백업은 `data/backup/` (git 제외).
+
 ### 3-1. 실캡처 메모리 — 2026-09-12 해결
 
 tshark 가 10시간 만에 RSS **3.6GB** 를 먹어 이 머신 가용 메모리가 1.6GB 까지

@@ -27,6 +27,7 @@ data/alerts_archive.db
 data/alerts.db.pre-production-*.bak.gz
 data/ansible/
 data/models/
+data/backup/
 # 이전 세션 포트폴리오 잔재 (docs/PORTFOLIO.md 로 통합됨)
 portfolio/
 docs/portfolio.md

@@ -16,7 +16,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from modules.incidents import IncidentManager
-from modules.soar_execution_store import (NON_TERMINAL_STATUSES,
+from modules.soar_execution_store import (INTERRUPTED_CANDIDATES,
+                                          NON_TERMINAL_STATUSES,
                                           SOARExecutionStore)
 
 
@@ -32,6 +33,63 @@ class FakeSocketIO:
 # ══════════════════════════════════════════════════════════════════
 #  SOAR 실행 이력
 # ══════════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════
+#  끊긴 실행 복구 — 서버가 죽으면 그 자리에서 멈춘다
+# ══════════════════════════════════════════════════════════════════
+#
+# `running` 은 정리 대상에서 제외되는 상태라, 서버가 죽을 때마다 화면과 통계에
+# 영원히 '진행 중' 으로 남는다. 실제로 2026-08-27~29 에 죽은 4건이 3주 가까이
+# 남아 있었다(2026-09-16 정리). 다음 기동이 이걸 닫아야 한다.
+
+
+@pytest.mark.parametrize("status", INTERRUPTED_CANDIDATES)
+def test_interrupted_runs_are_closed_on_next_start(store, status):
+    _save(store, 1, status, days_ago=3, finished=False)
+    assert store.recover_interrupted() == 1
+    assert store.counts_by_status() == {"interrupted": 1}
+
+
+def test_waiting_approval_is_not_touched_by_recovery(store):
+    """사람의 결정을 기다리는 것은 끊긴 게 아니다 — 닫으면 결정 기회가 사라진다."""
+    _save(store, 1, "waiting_approval", days_ago=3, finished=False)
+    assert store.recover_interrupted() == 0
+    assert store.counts_by_status() == {"waiting_approval": 1}
+
+
+def test_recovery_keeps_where_it_stopped(store):
+    """어디서 끊겼는지 남긴다 — 나중에 그 단계부터 볼 수 있어야 한다."""
+    store.save({"id": 7, "playbook": "PB-AI-TRIAGE", "status": "running",
+                "started": _ts(2), "finished": None, "current_step": "notify",
+                "steps": [{"key": "ai", "status": "completed", "detail": "신뢰도 87%"},
+                          {"key": "notify", "status": "running", "detail": "인시던트 승격"},
+                          {"key": "close", "status": "pending", "detail": ""}]})
+    store.recover_interrupted()
+    entry = store.load_recent(1)[0]
+    assert entry["status"] == "interrupted"
+    assert entry["current_step"] is None
+    # 종료 시각은 비워 둔다 — 정리한 시각은 끝난 시각이 아니고, 적으면 보존이
+    # 그 시점부터 다시 세어진다(아래 테스트가 그걸 잡는다).
+    assert not entry.get("finished")
+    steps = {s["key"]: s for s in entry["steps"]}
+    assert steps["ai"]["status"] == "completed"          # 끝난 단계는 그대로
+    assert steps["ai"]["detail"] == "신뢰도 87%"
+    assert steps["notify"]["status"] == "interrupted"
+    assert "끊김" in steps["notify"]["detail"]
+    assert "인시던트 승격" in steps["notify"]["detail"]   # 원래 내용도 남긴다
+
+
+def test_recovery_is_idempotent_and_purgeable_afterwards(store):
+    """닫힌 뒤에는 보존 루프가 정리할 수 있어야 한다 — 안 그러면 영원히 쌓인다.
+
+    나이는 **원래 시작 시각** 기준이다. 정리한 시각을 종료로 적으면 200일 된
+    기록이 다시 90일을 기다리게 된다.
+    """
+    _save(store, 1, "running", days_ago=200, finished=False)
+    assert store.recover_interrupted() == 1
+    assert store.recover_interrupted() == 0
+    assert store.count_purgeable(90) == 1
+
 
 @pytest.fixture
 def store(tmp_path):
